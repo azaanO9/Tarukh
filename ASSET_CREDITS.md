@@ -40,6 +40,12 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
 
+## Separate outpost review models
+
+`assets/outpost-review/` contains furnished cutaway and full-height GLBs, previews and Blender construction source. These are separate review assets and are not loaded by Mars exploration. Geometry and materials were authored procedurally in Blender through Higgsfield 3D Jutsu, following the user-supplied **Mars Dune Alpha** floor plan. The reference image itself is not distributed.
+
+The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-space/chapea/), with architecture attributed to [ICON/BIG](https://big.dk/projects/mars-chapea-4310). It is an Earth-based analog habitat. TARUKH's furnishings, inferred elevations, roof and colour treatment are artistic adaptations, not an official NASA/ICON/BIG model or certified habitat design. See the [asset notes](assets/outpost-review/README.md) for scale, validation and integration limits.
+
 ## Software notices
 
 Three.js modeling, environment and post-processing utilities retain the dependency's MIT license. The vendored Draco decoder is distributed unchanged with its existing notices. Keep `vendor/shadcn-tailwind-4.13.0.LICENSE.md` and `scripts/vite/sites-vite-plugin.LICENSE` with their associated sources.
