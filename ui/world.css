@@ -1232,52 +1232,163 @@
   letter-spacing: 0.02em;
 }
 
-/* Bottom Radiation & Space Weather HUD Bar */
+/* Bottom-Right Mars Telemetry GTA 5 Style Phone Window */
 .mars-radiation-hud {
   position: absolute;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  right: max(18px, env(safe-area-inset-right));
+  left: auto;
+  transform: none;
   z-index: 22;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  background: linear-gradient(135deg, rgba(10, 18, 30, 0.88) 0%, rgba(6, 12, 22, 0.94) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 14px;
-  padding: 8px 16px;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  flex-direction: column;
+  gap: 8px;
+  width: 248px;
+  box-sizing: border-box;
+  background: linear-gradient(175deg, rgba(14, 23, 40, 0.94) 0%, rgba(8, 14, 26, 0.98) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 26px;
+  padding: 10px 12px 8px;
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
   box-shadow:
-    0 16px 36px -4px rgba(0, 0, 0, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 0 20px rgba(56, 189, 248, 0.1);
+    0 20px 48px -6px rgba(0, 0, 0, 0.82),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 24px rgba(56, 189, 248, 0.14);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   color: #e2e8f0;
   pointer-events: auto;
-  transition: bottom 0.25s ease-out;
-  max-width: calc(100vw - 32px);
+  user-select: none;
+  transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+  max-width: calc(100vw - 24px);
 }
 
 .mars-radiation-hud.driving {
-  bottom: calc(max(24px, env(safe-area-inset-bottom)) + 76px);
+  bottom: max(18px, env(safe-area-inset-bottom));
+  right: max(18px, env(safe-area-inset-right));
+  left: auto;
+  transform: none;
 }
 
-/* Telemetry Badge & Controls */
-.mars-rad-telemetry-badge {
+/* Phone Top Speaker & Status Bar */
+.mars-phone-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 2px;
+}
+
+.mars-phone-speaker {
+  width: 44px;
+  height: 3.5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mars-phone-status-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.mars-phone-carrier {
+  color: #94a3b8;
+}
+
+.mars-phone-net {
+  color: #38bdf8;
+}
+
+.mars-phone-home-indicator {
+  width: 68px;
+  height: 3.5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 2px auto 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Phone Controls Row */
+.mars-phone-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mars-phone-controls-row .mars-rad-mode-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.mars-phone-controls-row .mars-rad-event-btn {
+  flex: 1;
+  justify-content: space-between;
+  max-width: 110px;
+}
+
+/* Phone Card Container */
+.mars-phone-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 7px 9px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  padding-right: 14px;
-  min-width: 175px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.mars-rad-telemetry-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.mars-phone-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
 }
+
+.mars-phone-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 700 9px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.06em;
+}
+
+.mars-phone-flux-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 1px;
+}
+
+.mars-phone-flux-val {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.mars-phone-flux-val small {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.mars-phone-flux-sub {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+
+
+
 
 .mars-rad-mode-btn {
   background: rgba(255, 255, 255, 0.08);
@@ -1460,13 +1571,7 @@
   animation: dotFlash 0.8s infinite alternate;
 }
 
-/* Main Radiation Exposure Bar */
-.mars-rad-bar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 190px;
-}
+
 
 .mars-rad-bar-header {
   display: flex;
@@ -1562,15 +1667,7 @@
   animation: dotFlash 0.9s infinite alternate;
 }
 
-/* Core Astronaut Health Indicator */
-.mars-rad-health-section {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
-  padding-left: 14px;
-  min-width: 95px;
-}
+
 
 .mars-health-header {
   display: flex;
@@ -1627,45 +1724,23 @@
 }
 
 /* Responsive Rules for Small / Mobile Screens */
-@media (max-width: 860px) {
+@media (max-height: 520px) {
   .mars-radiation-hud {
-    padding: 6px 10px;
-    gap: 10px;
-    bottom: max(10px, env(safe-area-inset-bottom));
-  }
-
-  .mars-rad-telemetry-badge {
-    min-width: 140px;
-    padding-right: 8px;
-  }
-
-  .mars-rad-bar-section {
-    min-width: 140px;
-  }
-
-  .mars-radiation-hud.driving {
-    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 64px);
+    transform: scale(0.82);
+    transform-origin: bottom right;
+    bottom: max(6px, env(safe-area-inset-bottom));
+    right: max(6px, env(safe-area-inset-right));
   }
 }
 
 @media (max-width: 620px) {
   .mars-radiation-hud {
-    flex-wrap: wrap;
-    justify-content: center;
-    width: min(94vw, 420px);
-    gap: 8px;
-  }
-
-  .mars-rad-telemetry-badge {
-    border-right: none;
-    padding-right: 0;
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .mars-rad-health-section {
-    border-left: none;
-    padding-left: 0;
+    width: 216px;
+    padding: 8px 10px 6px;
+    gap: 6px;
+    border-radius: 20px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
   }
 }
 

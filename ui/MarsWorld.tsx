@@ -2431,54 +2431,64 @@ export default function MarsWorld(props: Props) {
         </aside>
       )}
 
-      {/* Bottom Radiation Exposure & Space Weather HUD Bar */}
+      {/* Bottom-Right GTA 5 Style Mars Telemetry Phone HUD */}
       <div
-        className={`mars-radiation-hud${roverDriving ? " driving" : ""}`}
+        className={`mars-radiation-hud gta-phone${roverDriving ? " driving" : ""}`}
         role="region"
-        aria-label="Radiation and Space Weather Telemetry"
+        aria-label="Radiation and Space Weather Telemetry Phone"
       >
-        {/* Telemetry Badge & Live/Historical Controls */}
-        <div className="mars-rad-telemetry-badge">
-          <div className="mars-rad-telemetry-top">
-            <button
-              type="button"
-              className={`mars-rad-mode-btn ${spaceWeather.mode}`}
-              onClick={toggleSpaceWeatherMode}
-              title="Toggle Live NOAA Feed vs NASA DONKI Archive Replay [Hotkey Y]"
-              aria-label={`Toggle Space Weather Mode (Current: ${spaceWeather.mode === "live" ? "Live Feed" : "NASA Archive"})`}
-            >
-              <span className="mars-mode-indicator" />
-              <b>{spaceWeather.mode === "live" ? "LIVE FEED" : "NASA ARCHIVE"}</b>
-              <span className="mars-key-tag">Y</span>
-            </button>
-
-            {spaceWeather.mode === "historical" && (
-              <button
-                type="button"
-                className="mars-rad-event-btn"
-                onClick={handleNextHistoricalEvent}
-                title="Select historical NASA SEP event"
-                aria-label="Cycle historical NASA SEP event"
-              >
-                <span>{spaceWeather.activeEvent?.name ?? "Superstorm"}</span>
-                <span className="mars-cycle-tag">Next ▾</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              className={`mars-rad-audio-btn ${geigerMuted ? "muted" : "active"}`}
-              onClick={handleToggleGeigerMute}
-              title={geigerMuted ? "Unmute Geiger Counter" : "Mute Geiger Counter"}
-              aria-label="Toggle Geiger counter audio"
-            >
-              {geigerMuted ? "🔇" : "🔊"}
-            </button>
+        {/* Top Speaker & Status Bar */}
+        <div className="mars-phone-top">
+          <div className="mars-phone-speaker" />
+          <div className="mars-phone-status-bar">
+            <span className="mars-phone-carrier">🛰️ SAT-LINK · NOAA</span>
+            <span className="mars-phone-net">5G · 100%</span>
           </div>
+        </div>
 
-          <div className="mars-rad-telemetry-flux">
+        {/* Telemetry Mode & Audio Controls */}
+        <div className="mars-phone-controls-row">
+          <button
+            type="button"
+            className={`mars-rad-mode-btn ${spaceWeather.mode}`}
+            onClick={toggleSpaceWeatherMode}
+            title="Toggle Live NOAA Feed vs NASA DONKI Archive Replay [Hotkey Y]"
+            aria-label={`Toggle Space Weather Mode (Current: ${spaceWeather.mode === "live" ? "Live Feed" : "NASA Archive"})`}
+          >
+            <span className="mars-mode-indicator" />
+            <b>{spaceWeather.mode === "live" ? "LIVE FEED" : "NASA ARCHIVE"}</b>
+            <span className="mars-key-tag">Y</span>
+          </button>
+
+          {spaceWeather.mode === "historical" && (
+            <button
+              type="button"
+              className="mars-rad-event-btn"
+              onClick={handleNextHistoricalEvent}
+              title="Select historical NASA SEP event"
+              aria-label="Cycle historical NASA SEP event"
+            >
+              <span>{spaceWeather.activeEvent?.name ?? "Superstorm"}</span>
+              <span className="mars-cycle-tag">Next ▾</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`mars-rad-audio-btn ${geigerMuted ? "muted" : "active"}`}
+            onClick={handleToggleGeigerMute}
+            title={geigerMuted ? "Unmute Geiger Counter" : "Mute Geiger Counter"}
+            aria-label="Toggle Geiger counter audio"
+          >
+            {geigerMuted ? "🔇" : "🔊"}
+          </button>
+        </div>
+
+        {/* Card 1: Solar Energetic Particles (SEP) */}
+        <div className="mars-phone-card sep-card">
+          <div className="mars-phone-card-header">
             <div className="mars-flux-label-row">
-              <span className="mars-flux-title">SEP</span>
+              <span className="mars-flux-title">SEP PROTONS</span>
               <button
                 type="button"
                 className="mars-sep-info-trigger"
@@ -2496,19 +2506,24 @@ export default function MarsWorld(props: Props) {
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
               </button>
-              <span className="mars-flux-val">
-                <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b> PFU
-              </span>
             </div>
             <span className={`mars-storm-scale scale-${spaceWeather.stormScale.slice(0, 2).toLowerCase()}`}>
               {spaceWeather.stormScale}
             </span>
           </div>
+
+          <div className="mars-phone-flux-body">
+            <span className="mars-phone-flux-val">
+              <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b>
+              <small> PFU</small>
+            </span>
+            <span className="mars-phone-flux-sub">≥10 MeV PROTON FLUX</span>
+          </div>
         </div>
 
-        {/* Main Radiation Exposure Bar */}
-        <div className="mars-rad-bar-section">
-          <div className="mars-rad-bar-header">
+        {/* Card 2: Radiation Exposure Bar */}
+        <div className="mars-phone-card rad-card">
+          <div className="mars-phone-card-header">
             <span className="mars-rad-title">RADIATION EXPOSURE</span>
             <span className={`mars-rad-val ${exposureClass}`}>
               <b>{radiationExposure.toFixed(1)}</b> / 100.0 mSv
@@ -2540,9 +2555,9 @@ export default function MarsWorld(props: Props) {
           </div>
         </div>
 
-        {/* Astronaut Health Indicator */}
-        <div className="mars-rad-health-section">
-          <div className="mars-health-header">
+        {/* Card 3: Health Bar */}
+        <div className="mars-phone-card health-card">
+          <div className="mars-phone-card-header">
             <span className="mars-health-title">HEALTH</span>
             <span className={`mars-health-val ${healthClass}`}>
               {Math.round(astronautHealth)}%
@@ -2565,6 +2580,9 @@ export default function MarsWorld(props: Props) {
             {isDead ? "TERMINATED" : radiationExposure >= 70 ? "FATIGUE -30% SPD" : "NOMINAL VITALS"}
           </small>
         </div>
+
+        {/* Phone Home Swipe Bar */}
+        <div className="mars-phone-home-indicator" />
       </div>
      {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
     </>)}
@@ -2579,7 +2597,7 @@ export default function MarsWorld(props: Props) {
              <line x1="12" y1="17" x2="12.01" y2="17" />
            </svg>
          </div>
-         <h1 className="mars-death-title">You could'nt make it</h1>
+         <h1 className="mars-death-title">You could&apos;nt make it</h1>
          <p className="mars-death-desc">
            Vital signs terminated · Critical radiation sickness on Mars
          </p>
@@ -2649,11 +2667,11 @@ export default function MarsWorld(props: Props) {
              <span>⚠️</span> What Does It Do on Mars?
            </div>
            <p>
-             Earth is shielded by a strong planetary magnetic field and a dense atmosphere. <b>Mars has no global magnetic shield and less than 1% of Earth's atmosphere</b>, leaving the surface exposed to direct solar storm bombardment:
+             Earth is shielded by a strong planetary magnetic field and a dense atmosphere. <b>Mars has no global magnetic shield and less than 1% of Earth&apos;s atmosphere</b>, leaving the surface exposed to direct solar storm bombardment:
            </p>
            <p>
              • High-energy protons penetrate the suit and cause <b>Acute Radiation Sickness (ARS)</b>.<br />
-             • Triggers <b>CMOS sensor static ("radiation snow")</b> and <b>progressive vision blur / red tunnel vision</b>.<br />
+             • Triggers <b>CMOS sensor static (&quot;radiation snow&quot;)</b> and <b>progressive vision blur / red tunnel vision</b>.<br />
              • At <b>≥70 mSv</b>, causes <b>30% sprint fatigue</b>; above <b>75 mSv</b>, causes <b>Health degradation</b> until fatal.
            </p>
          </div>
