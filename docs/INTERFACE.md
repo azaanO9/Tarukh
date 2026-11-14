@@ -13,7 +13,7 @@
 | Science rovers | `game/curiosityRover.ts` and `createCuriosityRover.ts` handle autonomous navigation/scanning; `createPerseveranceRover.ts` renders the historical landing marker |
 | Terrain and map coordinates | `game/marsRegion.ts`, `terrainStreaming.ts`, `content/marsMolaData.ts` and `marsLandmarks.ts`; rendering and collision use the same height samples |
 | Surface and distance rendering | `ui/world/marsTerrain.ts`, `streamedMars.ts`, `marsRegionalLandscape.ts`; shared materials, bounded tile pool and regional far surface |
-| Atlas and field map | `ui/MarsAtlas.tsx`, `ExplorationMinimap.tsx`, `game/marsAtlas.ts`, `minimap.ts`; map selection stays in memory |
+| Atlas and field map | `ui/MarsAtlas.tsx`, `ExplorationMinimap.tsx`, `game/marsAtlas.ts`, `minimap.ts`, `topoContours.ts`; map selection stays in memory |
 | Daylight and landing | `game/daylightCycle.ts`, `shuttleLanding.ts`; presentation timing consumed by the renderer |
 | Quality selection | `game/autoGraphics.ts`, `backgroundGraphics.ts`, `ui/world/graphicsTiers.ts`; measured session-only selection with manual overrides |
 

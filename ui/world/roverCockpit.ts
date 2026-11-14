@@ -3,6 +3,7 @@ import {assetUrl} from '../../lib/assetUrl.ts';
 import {MARS_LANDMARKS} from '../../content/marsLandmarks.ts';
 import {surveyRegionLabel} from '../../content/marsLandingSites.ts';
 import {REGION_WORLD_BOUNDS as B,isSurveyedRegion} from '../../game/marsRegion.ts';
+import {generateTopoContours} from '../../game/topoContours.ts';
 import type { LidarScan } from "../../game/roverLidar";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -154,6 +155,8 @@ export function createRoverCockpit() {
   let lastReadout = "",lastPaint=-Infinity;
   const regionMap=typeof Image==='undefined'?null:new Image();
   if(regionMap)regionMap.src=assetUrl('art/mars-mola-overview.webp');
+  const groundTexture=typeof Image==='undefined'?null:new Image();
+  if(groundTexture)groundTexture.src=assetUrl('art/mars-surface/dry-rocky-soil-color.webp');
   let lastScan: LidarScan | undefined;
   function update(rover: RoverVehicle, scan?: LidarScan, curiosity?: { x: number; z: number; yaw?: number } | null) {
     stick.rotation.z = -rover.steerAngle * .65;
@@ -213,10 +216,36 @@ export function createRoverCockpit() {
     context.stroke();
     context.clip();
 
+    // Real HD Mars ground texture pattern
+    if(groundTexture?.complete&&groundTexture.naturalWidth){
+      context.save();
+      const pattern=context.createPattern(groundTexture,'repeat');
+      if(pattern){
+        context.fillStyle=pattern;context.globalAlpha=.85;
+        context.fillRect(mapL,mapT,mapW,mapH);
+      }
+      context.restore();
+    }
+
     // Geographic registration matches the external field map; no decorative fake elevations.
     if(regionMap?.complete&&regionMap.naturalWidth){
-      context.save();context.globalAlpha=.52;
+      context.save();context.globalAlpha=.35;
       context.drawImage(regionMap,mapCenterX+(B.west-rover.x)*mapScale,mapCenterY+(B.north-rover.z)*mapScale,(B.east-B.west)*mapScale,(B.south-B.north)*mapScale);
+      context.restore();
+    }
+
+    // Authentic Mars MOLA topographic contours
+    const topo = generateTopoContours(rover.x, rover.z, 30, mapL, mapT, mapW, mapH);
+    if(typeof Path2D !== 'undefined') {
+      context.save();
+      for(const contour of topo.contours){
+        context.strokeStyle=contour.isMajor?'rgba(253, 224, 71, 0.85)':'rgba(249, 115, 22, 0.45)';
+        context.lineWidth=contour.isMajor?1.4:0.8;
+        if(typeof context.setLineDash==='function'){
+          context.setLineDash(contour.isMajor?[]:[3,2]);
+        }
+        context.stroke(new Path2D(contour.path));
+      }
       context.restore();
     }
 
