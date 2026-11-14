@@ -1054,6 +1054,26 @@ export default function MarsWorld(props: Props) {
           setPhoneOpen(false);
           return;
         }
+        if (phoneOpenRef.current) {
+          if (e.key === "ArrowRight" && !e.repeat && !onInteractive) {
+            e.preventDefault();
+            setActivePhoneTab((current) => {
+              const tabs = ["home", "telemetry", "systems", "data", "settings"] as const;
+              const idx = tabs.indexOf(current);
+              return tabs[(idx + 1) % tabs.length];
+            });
+            return;
+          }
+          if (e.key === "ArrowLeft" && !e.repeat && !onInteractive) {
+            e.preventDefault();
+            setActivePhoneTab((current) => {
+              const tabs = ["home", "telemetry", "systems", "data", "settings"] as const;
+              const idx = tabs.indexOf(current);
+              return tabs[(idx - 1 + tabs.length) % tabs.length];
+            });
+            return;
+          }
+        }
         if (k === "y" && !e.repeat && !onInteractive) {
           e.preventDefault();
           toggleSpaceWeatherAction.current();
@@ -2488,8 +2508,16 @@ export default function MarsWorld(props: Props) {
           )}
         </div>
 
-        {/* Inner OLED Display Screen */}
+        {/* Inner OLED Display Screen with NASA Topographic Elevation Overlay */}
         <div className="mars-phone-screen">
+          <svg className="mars-phone-topo-lines" viewBox="0 0 264 360" aria-hidden="true">
+            <path d="M-20 45 C40 30, 90 65, 150 40 C210 15, 240 55, 290 40" fill="none" stroke="rgba(56, 189, 248, 0.09)" strokeWidth="1" />
+            <path d="M-20 85 C50 65, 110 95, 170 70 C220 50, 250 90, 290 75" fill="none" stroke="rgba(56, 189, 248, 0.08)" strokeWidth="1" />
+            <path d="M-20 135 C30 115, 90 160, 160 125 C220 95, 250 145, 290 120" fill="none" stroke="rgba(56, 189, 248, 0.07)" strokeWidth="1" strokeDasharray="3 3" />
+            <path d="M-20 190 C60 165, 120 210, 180 180 C230 155, 260 200, 290 175" fill="none" stroke="rgba(56, 189, 248, 0.06)" strokeWidth="1" />
+            <path d="M-20 245 C40 225, 100 260, 170 235 C220 215, 255 250, 290 230" fill="none" stroke="rgba(56, 189, 248, 0.05)" strokeWidth="1" />
+            <path d="M-20 305 C50 280, 110 320, 180 290 C230 270, 260 310, 290 285" fill="none" stroke="rgba(56, 189, 248, 0.05)" strokeWidth="1" strokeDasharray="2 2" />
+          </svg>
           {/* Header Logos Row: NASA Meatball (left) & TARUKH (right) */}
           <div className="mars-phone-brand-header">
             <div className="mars-nasa-wrap" title="National Aeronautics and Space Administration">
@@ -2921,8 +2949,8 @@ export default function MarsWorld(props: Props) {
             </div>
           )}
 
-          {/* Bottom 5 Navigation Tabs */}
-          <nav className="mars-phone-nav-bar" aria-label="Phone Navigation">
+          {/* Bottom 5 Navigation Tabs with Left/Right Arrow Navigation Hint */}
+          <nav className="mars-phone-nav-bar" aria-label="Phone Navigation (Navigate with Left/Right Arrows or Click)">
             <button
               type="button"
               className={`mars-nav-btn ${activePhoneTab === "home" ? "active" : ""}`}
