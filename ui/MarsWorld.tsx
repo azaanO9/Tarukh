@@ -182,7 +182,7 @@ export default function MarsWorld(props: Props) {
       const gl = renderer.getContext();
       const gpuInfo = gl.getExtension("WEBGL_debug_renderer_info");
       const gpuName = gpuInfo ? String(gl.getParameter(gpuInfo.UNMASKED_RENDERER_WEBGL)) : "";
-      let autoProfile: AutoProfile = 'performance';
+      let autoProfile: AutoProfile = props.initialQuality === 'performance' ? 'performance' : 'auto';
       const terrainBudget = streamingBudget(gpuName, navigator.hardwareConcurrency, (navigator as Navigator & {
         deviceMemory?: number;
       }).deviceMemory, mobileMars, props.initialQuality ?? "auto");
@@ -1496,7 +1496,7 @@ export default function MarsWorld(props: Props) {
           element.dataset.measurementStatus = 'active';
         if (backgroundProbe && !backgroundProbe.done()) {
           const candidate = backgroundProbe.candidate();
-          const eligible = p.enabled && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
+          const eligible = p.enabled && !landingIntro?.isActive() && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
           const decision = backgroundProbe.frame(frameInterval, performance.now() - frameStarted, eligible);
           if (decision) {
             autoProfile = decision.next.profile;
@@ -1721,51 +1721,68 @@ export default function MarsWorld(props: Props) {
       if (cancelled)
         return;
       {
-        setLoadingStage("Preparing the expanding Mars landscape…");
+        setLoadingStage("Fully rendering Mars landscape & terrain…");
+        setLoadingProgress(92);
         const ground = model.root.getObjectByName("mars-ground") as import("three").Mesh;
         streaming = createStreamedMars(model.root, ground, baseHeight, { ...terrainBudget, obstacles: model.obstacles, sampleHeight: marsExpeditionHeight, clearings: [PERSEVERANCE_CLEARING] });
         streaming.setPerformance(lastQuality === 'performance');
-        streaming.update(walker.x, walker.z, terrainBudget.generationMs);
+        // Fully generate all terrain chunks and rock instances within radius during loading
+        streaming.update(walker.x, walker.z, 50);
         while (streaming.pending()) {
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
           if (cancelled)
             return;
-          streaming.update(walker.x, walker.z, terrainBudget.generationMs);
+          streaming.update(walker.x, walker.z, 50);
         }
+        const coverage = streaming.coverage();
+        regionalLandscape?.setCoverage(coverage.x, coverage.y, coverage.z, coverage.w);
         (scene.fog as import("three").FogExp2).density = graphicsTier(lastQuality).fogDensity;
-        await renderer.compileAsync(scene, camera);
-        renderer.render(scene, camera);
-        configureEffects(true);
       }
       if (cancelled)
         return;
-      // Optional high-quality work happens after entry. It never holds the shuttle cover.
-      const prepareBackground = async () => {
+      {
+        setLoadingStage("Compiling visual shaders & touchdown sequence…");
+        setLoadingProgress(96);
         try {
-          if (effectsSupported)
+          // Prepare post-processing effects during loading so no compilation stalls touchdown
+          if (effectsSupported && lastQuality !== "performance") {
             await prepareEffects();
-          if (cancelled)
-            return;
-          model.setLightSurfaces?.(false);
-          renderer.shadowMap.enabled = true;
-          // compileAsync submits shaders synchronously; restore the playable preset
-          // while the driver links them. Neither the actor nor camera is moved.
-          const compiling = renderer.compileAsync(scene, camera);
-          model.setLightSurfaces?.(effectiveQuality() === 'performance');
-          renderer.shadowMap.enabled = graphicsTier(effectiveQuality()).shadows;
-          await compiling;
-          if (cancelled)
-            return;
-          if (composer) {
+            if (cancelled)
+              return;
+          }
+
+          // Pre-warm the spaceship touchdown camera view (high altitude, looking down at landing zone)
+          if (landingIntro) {
+            const landingGround = model.heightAt(ARRIVAL_SPAWN.x, ARRIVAL_SPAWN.z);
+            landingIntro.update(0, camera, { x: ARRIVAL_SPAWN.x, y: landingGround, z: ARRIVAL_SPAWN.z });
+            await renderer.compileAsync(scene, camera);
+            renderer.render(scene, camera);
+            configureEffects(true);
+            // Reset landing intro so the cinematic begins smoothly from t=0
+            if (current.current.playLandingIntro) {
+              landingIntro.start();
+            }
+          }
+
+          // Warm up the ground exploration view
+          camera.position.set(.22, 2.8, 17.8);
+          camera.rotation.set(pitch, 0, 0, "YXZ");
+          await renderer.compileAsync(scene, camera);
+          renderer.render(scene, camera);
+          configureEffects(true);
+
+          // Warm up composer offscreen so all effect passes and buffers are primed
+          const warmComposer = composer as import("three/examples/jsm/postprocessing/EffectComposer.js").EffectComposer | null;
+          if (warmComposer) {
             resize();
-            const warmComposer = composer;
             const renderToScreen = warmComposer.renderToScreen;
             warmComposer.renderToScreen = false;
-            if (occlusion)
-              occlusion.enabled = true;
-            if (bloom)
-              bloom.enabled = !reduced.matches;
-            // One offscreen warm-up, not a second benchmarking render loop.
+            const warmOcclusion = occlusion as import("three/examples/jsm/postprocessing/GTAOPass.js").GTAOPass | null;
+            if (warmOcclusion)
+              warmOcclusion.enabled = graphicsTier(lastQuality).ssao;
+            const warmBloom = bloom as import("three/examples/jsm/postprocessing/UnrealBloomPass.js").UnrealBloomPass | null;
+            if (warmBloom)
+              warmBloom.enabled = graphicsTier(lastQuality).bloom && !reduced.matches;
             try {
               renderEffects();
             }
@@ -1774,7 +1791,7 @@ export default function MarsWorld(props: Props) {
             }
           }
         }
-        catch { /* Keep the direct renderer when optional effects are unavailable. */ }
+        catch { /* Keep direct renderer if optional effects are unavailable */ }
         finally {
           if (!cancelled) {
             scene.overrideMaterial = null;
@@ -1788,7 +1805,9 @@ export default function MarsWorld(props: Props) {
             metricFrames = 0;
           }
         }
-      };
+      }
+      if (cancelled)
+        return;
       applyQuality(effectiveQuality(), resolutionScale);
       if (backgroundProbe) {
         backgroundStarted = performance.now();
@@ -1797,8 +1816,6 @@ export default function MarsWorld(props: Props) {
         current.current.onGraphicsCalibration?.(report);
         element.dataset.calibrationState = 'checking';
         element.dataset.calibrationTarget = String(AUTO_TARGET_FPS);
-        // Let the first playable frame paint before optional shader preparation.
-        backgroundTimer = window.setTimeout(() => { void prepareBackground(); }, 100);
       }
       current.current.onTerrainMode?.(!!streaming);
       element.dataset.terrainMode = streaming ? "streamed" : "finite";
