@@ -8,9 +8,6 @@ TARUKH is a browser-based Mars exploration game developed for the NASA Space App
 
 The game is free exploration. The repository contains the current Mars game and its build, asset-preparation and testing tools. Retired mission, quiz, survival, story and lunar modes have been removed.
 
-## Repository history
-
-This independent repository was initialized on 14 November 2026 from an existing TARUKH project snapshot. Development predates this repository. The initial commit records the migration date, not the start of the game's development. Earlier Git history, branches and tags were not imported.
 
 ## Features
 
