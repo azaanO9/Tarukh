@@ -118,6 +118,7 @@ type Props = {
   initialQuality?: "auto" | "performance";
   onTouchControlsChange?: (active: boolean) => void;
   playLandingIntro?: boolean;
+  onRestart?: () => void;
 };
 export default function MarsWorld(props: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -185,11 +186,40 @@ export default function MarsWorld(props: Props) {
   const [astronautHealth, setAstronautHealth] = useState(100);
   const astronautHealthRef = useRef(100);
   astronautHealthRef.current = astronautHealth;
+  const [isDead, setIsDead] = useState(false);
+  const isDeadRef = useRef(false);
+  isDeadRef.current = isDead;
   const [isShielded, setIsShielded] = useState(false);
   const isShieldedRef = useRef(false);
   isShieldedRef.current = isShielded;
   const [geigerMuted, setGeigerMuted] = useState(false);
   const snowCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleRestartWorld = useCallback(() => {
+    if (props.onRestart) {
+      props.onRestart();
+    } else if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }, [props.onRestart]);
+
+  useEffect(() => {
+    if (!isDead) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        handleRestartWorld();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    const timer = setTimeout(() => {
+      handleRestartWorld();
+    }, 3800);
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      clearTimeout(timer);
+    };
+  }, [isDead, handleRestartWorld]);
 
   const toggleSpaceWeatherMode = useCallback(() => {
     geigerAudio.current?.resume();
@@ -1152,6 +1182,7 @@ export default function MarsWorld(props: Props) {
       let lastReportedExposure = 0;
       let lastReportedHp = 100;
       let lastSpaceWeatherUpdate = 0;
+      let deathCollapse = 0;
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
@@ -1209,6 +1240,15 @@ export default function MarsWorld(props: Props) {
         const activeTier = graphicsTier(lastQuality);
         model.updateTracks?.(renderer, walker.x, walker.z, mobileMars || lastQuality === "performance");
         const dropRunning = Boolean(landingIntro?.isActive() && true && p.enabled);
+        if (isDeadRef.current) {
+          keys.clear();
+          walker.vx = 0;
+          walker.vz = 0;
+          if (rover.driving) {
+            rover.speed = 0;
+            rover.handbrake = true;
+          }
+        }
         if (p.enabled && !dropRunning) {
           const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
           const step = dt / steps;
@@ -1415,13 +1455,21 @@ export default function MarsWorld(props: Props) {
 
             let currentHp = astronautHealthRef.current;
             if (updatedExp >= 75 && !shieldedNow) {
-              currentHp = Math.max(0, currentHp - 2.0 * dt);
-            } else if (shieldedNow && currentHp < 100) {
+              const drainMultiplier = updatedExp >= 90 ? 4.5 : 2.5;
+              currentHp = Math.max(0, currentHp - drainMultiplier * dt);
+            } else if (shieldedNow && currentHp < 100 && !isDeadRef.current) {
               currentHp = Math.min(100, currentHp + 2.5 * dt);
+            }
+            if (currentHp <= 0 && !isDeadRef.current) {
+              currentHp = 0;
+              isDeadRef.current = true;
+              setIsDead(true);
             }
             astronautHealthRef.current = currentHp;
 
-            geigerAudio.current?.update(dt, telemetry.sepFluxPFU, shieldedNow);
+            if (!isDeadRef.current) {
+              geigerAudio.current?.update(dt, telemetry.sepFluxPFU, shieldedNow);
+            }
 
             if (time - lastSpaceWeatherUpdate > 100 || Math.abs(updatedExp - lastReportedExposure) > 0.08 || Math.abs(currentHp - lastReportedHp) > 0.5) {
               lastSpaceWeatherUpdate = time;
@@ -1523,9 +1571,13 @@ export default function MarsWorld(props: Props) {
           }
         }
         else {
+          if (isDeadRef.current) {
+            deathCollapse = Math.min(1, deathCollapse + dt * 1.5);
+          }
           astronaut.visible = third;
           const groundHeight = activeHeightAt(walker.x, walker.z);
-          astronaut.position.set(walker.x, groundHeight + jump.height, walker.z);
+          const collapseY = isDeadRef.current ? -deathCollapse * 0.5 : 0;
+          astronaut.position.set(walker.x, groundHeight + jump.height + collapseY, walker.z);
           if (astronautShadow) {
             astronautShadow.mesh.position.set(walker.x, groundHeight + 0.024, walker.z);
             astronautShadow.material.opacity = Math.max(0.12, (activeTier.shadows ? 0.18 : 0.46) - jump.height * 0.16) * (1);
@@ -1541,6 +1593,9 @@ export default function MarsWorld(props: Props) {
             characterYaw += diff * (1 - Math.exp(-14 * dt));
           }
           astronaut.rotation.y = characterYaw;
+          if (isDeadRef.current) {
+            astronaut.rotation.z = Math.min(1.4, astronaut.rotation.z + deathCollapse * 1.4);
+          }
           if (p.enabled && true && !rover.driving)
             footprints?.(walker.x, walker.z, characterYaw, jump.height < .04);
           gaitPhase += speed * dt * 2.4;
@@ -1574,7 +1629,13 @@ export default function MarsWorld(props: Props) {
             orbitInitialized = true;
           }
           else {
-            camera.position.set(walker.x, cameraGround + 1.7 + jump.height, walker.z);
+            const eyeHeight = isDeadRef.current
+              ? Math.max(0.35, 1.7 - deathCollapse * 1.35)
+              : 1.7;
+            camera.position.set(walker.x, cameraGround + eyeHeight + jump.height, walker.z);
+            if (isDeadRef.current) {
+              camera.rotation.z += (0.35 - camera.rotation.z) * (1 - Math.exp(-4 * dt));
+            }
           }
           if (third && true) {
             camera.lookAt(walker.x + Math.cos(cameraYaw) * shoulder, cameraGround + jump.height + (1.45), walker.z - Math.sin(cameraYaw) * shoulder);
@@ -2145,6 +2206,15 @@ export default function MarsWorld(props: Props) {
   const blurAmount = radiationExposure >= 35 ? Math.min(8, ((radiationExposure - 35) / 65) * 8) : 0;
   const vignetteAlpha = radiationExposure >= 35 ? Math.min(0.75, ((radiationExposure - 35) / 65) * 0.75) : 0;
 
+  const healthDamage = Math.max(0, Math.min(1, (100 - astronautHealth) / 100));
+  const centerRedAlpha = (healthDamage * 0.72).toFixed(3);
+  const midRadius = Math.max(20, Math.round(75 - healthDamage * 50));
+  const midRedAlpha = Math.min(0.90, healthDamage * 0.85 + 0.10).toFixed(3);
+  const edgeRedAlpha = Math.min(0.96, healthDamage * 0.90 + 0.18).toFixed(3);
+  const healthGradient = healthDamage > 0
+    ? `radial-gradient(circle at center, rgba(220, 38, 38, ${centerRedAlpha}) 0%, rgba(185, 28, 28, ${midRedAlpha}) ${midRadius}%, rgba(127, 29, 29, ${edgeRedAlpha}) 100%)`
+    : undefined;
+
   return (<div ref={host} className="sv-world" data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
@@ -2153,6 +2223,15 @@ export default function MarsWorld(props: Props) {
         backdropFilter: blurAmount > 0 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
         WebkitBackdropFilter: blurAmount > 0 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
         boxShadow: vignetteAlpha > 0 ? `inset 0 0 ${Math.round(60 + (radiationExposure - 35) * 1.5)}px rgba(220, 38, 38, ${vignetteAlpha.toFixed(2)})` : undefined,
+      }}
+      aria-hidden="true"
+    />
+    {/* Dynamic Health Damage Red Vignette Expanding Toward Screen Center */}
+    <div
+      className={`mars-health-damage-overlay ${astronautHealth > 0 && astronautHealth < 35 ? "critical-pulse" : ""}`}
+      style={{
+        opacity: healthDamage > 0 ? 1 : 0,
+        background: healthGradient,
       }}
       aria-hidden="true"
     />
@@ -2427,10 +2506,10 @@ export default function MarsWorld(props: Props) {
           </div>
         </div>
 
-        {/* Core Astronaut Health Indicator */}
+        {/* Astronaut Health Indicator */}
         <div className="mars-rad-health-section">
           <div className="mars-health-header">
-            <span className="mars-health-title">CORE HEALTH</span>
+            <span className="mars-health-title">HEALTH</span>
             <span className={`mars-health-val ${healthClass}`}>
               {Math.round(astronautHealth)}%
             </span>
@@ -2441,7 +2520,7 @@ export default function MarsWorld(props: Props) {
             aria-valuenow={Math.round(astronautHealth)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Astronaut core health"
+            aria-label="Astronaut health"
           >
             <div
               className={`mars-health-fill ${healthClass}`}
@@ -2449,12 +2528,44 @@ export default function MarsWorld(props: Props) {
             />
           </div>
           <small className="mars-health-sub">
-            {radiationExposure >= 70 ? "FATIGUE -30% SPD" : "NOMINAL VITALS"}
+            {isDead ? "TERMINATED" : radiationExposure >= 70 ? "FATIGUE -30% SPD" : "NOMINAL VITALS"}
           </small>
         </div>
       </div>
      {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
     </>)}
+   {/* Astronaut Death Screen Overlay */}
+   {isDead && (
+     <div className="mars-death-overlay" role="alert" aria-live="assertive">
+       <div className="mars-death-modal">
+         <div className="mars-death-hazard-icon" aria-hidden="true">
+           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+             <line x1="12" y1="9" x2="12" y2="13" />
+             <line x1="12" y1="17" x2="12.01" y2="17" />
+           </svg>
+         </div>
+         <h1 className="mars-death-title">You could'nt make it</h1>
+         <p className="mars-death-desc">
+           Vital signs terminated · Critical radiation sickness on Mars
+         </p>
+         <div className="mars-death-progress-wrap" aria-hidden="true">
+           <div className="mars-death-progress-bar" />
+         </div>
+         <div className="mars-death-footer">
+           <span className="mars-death-status">Restarting Mars exploration…</span>
+           <button
+             type="button"
+             className="mars-death-restart-btn"
+             onClick={handleRestartWorld}
+             autoFocus
+           >
+             Restart Now
+           </button>
+         </div>
+       </div>
+     </div>
+   )}
    {loaded && introActive && props.enabled && <div className="landing-caption" role="status"><b>{introTelemetry.phase}</b><span>{introTelemetry.alt > 0.1 ? `${introTelemetry.alt.toFixed(1)} m above landing surface` : "Elysium region · Mars"}</span><button onClick={() => skipIntroAction.current()}>Skip landing</button></div>}
    {message && <p className="sv-world-message" role="status">{message}</p>}
   </div>);

@@ -34,6 +34,11 @@ export default function MarsFreeRoam() {
   const dialog = useRef<HTMLElement>(null);
   const unavailable = useCallback(() => setFailed(true), []);
   const inspectRover = useCallback((id: string) => { if (id === "curiosity" || id === "perseverance") setInspect(id); }, []);
+  const handleRestart = useCallback(() => {
+    setSceneReady(false);
+    setArrived(false);
+    setAttempt(value => value + 1);
+  }, []);
   const modal = menu || failed || inspect || atlas;
 
   useEffect(() => { if (isCoarsePointerDevice()) setMode("mobile"); }, []);
@@ -77,7 +82,8 @@ export default function MarsFreeRoam() {
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase="explore">
     <MarsWorld key={attempt} playLandingIntro enabled={arrived && !modal && !blocked} onReady={ready} onTerrainMode={setStreamed} onGraphicsCalibration={setGraphicsStatus}
       showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={active => setMode(active ? "mobile" : "pc")}
-      initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={setView} onUnavailable={unavailable} />
+      initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={setView} onUnavailable={unavailable}
+      onRestart={handleRestart} />
     {!arrived && !failed && <ShuttleArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} graphicsStatus={graphicsStatus} />}
     {!modal && arrived && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
     <header className="roam-header"><b>TARUKH <span>· FREE EXPLORATION</span></b>{view?.cockpitView&&<button aria-keyshortcuts="CapsLock" onClick={openAtlas}>Atlas</button>}<button disabled={!arrived} onClick={() => setMenu(true)}>Pause</button></header>
