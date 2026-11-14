@@ -221,6 +221,20 @@ export default function MarsWorld(props: Props) {
     };
   }, [isDead, handleRestartWorld]);
 
+  const [sepInfoOpen, setSepInfoOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sepInfoOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        setSepInfoOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [sepInfoOpen]);
+
   const toggleSpaceWeatherMode = useCallback(() => {
     geigerAudio.current?.resume();
     spaceWeatherService.current?.toggleMode();
@@ -2463,9 +2477,29 @@ export default function MarsWorld(props: Props) {
           </div>
 
           <div className="mars-rad-telemetry-flux">
-            <span className="mars-flux-val">
-              SEP: <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b> PFU
-            </span>
+            <div className="mars-flux-label-row">
+              <span className="mars-flux-title">SEP</span>
+              <button
+                type="button"
+                className="mars-sep-info-trigger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.exitPointerLock?.();
+                  setSepInfoOpen(true);
+                }}
+                title="What is SEP? How to stay safe (Click for guide)"
+                aria-label="Solar Energetic Particles info and safety guide"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </button>
+              <span className="mars-flux-val">
+                <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b> PFU
+              </span>
+            </div>
             <span className={`mars-storm-scale scale-${spaceWeather.stormScale.slice(0, 2).toLowerCase()}`}>
               {spaceWeather.stormScale}
             </span>
@@ -2496,11 +2530,11 @@ export default function MarsWorld(props: Props) {
           <div className="mars-rad-sub-status">
             {isShielded ? (
               <span className="mars-shield-badge shielded">
-                🛡️ SHIELDED HABITAT · RECOVERY (−1.5 mSv/s)
+                🛡️ SHIELDED BASE · RECOVERY (−1.5 mSv/s)
               </span>
             ) : (
               <span className={`mars-shield-badge eva ${spaceWeather.sepFluxPFU >= 10 ? "hazard" : "nominal"}`}>
-                {spaceWeather.sepFluxPFU >= 10 ? "⚠️ CRITICAL EVA EXPOSURE" : "EVA EXPOSURE (+0.05 mSv/s GCR)"}
+                {spaceWeather.sepFluxPFU >= 10 ? "⚠️ STORM ACTIVE · SEEK BASE SHELTER" : "EVA EXPOSURE (+0.05 mSv/s)"}
               </span>
             )}
           </div>
@@ -2561,6 +2595,108 @@ export default function MarsWorld(props: Props) {
              autoFocus
            >
              Restart Now
+           </button>
+         </div>
+       </div>
+     </div>
+   )}
+   {/* Solar Energetic Particles (SEP) Educational Briefing Modal */}
+   {sepInfoOpen && (
+     <div
+       className="mars-sep-modal-backdrop"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="mars-sep-modal-title"
+       onClick={(e) => {
+         if (e.target === e.currentTarget) setSepInfoOpen(false);
+       }}
+     >
+       <div className="mars-sep-modal">
+         <div className="mars-sep-modal-header">
+           <div className="mars-sep-header-text">
+             <h2 id="mars-sep-modal-title" className="mars-sep-modal-title">
+               Solar Energetic Particles
+               <span className="mars-sep-title-tag">SEP GUIDE</span>
+             </h2>
+             <p className="mars-sep-modal-sub">Real-Time Space Weather & Radiation Survival Briefing</p>
+           </div>
+           <button
+             type="button"
+             className="mars-sep-modal-close"
+             onClick={() => setSepInfoOpen(false)}
+             aria-label="Close guide"
+           >
+             ✕
+           </button>
+         </div>
+
+         {/* Section 1: What is SEP? */}
+         <div className="mars-sep-card">
+           <div className="mars-sep-card-title">
+             <span>☀️</span> What is SEP?
+           </div>
+           <p>
+             <b>Solar Energetic Particles (SEPs)</b> are intense streams of high-energy protons (≥10 MeV) and heavy atomic nuclei blasted into interplanetary space by <b>solar flares</b> and <b>Coronal Mass Ejections (CMEs)</b> on the Sun.
+           </p>
+           <p>
+             Measured in <b>PFU</b> <i>(Proton Flux Units)</i>, this telemetry streams live deep-space GOES satellite data from NOAA SWPC and NASA DONKI space weather archives.
+           </p>
+         </div>
+
+         {/* Section 2: What does it do? */}
+         <div className="mars-sep-card hazard">
+           <div className="mars-sep-card-title hazard">
+             <span>⚠️</span> What Does It Do on Mars?
+           </div>
+           <p>
+             Earth is shielded by a strong planetary magnetic field and a dense atmosphere. <b>Mars has no global magnetic shield and less than 1% of Earth's atmosphere</b>, leaving the surface exposed to direct solar storm bombardment:
+           </p>
+           <p>
+             • High-energy protons penetrate the suit and cause <b>Acute Radiation Sickness (ARS)</b>.<br />
+             • Triggers <b>CMOS sensor static ("radiation snow")</b> and <b>progressive vision blur / red tunnel vision</b>.<br />
+             • At <b>≥70 mSv</b>, causes <b>30% sprint fatigue</b>; above <b>75 mSv</b>, causes <b>Health degradation</b> until fatal.
+           </p>
+         </div>
+
+         {/* Section 3: How to stay safe (Enter Shielded Base) */}
+         <div className="mars-sep-card safe">
+           <div className="mars-sep-card-title safe">
+             <span>🛡️</span> How to Stay Safe: Enter a Shielded Base
+           </div>
+           <p>
+             Solar protons cannot penetrate dense mass. When proton flux spikes (<b>≥10 PFU</b>), <b>seek shelter immediately</b>:
+           </p>
+           <div className="mars-sep-shelters-list">
+             <div className="mars-sep-shelter-item">
+               <span>🚀</span>
+               <div><b>Landing Shuttle / Habitat Base</b> — Primary environmental shelter</div>
+               <span className="mars-sep-shelter-coord">(0, 12) m</span>
+             </div>
+             <div className="mars-sep-shelter-item">
+               <span>🏛️</span>
+               <div><b>Regolith Water Bunker</b> — Cyan beacon protected dome</div>
+               <span className="mars-sep-shelter-coord">(-24, 24) m</span>
+             </div>
+           </div>
+           <p style={{ marginTop: "4px" }}>
+             <b>Shielding Effect:</b> Blocks 100% of solar protons (<b>0 mSv/s</b>), decontaminates radiation dose at <b>−1.5 mSv/s</b>, and restores Health at <b>+2.5%/s</b>.
+           </p>
+         </div>
+
+         {/* Interactive Tip */}
+         <div className="mars-sep-tip-box">
+           💡 <b>Space Weather Modes [Y]:</b> Press <kbd>Y</kbd> anytime to toggle between the <b>Live NOAA Feed</b> and <b>NASA Historical Superstorms</b> (e.g. May 2024 AR3664 or Sept 2017 Mars GLE).
+         </div>
+
+         {/* Footer */}
+         <div className="mars-sep-modal-footer">
+           <button
+             type="button"
+             className="mars-sep-confirm-btn"
+             onClick={() => setSepInfoOpen(false)}
+             autoFocus
+           >
+             Understood · Return to Exploration ↵
            </button>
          </div>
        </div>
