@@ -151,64 +151,6 @@ export function createBigRover(
   const sensorBand = new T.Mesh(new T.CylinderGeometry(.145,.145,.055,20),new T.MeshStandardMaterial({color:0x145654,metalness:.4,roughness:.25}));
   sensorBand.position.set(0,2.78,-.35); fixtures.add(sensorBand);
 
-  // Roof-mounted photovoltaic solar arrays
-  const solarPanelGroup = new T.Group();
-  solarPanelGroup.name = "roof-mounted-solar-arrays";
-  const solarFrameMat = new T.MeshStandardMaterial({ color: 0x1a202c, metalness: 0.8, roughness: 0.35 });
-  const solarCellMat = new T.MeshStandardMaterial({
-    color: 0x071b2f,
-    emissive: 0x021326,
-    emissiveIntensity: 0.35,
-    roughness: 0.22,
-    metalness: 0.88,
-  });
-  for (const side of [-1, 1]) {
-    const frame = new T.Mesh(new T.BoxGeometry(0.72, 0.035, 1.8), solarFrameMat);
-    frame.name = `solar-frame-${side < 0 ? "left" : "right"}`;
-    frame.position.set(side * 0.62, 2.62, 0.45);
-    frame.castShadow = true;
-    frame.receiveShadow = true;
-    solarPanelGroup.add(frame);
-
-    const cells = new T.Mesh(new T.BoxGeometry(0.68, 0.015, 1.74), solarCellMat);
-    cells.name = `solar-cells-${side < 0 ? "left" : "right"}`;
-    cells.position.set(side * 0.62, 2.64, 0.45);
-    cells.castShadow = true;
-    cells.receiveShadow = true;
-    solarPanelGroup.add(cells);
-  }
-  fixtures.add(solarPanelGroup);
-
-  // Localized spark particle emitter for damaged roof solar array
-  const sparkCount = 32;
-  const sparkGeo = new T.BufferGeometry();
-  const sparkPositions = new Float32Array(sparkCount * 3);
-  const sparkVelocities: { x: number; y: number; z: number; life: number; maxLife: number }[] = [];
-  for (let i = 0; i < sparkCount; i++) {
-    sparkPositions[i * 3] = (Math.random() - 0.5) * 1.3;
-    sparkPositions[i * 3 + 1] = 2.66 + Math.random() * 0.05;
-    sparkPositions[i * 3 + 2] = 0.45 + (Math.random() - 0.5) * 1.5;
-    sparkVelocities.push({
-      x: (Math.random() - 0.5) * 1.6,
-      y: 0.9 + Math.random() * 1.8,
-      z: (Math.random() - 0.5) * 1.6,
-      life: Math.random() * 0.4,
-      maxLife: 0.25 + Math.random() * 0.35,
-    });
-  }
-  sparkGeo.setAttribute("position", new T.BufferAttribute(sparkPositions, 3));
-  const sparkMat = new T.PointsMaterial({
-    color: 0xffb74d,
-    size: 0.075,
-    transparent: true,
-    opacity: 0.85,
-    blending: T.AdditiveBlending,
-  });
-  const sparkParticles = new T.Points(sparkGeo, sparkMat);
-  sparkParticles.name = "solar-sparks";
-  sparkParticles.visible = false;
-  fixtures.add(sparkParticles);
-
   // Wheel dust
   const tireDust = createRoverDust();
 
@@ -301,7 +243,6 @@ export function createBigRover(
       lidarMount.position.y = roof + .04;
       lidarHousing.position.y = roof + .18;
       sensorBand.position.y = roof + .20;
-      solarPanelGroup.position.y = roof - 2.62;
 
       // Replace the fallback after the prepared wheel rig is ready.
       root.remove(fallback);
@@ -387,45 +328,6 @@ export function createBigRover(
         const travel = Math.max(-0.26, Math.min(0.32, w.suspensionOffset));
         w.pivot.position.y = w.baseY + travel + sag;
       }
-    }
-
-    // Solar array damage: cracked/shattered glass appearance & localized spark particles
-    const solarHp = rover.damage ? (rover.damage.solar_array ?? 100) : 100;
-    const isSolarDamaged = solarHp < 50;
-    if (isSolarDamaged) {
-      solarCellMat.color.setHex(0x13171d);
-      solarCellMat.roughness = 0.92;
-      solarCellMat.metalness = 0.08;
-      solarCellMat.emissive.setHex(0x421808);
-      solarCellMat.emissiveIntensity = 0.65;
-
-      sparkParticles.visible = true;
-      const positions = sparkGeo.attributes.position.array as Float32Array;
-      for (let i = 0; i < sparkCount; i++) {
-        const sp = sparkVelocities[i];
-        sp.life += dt;
-        if (sp.life >= sp.maxLife) {
-          sp.life = 0;
-          positions[i * 3] = (Math.random() - 0.5) * 1.3;
-          positions[i * 3 + 1] = 2.66 + Math.random() * 0.05;
-          positions[i * 3 + 2] = 0.45 + (Math.random() - 0.5) * 1.5;
-          sp.x = (Math.random() - 0.5) * 1.6;
-          sp.y = 0.9 + Math.random() * 1.8;
-          sp.z = (Math.random() - 0.5) * 1.6;
-        } else {
-          positions[i * 3] += sp.x * dt;
-          positions[i * 3 + 1] += (sp.y - 4.5 * sp.life) * dt;
-          positions[i * 3 + 2] += sp.z * dt;
-        }
-      }
-      sparkGeo.attributes.position.needsUpdate = true;
-    } else {
-      solarCellMat.color.setHex(0x071b2f);
-      solarCellMat.roughness = 0.22;
-      solarCellMat.metalness = 0.88;
-      solarCellMat.emissive.setHex(0x021326);
-      solarCellMat.emissiveIntensity = 0.35;
-      sparkParticles.visible = false;
     }
 
     // 3. Headlight intensity & grounded contact shadow based on planetary solar lighting

@@ -146,7 +146,6 @@ export default function MarsWorld(props: Props) {
   const [roverGear, setRoverGear] = useState<RoverGear>("N");
   const [roverBoost, setRoverBoost] = useState(false);
   const [roverBattery, setRoverBattery] = useState(100);
-  const [roverSolarCharging, setRoverSolarCharging] = useState(false);
   const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
@@ -557,7 +556,6 @@ export default function MarsWorld(props: Props) {
       let lastRoverGear: RoverGear = "N";
       let lastRoverBoost = false;
       let lastRoverBattery = 100;
-      let lastRoverSolarCharging = false;
       let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
@@ -1245,7 +1243,7 @@ export default function MarsWorld(props: Props) {
           if (rover.damage) {
             let dmgChanged = false;
             const dmgKeys: RoverPartId[] = [
-              "wheel_fl", "wheel_fr", "wheel_ml", "wheel_mr", "wheel_rl", "wheel_rr", "solar_array"
+              "wheel_fl", "wheel_fr", "wheel_ml", "wheel_mr", "wheel_rl", "wheel_rr", "cabin_roof"
             ];
             for (const dk of dmgKeys) {
               if (Math.round(rover.damage[dk]) !== Math.round(lastRoverDamage[dk])) {
@@ -1278,10 +1276,6 @@ export default function MarsWorld(props: Props) {
             if (battNow !== lastRoverBattery) {
               lastRoverBattery = battNow;
               setRoverBattery(rover.battery);
-            }
-            if (rover.solarCharging !== lastRoverSolarCharging) {
-              lastRoverSolarCharging = rover.solarCharging;
-              setRoverSolarCharging(rover.solarCharging);
             }
             const rangeStr = rover.estimatedRangeKm >= 1.0
               ? `${rover.estimatedRangeKm.toFixed(1)} KM`
@@ -2026,9 +2020,9 @@ export default function MarsWorld(props: Props) {
          <line x1="24" y1="74" x2="76" y2="74" className="sv-schematic-grid" />
          <rect
            x="33" y="26" width="34" height="42" rx="3"
-           className={`sv-schematic-part ${getPartDamageClass(roverDamage.solar_array)}`}
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.cabin_roof ?? roverDamage.solar_array ?? 100)}`}
          >
-          <title>{`Roof Solar Array: ${Math.round(roverDamage.solar_array)}%`}</title>
+          <title>{`Cabin Roof: ${Math.round(roverDamage.cabin_roof ?? roverDamage.solar_array ?? 100)}%`}</title>
          </rect>
          <rect
            x="8" y="22" width="13" height="24" rx="3"
@@ -2086,7 +2080,7 @@ export default function MarsWorld(props: Props) {
         <strong className={roverBoost ? "boost-speed" : ""}>{roverSpeed}</strong>
         <span>KM/H</span>
         <small className={roverBoost ? "boost-alert" : roverMud ? "mud-alert" : ""}>
-         {roverHandbrake ? "PARK BRAKE" : roverBoost ? "BOOST OVERDRIVE · 75 KM/H" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
+         {roverHandbrake ? "PARK BRAKE" : roverBoost ? "BOOST OVERDRIVE · HIGH TORQUE" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
         </small>
        </div>
        <div className="sv-rover-power-grid" aria-label="Rover onboard power grid">
@@ -2107,19 +2101,8 @@ export default function MarsWorld(props: Props) {
          <strong className={`sv-range-val ${roverBoost ? "boost-drain" : ""}`}>{roverRangeDisplay}</strong>
         </div>
        </div>
-       <div
-         className={`sv-rover-solar-status ${roverSolarCharging ? "charging" : "dormant"}`}
-         title={roverSolarCharging ? "Solar arrays active: regenerating onboard battery" : "Solar arrays dormant"}
-         aria-label={roverSolarCharging ? "Solar panels generating charge" : "Solar panels dormant"}
-       >
-        <span className="sv-solar-icon" aria-hidden="true">☀️</span>
-        <div className="sv-solar-meta">
-         <span className="sv-solar-title">SOLAR</span>
-         <small className="sv-solar-state">{roverSolarCharging ? "+CHARGING" : "STANDBY"}</small>
-        </div>
-       </div>
        {!touchControlsActive && (<div className="sv-rover-hints">
-         <span><b>Shift</b> Boost (75 km/h)</span>
+         <span><b>Shift</b> Boost (High Torque)</span>
          <span><b>W / S</b> Drive / Rev</span>
          <span><b>A / D</b> Steer</span>
          <span><b>Space</b> Handbrake</span>

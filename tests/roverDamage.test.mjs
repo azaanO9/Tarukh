@@ -20,7 +20,7 @@ test("rover initializes with full 100% nominal health across all components", ()
   assert.equal(rover.damage.wheel_mr, 100);
   assert.equal(rover.damage.wheel_rl, 100);
   assert.equal(rover.damage.wheel_rr, 100);
-  assert.equal(rover.damage.solar_array, 100);
+  assert.equal(rover.damage.cabin_roof, 100);
 });
 
 test("high speed physical collision exceeding safe threshold damages localized wheel zone", () => {
@@ -94,19 +94,13 @@ test("asymmetric dead wheel damage introduces yaw pull towards the damaged flank
   );
 });
 
-test("catastrophic rollover damages roof solar array and permanently halts charging", () => {
+test("catastrophic rollover damages cabin roof and structural avionics", () => {
   let rover = enterRover(spawnRoverVehicle(0, 0, 0));
-  // Set solar array to critically destroyed
+  rover.damage.cabin_roof = 0;
   rover.damage.solar_array = 0;
 
-  // Step in broad daylight (solarIntensity = 1.0)
-  rover = stepRoverVehicle(rover, new Set(), 0.05, [], () => 0, () => 0, undefined, {
-    solarIntensity: 1.0,
-  });
-
-  // Solar charging rate should be exactly zero
-  assert.equal(rover.solarRate, 0);
-  assert.equal(rover.solarCharging, false);
+  rover = repairRoverPart(rover, "cabin_roof");
+  assert.equal(rover.damage.cabin_roof, 100);
 });
 
 test("getRoverPartWorldPosition and getNearestRoverPart locate components for EVA", () => {
@@ -125,12 +119,12 @@ test("getRoverPartWorldPosition and getNearestRoverPart locate components for EV
 test("repairRoverPart restores damaged component health back to 100%", () => {
   let rover = spawnRoverVehicle(0, 0, 0);
   rover.damage.wheel_fl = 15;
-  rover.damage.solar_array = 0;
+  rover.damage.cabin_roof = 0;
 
   rover = repairRoverPart(rover, "wheel_fl");
   assert.equal(rover.damage.wheel_fl, 100);
-  assert.equal(rover.damage.solar_array, 0);
+  assert.equal(rover.damage.cabin_roof, 0);
 
-  rover = repairRoverPart(rover, "solar_array");
-  assert.equal(rover.damage.solar_array, 100);
+  rover = repairRoverPart(rover, "cabin_roof");
+  assert.equal(rover.damage.cabin_roof, 100);
 });
