@@ -43,6 +43,10 @@ yarn-error.log*
 /outputs/
 /work/
 
+# Outpost models stay local for review; do not publish them to GitHub.
+/assets/outpost-review/**/*.glb
+/assets/outpost-review/**/*.blend
+
 # OS metadata
 .DS_Store
 

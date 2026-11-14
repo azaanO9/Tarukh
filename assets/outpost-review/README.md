@@ -2,12 +2,14 @@
 
 A separate, furnished reconstruction of the supplied **Mars Dune Alpha** floor plan, using TARUKH's ivory, charcoal, amber and teal palette. The interior now uses **32 openly licensed models placed as 107 furniture and equipment instances**. These files are outside `public/` and are not imported by the game.
 
+**The GLBs are local review files and are intentionally excluded from GitHub**, including the source furniture and architecture. The repository retains previews, attribution, the source manifest and the assembly script. Do not commit the model binaries.
+
 ![Operations desks with sourced laptops and ergonomic chairs](workspace-preview.webp)
 
 | File | Purpose | Size | Triangles |
 | --- | --- | ---: | ---: |
-| [tarukh-outpost-cutaway.glb](tarukh-outpost-cutaway.glb) | Furnished layout with walls cut to 1.12 m for inspection | 26.75 MB | 1,218,086 |
-| [tarukh-outpost-full.glb](tarukh-outpost-full.glb) | Full-height building, furnished interior and removable roof | 27.94 MB | 1,271,238 |
+| `tarukh-outpost-cutaway.glb` (local only) | Furnished layout with walls cut to 1.12 m for inspection | 26.75 MB | 1,218,086 |
+| `tarukh-outpost-full.glb` (local only) | Full-height building, furnished interior and removable roof | 27.94 MB | 1,271,238 |
 | [build_outpost.py](build_outpost.py) | Reproducible Blender assembly and render script | — | — |
 | [sources.json](sources.json) | Model authors, download URLs, licenses and SHA-256 hashes | — | — |
 
@@ -43,13 +45,13 @@ These are **detailed review models**, with 1,615 mesh instances in the cutaway a
 
 ## Rebuild
 
-Use Blender 5.2.4 or a compatible version. All source models are included; rebuilding needs no downloads, game dependency changes or external service.
+Use Blender 5.2.4 or a compatible version with the local source GLBs in `sources/`. A fresh GitHub clone does not include those binaries and cannot rebuild the outpost by itself. The manifest records the furniture sources; the original `architecture.glb` must come from the local review copy. No game dependency changes are needed.
 
 ```sh
 blender --background --python-exit-code 1 --python assets/outpost-review/build_outpost.py -- --output /path/to/export-folder --render --samples 64
 ```
 
-Use a separate output directory to preserve the checked-in exports. The script checks source hashes, assembles both GLBs, verifies embedded image references, and saves packed editable `.blend` files. `--render` adds four PNG previews; omit it for export only. CUDA is used when available, with CPU rendering as the fallback.
+Use an ignored output directory such as `outputs/outpost-v2/review`. The script checks source hashes, assembles both GLBs, verifies embedded image references, and saves packed editable `.blend` files. Keep those outputs local. `--render` adds four PNG previews; omit it for export only. CUDA is used when available, with CPU rendering as the fallback.
 
 `sources/architecture.glb` retains the earlier TARUKH shell with its old furnishings removed. `sources/surface-ops.svg` is the editable, original demonstration display; its PNG is embedded in the laptops. The display is static artwork, not a live telemetry service.
 

@@ -42,7 +42,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 
 ## Separate outpost review models
 
-`assets/outpost-review/` contains furnished cutaway and full-height GLBs, previews, source assets and a Blender assembly script. These separate review assets are not loaded by Mars exploration. The shell follows the user-supplied **Mars Dune Alpha** floor plan and retains the original TARUKH architecture authored through Higgsfield 3D Jutsu. The revised interior uses 32 openly licensed models assembled in local Blender. The reference image itself is not distributed.
+`assets/outpost-review/` retains previews, attribution, a source manifest and a Blender assembly script. The furnished cutaway, full-height GLB and source model binaries are kept locally and excluded from GitHub. These separate review assets are not loaded by Mars exploration. The shell follows the user-supplied **Mars Dune Alpha** floor plan and retains the original TARUKH architecture authored through Higgsfield 3D Jutsu. The revised interior uses 32 openly licensed models assembled in local Blender. The reference image itself is not distributed.
 
 - Laptop: [MacBook by Nicholas-3D](https://sketchfab.com/3d-models/macbook-07f012fbd3bb4c37a1b9ed08533ee403), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The redistributed source has its maker logo removed and a lid pivot; TARUKH opens the lid, fits it to the desks and adds original display artwork.
 - Sofa: [Glam Velvet Sofa by Eric Chadwick / Wayfair LLC](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlamVelvetSofa), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Scaled and placed in the recreation area.
