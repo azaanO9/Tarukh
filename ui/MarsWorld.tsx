@@ -1975,7 +1975,23 @@ export default function MarsWorld(props: Props) {
   return (<div ref={host} className="sv-world" data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects."}`} tabIndex={0}>
    {performanceMeter !== "off" && true && (debug || (props.enabled && !introActive)) &&
       <pre key={performanceMeter} ref={debugPanel} className="mars-debug" data-mode={performanceMeter} aria-label="Graphics performance diagnostics">Measuring FPS…</pre>}
-   {!loaded && (<div className="sv-loading" role="status">{loadingStage}<br /><progress aria-label="Scene preparation progress" max={100} value={loadingProgress}/><span> {loadingProgress}%</span></div>)}
+   {!loaded && (<div className="sv-loading" role="status">
+     <div className="sv-loading-title">{loadingStage}</div>
+     <div className="sv-loading-progress-wrap">
+       <progress aria-label="Scene preparation progress" max={100} value={loadingProgress}/>
+       <span> {loadingProgress}%</span>
+     </div>
+     <div className="sv-loading-hints" aria-label="Rover controls">
+       <span className="sv-loading-hints-title">ROVER CONTROLS</span>
+       <div className="sv-loading-hints-list">
+         <span><b>Shift</b> Boost (High Torque)</span>
+         <span><b>W / S</b> Drive / Rev</span>
+         <span><b>A / D</b> Steer</span>
+         <span><b>Space</b> Handbrake</span>
+         <span><b>V</b> Camera</span>
+       </div>
+     </div>
+    </div>)}
    {props.enabled && !introActive && (<>
      <div ref={aim} className="sv-aim" aria-hidden="true">
       <i />
@@ -2118,13 +2134,6 @@ export default function MarsWorld(props: Props) {
          <strong className={`sv-range-val ${roverBoost ? "boost-drain" : ""}`}>{roverRangeDisplay}</strong>
         </div>
        </div>
-       {!touchControlsActive && (<div className="sv-rover-hints">
-         <span><b>Shift</b> Boost (High Torque)</span>
-         <span><b>W / S</b> Drive / Rev</span>
-         <span><b>A / D</b> Steer</span>
-         <span><b>Space</b> Handbrake</span>
-         <span><b>V</b> Camera</span>
-        </div>)}
        <button type="button" className="sv-rover-exit-btn" onClick={() => toggleRoverAction.current()}>
         <span className="sv-key-badge">F</span> Exit Rover
        </button>

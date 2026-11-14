@@ -21,6 +21,21 @@ export default function ShuttleArrival({ready,onComplete,graphicsStatus}:{ready:
       <rect x="198" y="133" width="24" height="54" rx="7" fill="#314858" stroke="#93dae4" strokeWidth="3"/>
       <text x="276" y="158" fill="#203745" fontSize="17" fontFamily="system-ui" letterSpacing="3">TARUKH</text>
     </svg>
-    <div className="arrival-caption"><p>TARUKH · MARS EXPLORATION</p><h1>Next stop: Mars</h1><p>{ready?"Surface ready. Preparing to land…":"Approaching the surface…"}</p><span>{graphicsStatus||'The world is preparing beneath your flight.'}</span></div>
+    <div className="arrival-caption">
+      <p>TARUKH · MARS EXPLORATION</p>
+      <h1>Next stop: Mars</h1>
+      <p>{ready ? "Surface ready. Preparing to land…" : "Approaching the surface…"}</p>
+      <span>{graphicsStatus || 'The world is preparing beneath your flight.'}</span>
+      <div className="arrival-rover-hints" aria-label="Rover controls">
+        <span className="arrival-hints-label">ROVER CONTROLS</span>
+        <div className="arrival-hints-list">
+          <span><b>Shift</b> Boost (High Torque)</span>
+          <span><b>W / S</b> Drive / Rev</span>
+          <span><b>A / D</b> Steer</span>
+          <span><b>Space</b> Handbrake</span>
+          <span><b>V</b> Camera</span>
+        </div>
+      </div>
+    </div>
   </section>;
 }
