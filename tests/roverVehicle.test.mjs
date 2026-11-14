@@ -8,6 +8,7 @@ import {
   stepRoverVehicle,
   getRoverGear,
   ROVER_MAX_FORWARD,
+  ROVER_BOOST_MAX_FORWARD,
   ROVER_MAX_REVERSE,
   ROVER_LIMIT,
 } from "../game/roverVehicle.ts";
@@ -195,4 +196,80 @@ test("cruising widens the turn radius and eases motor pull compared with low spe
   const slow = drive(1), fast = drive(7);
   assert.ok(slow.steerAngle > fast.steerAngle);
   assert.ok(slow.speed - 1 > fast.speed - 7);
+});
+
+test("incline resistance realistically reduces climbing speed on steep slopes", () => {
+  // Flat ground vs steep mountain slope (-0.5 * z: ~26.5 degree incline forward along -Z)
+  const mountainSlope = (x, z) => -0.5 * z;
+  let flatRover = enterRover(spawnRoverVehicle(0, 0, 0));
+  let mountainRover = enterRover(spawnRoverVehicle(0, 0, 0, mountainSlope));
+
+  for (let i = 0; i < 60; i++) {
+    flatRover = stepRoverVehicle(flatRover, new Set(["w"]), 0.05);
+    mountainRover = stepRoverVehicle(mountainRover, new Set(["w"]), 0.05, [], mountainSlope);
+  }
+
+  // Mountain climbing speed must realistically be lower than flat ground speed due to gravity & mass
+  assert.ok(mountainRover.speed < flatRover.speed);
+  assert.ok(mountainRover.pitch > 0.2);
+});
+
+test("Boost Mode with Shift retains 50 km/h speed limit while delivering high motor torque", () => {
+  let standard = enterRover(spawnRoverVehicle(0, 0, 0));
+  let boosted = enterRover(spawnRoverVehicle(0, 0, 0));
+
+  // Initial acceleration burst
+  for (let i = 0; i < 20; i++) {
+    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05);
+    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
+  }
+  assert.ok(boosted.boostActive, "boostActive should be true");
+  assert.ok(boosted.speed > standard.speed, "boost delivers higher acceleration and torque");
+
+  // Top speed run
+  for (let i = 0; i < 110; i++) {
+    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
+  }
+  assert.equal(boosted.speed, ROVER_BOOST_MAX_FORWARD);
+  assert.equal(Math.round(boosted.speed * 3.6), 50);
+  assert.equal(getRoverGear(boosted.speed, boosted.boostActive), "B");
+});
+
+test("onboard battery drains while driving and drains 3x faster in boost mode", () => {
+  let standard = enterRover(spawnRoverVehicle(0, 0, 0));
+  let boosted = enterRover(spawnRoverVehicle(0, 0, 0));
+  standard.battery = 100;
+  boosted.battery = 100;
+
+  for (let i = 0; i < 40; i++) {
+    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05);
+    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
+  }
+
+  const standardDrain = 100 - standard.battery;
+  const boostDrain = 100 - boosted.battery;
+  assert.ok(standardDrain > 0, "standard driving drains battery");
+  assert.ok(boostDrain > standardDrain * 2.5, "boost mode drains battery at ~3x the normal rate");
+});
+
+test("estimated range drops by half upon shifting into Boost Mode", () => {
+  let rover = enterRover(spawnRoverVehicle(0, 0, 0));
+  rover.battery = 80;
+  const normalStep = stepRoverVehicle(rover, new Set(), 0.05);
+  const boostStep = stepRoverVehicle(rover, new Set(["shift"]), 0.05);
+
+  assert.ok(normalStep.estimatedRangeKm > 0);
+  assert.ok(Math.abs(boostStep.estimatedRangeKm - normalStep.estimatedRangeKm * 0.5) < 0.1,
+    `expected range to drop by half, got normal: ${normalStep.estimatedRangeKm}, boost: ${boostStep.estimatedRangeKm}`);
+});
+
+test("internal power cell trickle recharges rover battery while parked", () => {
+  let parked = spawnRoverVehicle(0, 0, 0);
+  parked.battery = 50;
+
+  for (let i = 0; i < 60; i++) {
+    parked = stepRoverVehicle(parked, new Set(), 0.05);
+  }
+
+  assert.ok(parked.battery > 50, "battery should replenish while resting");
 });

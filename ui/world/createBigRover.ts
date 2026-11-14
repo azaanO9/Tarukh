@@ -4,7 +4,7 @@ import type { LidarScan } from "../../game/roverLidar";
 import { assetUrl } from "../../lib/assetUrl";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { ROVER_WHEEL_OFFSETS, ROVER_WHEEL_OUTER_RADIUS, type RoverVehicle } from "../../game/roverVehicle";
+import { ROVER_WHEEL_OFFSETS, ROVER_WHEEL_OUTER_RADIUS, type RoverVehicle, type RoverPartId } from "../../game/roverVehicle";
 import { bindPreparedRover, type RoverWheelAssembly } from "./roverWheelAssembly";
 import { createSoftContactShadow } from "./contactShadow";
 
@@ -277,21 +277,45 @@ export function createBigRover(
     const sinYaw = Math.sin(rover.yaw);
     const cosYaw = Math.cos(rover.yaw);
 
+    const partKeys: RoverPartId[] = [
+      "wheel_fl",
+      "wheel_fr",
+      "wheel_ml",
+      "wheel_mr",
+      "wheel_rl",
+      "wheel_rr",
+    ];
+
     for (let i = 0; i < activeWheels.length; i++) {
       const w = activeWheels[i];
-      // Rotate tire around axle with wheelRoll (spins forward when driving forward)
-      w.wheelMesh.rotation.x = -rover.wheelRoll;
+      const partKey = partKeys[i];
+      const hp = rover.damage ? (rover.damage[partKey] ?? 100) : 100;
+      const isDead = hp <= 25;
 
-      // Front wheels steer into turns
+      if (isDead) {
+        // Locked rotation on damaged wheel (creates heavy drag)
+        w.wheelMesh.rotation.x = 0;
+        // Joint sag, camber and toe misalignment
+        w.wheelMesh.rotation.z = (w.isLeft ? -1 : 1) * 0.30;
+        w.wheelMesh.rotation.y = w.isLeft ? 0.15 : -0.15;
+      } else {
+        // Rotate tire around axle with wheelRoll (spins forward when driving forward)
+        w.wheelMesh.rotation.x = -rover.wheelRoll;
+        w.wheelMesh.rotation.z = 0;
+        w.wheelMesh.rotation.y = 0;
+      }
+
+      // Front wheels steer into turns (dampened if damaged)
       if (w.isFront) {
-        w.steering.rotation.y = rover.steerAngle;
+        w.steering.rotation.y = isDead ? rover.steerAngle * 0.25 : rover.steerAngle;
       }
 
       // Real 6-wheel suspension reacting to Mars surface profile & rocker-bogie compression
+      const sag = isDead ? -0.10 : 0;
       if (rover.wheelCompression && rover.wheelCompression[i] !== undefined) {
         // Physics already damps each spring. A second filter caused visible ground penetration.
         w.suspensionOffset = rover.wheelCompression[i];
-        w.pivot.position.y = w.baseY + w.suspensionOffset;
+        w.pivot.position.y = w.baseY + w.suspensionOffset + sag;
       } else if (heightAt) {
         const worldWheelX = rover.x + cosYaw * w.baseX + sinYaw * w.baseZ;
         const worldWheelZ = rover.z - sinYaw * w.baseX + cosYaw * w.baseZ;
@@ -302,7 +326,7 @@ export function createBigRover(
         w.suspensionOffset +=
           (targetOffset - w.suspensionOffset) * (1 - Math.exp(-22 * dt));
         const travel = Math.max(-0.26, Math.min(0.32, w.suspensionOffset));
-        w.pivot.position.y = w.baseY + travel;
+        w.pivot.position.y = w.baseY + travel + sag;
       }
     }
 

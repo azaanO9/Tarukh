@@ -276,6 +276,48 @@
   transform: translateX(0) scale(1.04);
 }
 
+.sv-eva-prompt {
+  bottom: 175px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-eva-repair-btn {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #f8fafc;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.45);
+}
+
+.sv-eva-repair-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  border-color: #7dd3fc;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.6);
+  transform: translateX(0) scale(1.04);
+}
+
+.sv-eva-repair-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.sv-eva-scrap-pill {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 3px 12px;
+  font: 600 11px/1 ui-monospace, monospace;
+  color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.sv-eva-scrap-pill b {
+  color: #38bdf8;
+}
+
 .sv-key-badge {
   background: rgba(56, 189, 248, 0.14);
   color: #38bdf8;
@@ -315,6 +357,76 @@
     0 0 24px -2px rgba(56, 189, 248, 0.15);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   pointer-events: auto;
+}
+
+.sv-rover-schematic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 14px;
+}
+
+.sv-schematic-svg {
+  width: 44px;
+  height: 52px;
+}
+
+.sv-schematic-chassis {
+  fill: rgba(15, 23, 42, 0.55);
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 2;
+}
+
+.sv-schematic-grid {
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-width: 1;
+}
+
+.sv-schematic-part {
+  transition: fill 0.25s ease, stroke 0.25s ease;
+}
+
+.sv-schematic-part.nominal {
+  fill: rgba(74, 222, 128, 0.35);
+  stroke: #4ade80;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 2px rgba(74, 222, 128, 0.5));
+}
+
+.sv-schematic-part.warning {
+  fill: rgba(250, 204, 21, 0.4);
+  stroke: #facc15;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.7));
+}
+
+.sv-schematic-part.critical {
+  animation: partDamagePulse 0.8s infinite alternate;
+}
+
+@keyframes partDamagePulse {
+  0% {
+    fill: rgba(239, 68, 68, 0.35);
+    stroke: #ef4444;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4));
+  }
+  100% {
+    fill: rgba(239, 68, 68, 0.85);
+    stroke: #ff6b6b;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 1));
+  }
+}
+
+.sv-schematic-title {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #94a3b8;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .sv-rover-gearbox {
@@ -383,6 +495,29 @@
   border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
+.sv-rover-gearbox[data-gear="B"] .sv-gear-active {
+  color: #f97316;
+  text-shadow: 0 0 16px rgba(249, 115, 22, 0.8), 0 0 32px rgba(239, 68, 68, 0.5);
+  animation: boostGlow 1s infinite alternate;
+}
+
+.sv-rover-gearbox[data-gear="B"] .sv-gear-rail span.active {
+  color: #ffedd5;
+  background: rgba(249, 115, 22, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.7);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+}
+
+.sv-gear-rail span.gear-boost {
+  color: #fdba74;
+}
+
+.sv-rover-gearbox small.sv-boost-alert {
+  color: #fb923c;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+}
+
 .sv-gear-active {
   font: 800 28px/0.95 ui-monospace, "SF Mono", monospace;
   letter-spacing: -0.02em;
@@ -432,6 +567,197 @@
 .sv-rover-speedometer small.mud-alert {
   color: #fb923c;
   text-shadow: 0 0 8px rgba(251, 146, 60, 0.5);
+}
+
+.sv-rover-speedometer strong.boost-speed {
+  color: #fdba74;
+  text-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
+}
+
+.sv-rover-speedometer small.boost-alert {
+  color: #fb923c;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+  animation: boostGlow 1s infinite alternate;
+}
+
+/* Power Grid & Battery Telemetry */
+.sv-rover-power-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 16px;
+  min-width: 105px;
+}
+
+.sv-rover-battery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 700 9px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.1em;
+}
+
+.sv-battery-title {
+  color: #94a3b8;
+}
+
+.sv-battery-value {
+  color: #38bdf8;
+  font-weight: 800;
+}
+.sv-battery-value.warning {
+  color: #facc15;
+}
+.sv-battery-value.low {
+  color: #f87171;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+  animation: batteryBlink 1s infinite alternate;
+}
+
+.sv-rover-battery-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.sv-rover-battery-fill {
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+.sv-rover-battery-fill.nominal {
+  background: linear-gradient(90deg, #38bdf8, #4ade80);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+.sv-rover-battery-fill.warning {
+  background: linear-gradient(90deg, #eab308, #f59e0b);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+.sv-rover-battery-fill.critical {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+}
+
+.sv-rover-range {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: ui-monospace, "SF Mono", monospace;
+  gap: 6px;
+}
+
+.sv-range-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.1em;
+}
+
+.sv-range-val {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+.sv-range-val.boost-drain {
+  color: #fb923c;
+  text-shadow: 0 0 6px rgba(251, 146, 60, 0.5);
+}
+
+/* Solar Status Indicator */
+.sv-rover-solar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 16px;
+}
+
+.sv-solar-icon {
+  font-size: 18px;
+  display: inline-block;
+}
+
+.sv-rover-solar-status.charging .sv-solar-icon {
+  color: #fbbf24;
+  text-shadow: 0 0 12px #f59e0b, 0 0 20px #eab308;
+  animation: solarPulse 2s infinite ease-in-out;
+}
+
+.sv-rover-solar-status.dormant .sv-solar-icon {
+  color: #475569;
+  filter: grayscale(80%) opacity(0.5);
+}
+
+.sv-solar-meta {
+  display: flex;
+  flex-direction: column;
+  font: 700 8px/1.2 ui-monospace, "SF Mono", monospace;
+}
+
+.sv-solar-title {
+  color: #94a3b8;
+  letter-spacing: 0.12em;
+}
+
+.sv-solar-state {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.sv-rover-solar-status.charging .sv-solar-state {
+  color: #4ade80;
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.45);
+}
+
+.sv-rover-solar-status.dormant .sv-solar-state {
+  color: #64748b;
+}
+
+/* Touch Deck Wheel Boost */
+.wheel-boost {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.8), rgba(194, 65, 12, 0.9));
+  border: 1px solid #fb923c;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+}
+.wheel-boost:active {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.8);
+}
+
+@keyframes solarPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px #f59e0b);
+  }
+  50% {
+    transform: scale(1.18) rotate(12deg);
+    filter: drop-shadow(0 0 12px #fbbf24);
+  }
+}
+
+@keyframes boostGlow {
+  0% {
+    opacity: 0.9;
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes batteryBlink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 
 .sv-rover-hints {
@@ -697,6 +1023,19 @@
   .sv-rover-hud .sv-rover-gearbox,
   .sv-rover-hud .sv-rover-speedometer {
     padding-right: 8px;
+  }
+
+  .sv-rover-hud .sv-rover-power-grid {
+    min-width: 76px;
+    padding-right: 8px;
+  }
+
+  .sv-rover-hud .sv-rover-solar-status {
+    padding-right: 8px;
+    gap: 4px;
+  }
+  .sv-rover-hud .sv-rover-solar-status .sv-solar-meta {
+    display: none;
   }
 
   .sv-rover-hud .sv-gear-active,

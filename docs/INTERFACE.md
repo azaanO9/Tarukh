@@ -9,7 +9,7 @@
 | Setup, pause, atlas, inspection and retry dialogs | `ui/MarsFreeRoam.tsx`; owns presentation state and focus return, enables Mobile controls and mounts the world |
 | Scene lifecycle and input | `ui/MarsWorld.tsx`; creates/disposes WebGL resources, drives animation, forwards controls to simulation and reports `View` updates |
 | Walking, jumping and collisions | `game/navigation.ts`, `collision.ts`, `rockContact.ts`; pure helpers shared by rendering and tests |
-| Crew rover | `game/roverVehicle.ts` owns kinematics and suspension contacts; `createBigRover.ts`, `roverWheelAssembly.ts` and `roverCockpit.ts` render the prepared vehicle and interior |
+| Crew rover | `game/roverVehicle.ts` owns kinematics, suspension contacts, incline resistance, Boost Mode drivetrain (capped at 50 km/h with 4.2 m/s^2 high torque, 3x drain), internal power cell, localized component damage (6 wheels, cabin roof), collision impact dynamics, dead-wheel mechanics (torque loss, drag, yaw pull) and EVA field repairs; `createBigRover.ts`, `roverWheelAssembly.ts` and `roverCockpit.ts` render the prepared vehicle, wheel joint sag/camber failure states and interior |
 | Science rovers | `game/curiosityRover.ts` and `createCuriosityRover.ts` handle autonomous navigation/scanning; `createPerseveranceRover.ts` renders the historical landing marker |
 | Terrain and map coordinates | `game/marsRegion.ts`, `terrainStreaming.ts`, `content/marsMolaData.ts` and `marsLandmarks.ts`; rendering and collision use the same height samples |
 | Surface and distance rendering | `ui/world/marsTerrain.ts`, `streamedMars.ts`, `marsRegionalLandscape.ts`; shared materials, bounded tile pool and regional far surface |

@@ -33,7 +33,22 @@ import { graphicsTier } from "./world/graphicsTiers";
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
-import { spawnRoverVehicle, stepRoverVehicle, canEnterRover, enterRover, exitRover, roverFootprint, getRoverGear, type RoverAnalogInput, type RoverGear, } from "../game/roverVehicle";
+import {
+  spawnRoverVehicle,
+  stepRoverVehicle,
+  canEnterRover,
+  enterRover,
+  exitRover,
+  roverFootprint,
+  getRoverGear,
+  getNearestRoverPart,
+  repairRoverPart,
+  INITIAL_ROVER_DAMAGE,
+  type RoverAnalogInput,
+  type RoverGear,
+  type RoverDamageState,
+  type RoverPartId,
+} from "../game/roverVehicle";
 import { createShuttleLanding } from "./world/createShuttleLanding";
 function shortestAngleDiff(from: number, to: number): number {
   let diff = (to - from) % (Math.PI * 2);
@@ -42,6 +57,12 @@ function shortestAngleDiff(from: number, to: number): number {
   if (diff < -Math.PI)
     diff += Math.PI * 2;
   return diff;
+}
+
+function getPartDamageClass(health: number): string {
+  if (health >= 70) return "nominal";
+  if (health >= 30) return "warning";
+  return "critical";
 }
 export type View = {
   lightPhase?: string;
@@ -102,6 +123,7 @@ export default function MarsWorld(props: Props) {
   const toggleRoverAction = useRef<() => void>(() => { });
   const skipIntroAction = useRef<() => void>(() => { });
   const inspectAction = useRef<() => void>(() => { });
+  const repairAction = useRef<() => void>(() => { });
   const analogWalk = useRef<MoveAxes>({});
   const analogDrive = useRef<RoverAnalogInput>({});
   const [autoCoarse, setAutoCoarse] = useState(false);
@@ -122,8 +144,18 @@ export default function MarsWorld(props: Props) {
   const [canInspect, setCanInspect] = useState(false);
   const [roverSpeed, setRoverSpeed] = useState(0);
   const [roverGear, setRoverGear] = useState<RoverGear>("N");
+  const [roverBoost, setRoverBoost] = useState(false);
+  const [roverBattery, setRoverBattery] = useState(100);
+  const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
+  const [roverDamage, setRoverDamage] = useState<RoverDamageState>(INITIAL_ROVER_DAMAGE);
+  const [playerScrap, setPlayerScrap] = useState<number>(6);
+  const playerScrapRef = useRef(6);
+  playerScrapRef.current = playerScrap;
+  const [repairTarget, setRepairTarget] = useState<{ id: RoverPartId; name: string; health: number } | null>(null);
+  const repairTargetRef = useRef<{ id: RoverPartId; name: string; health: number } | null>(null);
+  repairTargetRef.current = repairTarget;
   const [introActive, setIntroActive] = useState(Boolean(props.playLandingIntro));
   const [introTelemetry, setIntroTelemetry] = useState({ alt: 52, speed: 48, phase: "Powered descent" });
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
@@ -522,8 +554,13 @@ export default function MarsWorld(props: Props) {
       let cameraYaw = 0;
       let characterYaw = 0;
       let lastRoverGear: RoverGear = "N";
+      let lastRoverBoost = false;
+      let lastRoverBattery = 100;
+      let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
+      let lastRoverDamage: RoverDamageState = { ...INITIAL_ROVER_DAMAGE };
+      let lastRepairTarget: { id: RoverPartId; name: string; health: number } | null = null;
       let pitch = -0.04;
       let dragging = false;
       let lookPointer: number | null = null;
@@ -679,6 +716,21 @@ export default function MarsWorld(props: Props) {
           setMessage((prev) => (prev.startsWith(prefix) ? "" : prev));
           releaseMsgTimer = null;
         }, ms);
+      };
+      repairAction.current = () => {
+        if (!current.current.enabled || rover.driving) return;
+        const target = getNearestRoverPart(walker, rover);
+        if (target && target.distance <= 2.8 && target.health < 100) {
+          if (playerScrapRef.current > 0) {
+            rover = repairRoverPart(rover, target.id);
+            setPlayerScrap((s) => Math.max(0, s - 1));
+            lastRoverDamage = { ...(rover.damage ?? INITIAL_ROVER_DAMAGE) };
+            setRoverDamage({ ...(rover.damage ?? INITIAL_ROVER_DAMAGE) });
+            showTransientNotice(`Field repaired ${target.name} to 100% nominal!`, "Field repaired");
+          } else {
+            showTransientNotice("Insufficient Titanium Scrap for field repairs!", "Insufficient");
+          }
+        }
       };
       const setCursorMode = (free: boolean, notify = false) => {
         cursorReleased.current = free;
@@ -881,7 +933,11 @@ export default function MarsWorld(props: Props) {
         }
         if (k === "e" || (k === "enter" && !onInteractive)) {
           e.preventDefault();
-          inspect();
+          if (!rover.driving && repairTargetRef.current) {
+            repairAction.current();
+          } else {
+            inspect();
+          }
         }
         if (k === "q")
           keys.add("look-left");
@@ -1066,7 +1122,10 @@ export default function MarsWorld(props: Props) {
             if (rover.driving) {
               const prevRoverYaw = rover.yaw;
               for (let i = 0; i < steps; i++) {
-                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, streaming ? streamOptions : undefined);
+                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, {
+                  ...(streaming ? streamOptions : undefined),
+                  daylightElapsed,
+                });
               }
               walker.x = rover.x;
               walker.z = rover.z;
@@ -1085,7 +1144,10 @@ export default function MarsWorld(props: Props) {
             }
             else {
               if (bigRover && Math.abs(rover.speed) > 0.01) {
-                rover = stepRoverVehicle(rover, keys, dt, sevObstacles, model.roverHeightAt, model.mudAt, undefined, streaming ? streamOptions : undefined);
+                rover = stepRoverVehicle(rover, keys, dt, sevObstacles, model.roverHeightAt, model.mudAt, undefined, {
+                  ...(streaming ? streamOptions : undefined),
+                  daylightElapsed,
+                });
               }
               const dynamicObstacles = [
                 ...model.obstacles.filter(o => Math.abs(walker.x - o.x) < o.radius + 3 && Math.abs(walker.z - o.z) < o.radius + 3),
@@ -1161,16 +1223,66 @@ export default function MarsWorld(props: Props) {
             lastRoverNear = nearNow;
             setRoverNear(nearNow);
           }
+          if (!rover.driving) {
+            const nearestPart = getNearestRoverPart(walker, rover);
+            if (nearestPart && nearestPart.distance <= 2.8 && nearestPart.health < 100) {
+              const roundedHp = Math.round(nearestPart.health);
+              if (lastRepairTarget?.id !== nearestPart.id || lastRepairTarget?.health !== roundedHp) {
+                lastRepairTarget = { id: nearestPart.id, name: nearestPart.name, health: roundedHp };
+                setRepairTarget({ id: nearestPart.id, name: nearestPart.name, health: roundedHp });
+              }
+            } else if (lastRepairTarget !== null) {
+              lastRepairTarget = null;
+              setRepairTarget(null);
+            }
+          } else if (lastRepairTarget !== null) {
+            lastRepairTarget = null;
+            setRepairTarget(null);
+          }
+
+          if (rover.damage) {
+            let dmgChanged = false;
+            const dmgKeys: RoverPartId[] = [
+              "wheel_fl", "wheel_fr", "wheel_ml", "wheel_mr", "wheel_rl", "wheel_rr", "cabin_roof"
+            ];
+            for (const dk of dmgKeys) {
+              if (Math.round(rover.damage[dk]) !== Math.round(lastRoverDamage[dk])) {
+                dmgChanged = true;
+                break;
+              }
+            }
+            if (dmgChanged) {
+              lastRoverDamage = { ...rover.damage };
+              setRoverDamage({ ...rover.damage });
+            }
+          }
           if (rover.driving) {
             const spd = Math.round(Math.abs(rover.speed) * 3.6);
             if (spd !== lastRoverSpeed) {
               lastRoverSpeed = spd;
               setRoverSpeed(spd);
             }
-            const gearNow = getRoverGear(rover.speed);
+            const isBoost = Boolean(rover.boostActive);
+            const gearNow = getRoverGear(rover.speed, isBoost);
             if (gearNow !== lastRoverGear) {
               lastRoverGear = gearNow;
               setRoverGear(gearNow);
+            }
+            if (isBoost !== lastRoverBoost) {
+              lastRoverBoost = isBoost;
+              setRoverBoost(isBoost);
+            }
+            const battNow = Math.round(rover.battery);
+            if (battNow !== lastRoverBattery) {
+              lastRoverBattery = battNow;
+              setRoverBattery(rover.battery);
+            }
+            const rangeStr = rover.estimatedRangeKm >= 1.0
+              ? `${rover.estimatedRangeKm.toFixed(1)} KM`
+              : `${Math.round(rover.estimatedRangeKm * 1000)} M`;
+            if (rangeStr !== lastRoverRange) {
+              lastRoverRange = rangeStr;
+              setRoverRangeDisplay(rangeStr);
             }
             const mudNow = rover.mudDepth > 0.32;
             if (mudNow !== lastRoverMud) {
@@ -1460,7 +1572,7 @@ export default function MarsWorld(props: Props) {
             roverDriving: rover.driving,
             cockpitView: rover.driving && !cameraSettings.current.thirdPerson,
             roverSpeed: Math.round(Math.abs(rover.speed) * 3.6),
-            roverGear: getRoverGear(rover.speed),
+            roverGear: getRoverGear(rover.speed, rover.boostActive),
             mudDepth: rover.mudDepth,
             curiosityX: curiosity?.x,
             curiosityZ: curiosity?.z,
@@ -1902,23 +2014,113 @@ export default function MarsWorld(props: Props) {
         <span className="sv-key-badge">F</span> Drive Exploration Rover
        </button>
       </div>)}
+     {repairTarget && !roverDriving && (
+      <div className="sv-rover-prompt sv-eva-prompt" role="region" aria-label="EVA Component Maintenance">
+       <button
+         type="button"
+         className="sv-rover-prompt-btn sv-eva-repair-btn"
+         onClick={() => repairAction.current()}
+         disabled={playerScrap <= 0}
+       >
+        <span className="sv-key-badge">E</span> Repair {repairTarget.name} ({repairTarget.health}%) · 1 Scrap
+       </button>
+       <span className="sv-eva-scrap-pill">
+         Scrap: <b>{playerScrap}</b>
+       </span>
+      </div>
+     )}
      {roverDriving && (<div className={`sv-rover-hud${!thirdPerson ? " sv-rover-hud-cockpit" : ""}`} role="region" aria-label="Rover Vehicle HUD">
-       <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear}`}>
-        <div className="sv-gear-rail" aria-hidden="true">
-         {(["R", "N", "D"] as const).map((g) => (<span key={g} className={roverGear === g ? "active" : ""}>{g}</span>))}
-        </div>
-        <strong className="sv-gear-active">{roverGear}</strong>
-        <small>{roverGear === "D" ? "DRIVE" : roverGear === "R" ? "REVERSE" : "NEUTRAL"}</small>
+       <div className="sv-rover-schematic" role="img" aria-label="Rover Component Diagnostics Schematic">
+        <svg viewBox="0 0 100 120" className="sv-schematic-svg" aria-hidden="true">
+         <rect x="24" y="18" width="52" height="84" rx="8" className="sv-schematic-chassis" />
+         <line x1="24" y1="46" x2="76" y2="46" className="sv-schematic-grid" />
+         <line x1="24" y1="74" x2="76" y2="74" className="sv-schematic-grid" />
+         <rect
+           x="33" y="26" width="34" height="42" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.cabin_roof ?? roverDamage.solar_array ?? 100)}`}
+         >
+          <title>{`Cabin Roof: ${Math.round(roverDamage.cabin_roof ?? roverDamage.solar_array ?? 100)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="22" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_fl)}`}
+         >
+          <title>{`Front-Left Wheel: ${Math.round(roverDamage.wheel_fl)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="22" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_fr)}`}
+         >
+          <title>{`Front-Right Wheel: ${Math.round(roverDamage.wheel_fr)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="52" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_ml)}`}
+         >
+          <title>{`Mid-Left Wheel: ${Math.round(roverDamage.wheel_ml)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="52" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_mr)}`}
+         >
+          <title>{`Mid-Right Wheel: ${Math.round(roverDamage.wheel_mr)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="82" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_rl)}`}
+         >
+          <title>{`Rear-Left Wheel: ${Math.round(roverDamage.wheel_rl)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="82" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_rr)}`}
+         >
+          <title>{`Rear-Right Wheel: ${Math.round(roverDamage.wheel_rr)}%`}</title>
+         </rect>
+        </svg>
+        <span className="sv-schematic-title">DAMAGE</span>
        </div>
-       <div className="sv-rover-speedometer">
-        <strong>{roverSpeed}</strong>
-        <span>KM/H</span>
-        <small className={roverMud ? "mud-alert" : ""}>
-         {roverHandbrake ? "PARK BRAKE" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
+       <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear === "B" ? "BOOST" : roverGear}`}>
+        <div className="sv-gear-rail" aria-hidden="true">
+         {(["R", "N", "D", "B"] as const).map((g) => (
+           <span key={g} className={`${roverGear === g ? "active" : ""} ${g === "B" ? "gear-boost" : ""}`}>
+             {g === "B" ? "BST" : g}
+           </span>
+         ))}
+        </div>
+        <strong className="sv-gear-active">{roverGear === "B" ? "BOOST" : roverGear}</strong>
+        <small className={roverGear === "B" ? "sv-boost-alert" : ""}>
+          {roverGear === "B" ? "HIGH TORQUE · 3X DRAIN" : roverGear === "D" ? "DRIVE" : roverGear === "R" ? "REVERSE" : "NEUTRAL"}
         </small>
        </div>
+       <div className="sv-rover-speedometer">
+        <strong className={roverBoost ? "boost-speed" : ""}>{roverSpeed}</strong>
+        <span>KM/H</span>
+        <small className={roverBoost ? "boost-alert" : roverMud ? "mud-alert" : ""}>
+         {roverHandbrake ? "PARK BRAKE" : roverBoost ? "BOOST OVERDRIVE · HIGH TORQUE" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
+        </small>
+       </div>
+       <div className="sv-rover-power-grid" aria-label="Rover onboard power grid">
+        <div className="sv-rover-battery-header">
+         <span className="sv-battery-title">⚡ BATTERY</span>
+         <span className={`sv-battery-value ${roverBattery < 20 ? "low" : roverBattery < 40 ? "warning" : "nominal"}`}>
+          {Math.round(roverBattery)}%
+         </span>
+        </div>
+        <div className="sv-rover-battery-bar" role="progressbar" aria-valuenow={Math.round(roverBattery)} aria-valuemin={0} aria-valuemax={100}>
+         <div
+           className={`sv-rover-battery-fill ${roverBattery < 20 ? "critical" : roverBattery < 40 ? "warning" : "nominal"}`}
+           style={{ width: `${Math.max(0, Math.min(100, roverBattery))}%` }}
+         />
+        </div>
+        <div className="sv-rover-range">
+         <span className="sv-range-label">RANGE</span>
+         <strong className={`sv-range-val ${roverBoost ? "boost-drain" : ""}`}>{roverRangeDisplay}</strong>
+        </div>
+       </div>
        {!touchControlsActive && (<div className="sv-rover-hints">
-         <span><b>W / S</b> Drive / Reverse</span>
+         <span><b>Shift</b> Boost (High Torque)</span>
+         <span><b>W / S</b> Drive / Rev</span>
          <span><b>A / D</b> Steer</span>
          <span><b>Space</b> Handbrake</span>
          <span><b>V</b> Camera</span>
