@@ -122,6 +122,10 @@ export default function MarsWorld(props: Props) {
   const [canInspect, setCanInspect] = useState(false);
   const [roverSpeed, setRoverSpeed] = useState(0);
   const [roverGear, setRoverGear] = useState<RoverGear>("N");
+  const [roverBoost, setRoverBoost] = useState(false);
+  const [roverBattery, setRoverBattery] = useState(100);
+  const [roverSolarCharging, setRoverSolarCharging] = useState(false);
+  const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
   const [introActive, setIntroActive] = useState(Boolean(props.playLandingIntro));
@@ -522,6 +526,10 @@ export default function MarsWorld(props: Props) {
       let cameraYaw = 0;
       let characterYaw = 0;
       let lastRoverGear: RoverGear = "N";
+      let lastRoverBoost = false;
+      let lastRoverBattery = 100;
+      let lastRoverSolarCharging = false;
+      let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
       let pitch = -0.04;
@@ -1066,7 +1074,10 @@ export default function MarsWorld(props: Props) {
             if (rover.driving) {
               const prevRoverYaw = rover.yaw;
               for (let i = 0; i < steps; i++) {
-                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, streaming ? streamOptions : undefined);
+                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, {
+                  ...(streaming ? streamOptions : undefined),
+                  daylightElapsed,
+                });
               }
               walker.x = rover.x;
               walker.z = rover.z;
@@ -1085,7 +1096,10 @@ export default function MarsWorld(props: Props) {
             }
             else {
               if (bigRover && Math.abs(rover.speed) > 0.01) {
-                rover = stepRoverVehicle(rover, keys, dt, sevObstacles, model.roverHeightAt, model.mudAt, undefined, streaming ? streamOptions : undefined);
+                rover = stepRoverVehicle(rover, keys, dt, sevObstacles, model.roverHeightAt, model.mudAt, undefined, {
+                  ...(streaming ? streamOptions : undefined),
+                  daylightElapsed,
+                });
               }
               const dynamicObstacles = [
                 ...model.obstacles.filter(o => Math.abs(walker.x - o.x) < o.radius + 3 && Math.abs(walker.z - o.z) < o.radius + 3),
@@ -1167,10 +1181,31 @@ export default function MarsWorld(props: Props) {
               lastRoverSpeed = spd;
               setRoverSpeed(spd);
             }
-            const gearNow = getRoverGear(rover.speed);
+            const isBoost = Boolean(rover.boostActive);
+            const gearNow = getRoverGear(rover.speed, isBoost);
             if (gearNow !== lastRoverGear) {
               lastRoverGear = gearNow;
               setRoverGear(gearNow);
+            }
+            if (isBoost !== lastRoverBoost) {
+              lastRoverBoost = isBoost;
+              setRoverBoost(isBoost);
+            }
+            const battNow = Math.round(rover.battery);
+            if (battNow !== lastRoverBattery) {
+              lastRoverBattery = battNow;
+              setRoverBattery(rover.battery);
+            }
+            if (rover.solarCharging !== lastRoverSolarCharging) {
+              lastRoverSolarCharging = rover.solarCharging;
+              setRoverSolarCharging(rover.solarCharging);
+            }
+            const rangeStr = rover.estimatedRangeKm >= 1.0
+              ? `${rover.estimatedRangeKm.toFixed(1)} KM`
+              : `${Math.round(rover.estimatedRangeKm * 1000)} M`;
+            if (rangeStr !== lastRoverRange) {
+              lastRoverRange = rangeStr;
+              setRoverRangeDisplay(rangeStr);
             }
             const mudNow = rover.mudDepth > 0.32;
             if (mudNow !== lastRoverMud) {
@@ -1460,7 +1495,7 @@ export default function MarsWorld(props: Props) {
             roverDriving: rover.driving,
             cockpitView: rover.driving && !cameraSettings.current.thirdPerson,
             roverSpeed: Math.round(Math.abs(rover.speed) * 3.6),
-            roverGear: getRoverGear(rover.speed),
+            roverGear: getRoverGear(rover.speed, rover.boostActive),
             mudDepth: rover.mudDepth,
             curiosityX: curiosity?.x,
             curiosityZ: curiosity?.z,
@@ -1886,22 +1921,58 @@ export default function MarsWorld(props: Props) {
        </button>
       </div>)}
      {roverDriving && (<div className={`sv-rover-hud${!thirdPerson ? " sv-rover-hud-cockpit" : ""}`} role="region" aria-label="Rover Vehicle HUD">
-       <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear}`}>
+       <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear === "B" ? "BOOST" : roverGear}`}>
         <div className="sv-gear-rail" aria-hidden="true">
-         {(["R", "N", "D"] as const).map((g) => (<span key={g} className={roverGear === g ? "active" : ""}>{g}</span>))}
+         {(["R", "N", "D", "B"] as const).map((g) => (
+           <span key={g} className={`${roverGear === g ? "active" : ""} ${g === "B" ? "gear-boost" : ""}`}>
+             {g === "B" ? "BST" : g}
+           </span>
+         ))}
         </div>
-        <strong className="sv-gear-active">{roverGear}</strong>
-        <small>{roverGear === "D" ? "DRIVE" : roverGear === "R" ? "REVERSE" : "NEUTRAL"}</small>
-       </div>
-       <div className="sv-rover-speedometer">
-        <strong>{roverSpeed}</strong>
-        <span>KM/H</span>
-        <small className={roverMud ? "mud-alert" : ""}>
-         {roverHandbrake ? "PARK BRAKE" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
+        <strong className="sv-gear-active">{roverGear === "B" ? "BOOST" : roverGear}</strong>
+        <small className={roverGear === "B" ? "sv-boost-alert" : ""}>
+          {roverGear === "B" ? "HIGH TORQUE · 3X DRAIN" : roverGear === "D" ? "DRIVE" : roverGear === "R" ? "REVERSE" : "NEUTRAL"}
         </small>
        </div>
+       <div className="sv-rover-speedometer">
+        <strong className={roverBoost ? "boost-speed" : ""}>{roverSpeed}</strong>
+        <span>KM/H</span>
+        <small className={roverBoost ? "boost-alert" : roverMud ? "mud-alert" : ""}>
+         {roverHandbrake ? "PARK BRAKE" : roverBoost ? "BOOST OVERDRIVE · 75 KM/H" : roverMud ? "SOFT MUD · TRACKS" : "6x6 INDEPENDENT"}
+        </small>
+       </div>
+       <div className="sv-rover-power-grid" aria-label="Rover onboard power grid">
+        <div className="sv-rover-battery-header">
+         <span className="sv-battery-title">⚡ BATTERY</span>
+         <span className={`sv-battery-value ${roverBattery < 20 ? "low" : roverBattery < 40 ? "warning" : "nominal"}`}>
+          {Math.round(roverBattery)}%
+         </span>
+        </div>
+        <div className="sv-rover-battery-bar" role="progressbar" aria-valuenow={Math.round(roverBattery)} aria-valuemin={0} aria-valuemax={100}>
+         <div
+           className={`sv-rover-battery-fill ${roverBattery < 20 ? "critical" : roverBattery < 40 ? "warning" : "nominal"}`}
+           style={{ width: `${Math.max(0, Math.min(100, roverBattery))}%` }}
+         />
+        </div>
+        <div className="sv-rover-range">
+         <span className="sv-range-label">RANGE</span>
+         <strong className={`sv-range-val ${roverBoost ? "boost-drain" : ""}`}>{roverRangeDisplay}</strong>
+        </div>
+       </div>
+       <div
+         className={`sv-rover-solar-status ${roverSolarCharging ? "charging" : "dormant"}`}
+         title={roverSolarCharging ? "Solar arrays active: regenerating onboard battery" : "Solar arrays dormant"}
+         aria-label={roverSolarCharging ? "Solar panels generating charge" : "Solar panels dormant"}
+       >
+        <span className="sv-solar-icon" aria-hidden="true">☀️</span>
+        <div className="sv-solar-meta">
+         <span className="sv-solar-title">SOLAR</span>
+         <small className="sv-solar-state">{roverSolarCharging ? "+CHARGING" : "STANDBY"}</small>
+        </div>
+       </div>
        {!touchControlsActive && (<div className="sv-rover-hints">
-         <span><b>W / S</b> Drive / Reverse</span>
+         <span><b>Shift</b> Boost (75 km/h)</span>
+         <span><b>W / S</b> Drive / Rev</span>
          <span><b>A / D</b> Steer</span>
          <span><b>Space</b> Handbrake</span>
          <span><b>V</b> Camera</span>

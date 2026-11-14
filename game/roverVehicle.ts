@@ -3,8 +3,10 @@ import { boxObstacle, moveAndSlide, overlapBody, overlapDisc, type CollisionObst
 export const ROVER_LIMIT = 173;
 export const ROVER_ENTER_RADIUS = 4.8;
 export const ROVER_MAX_FORWARD = 50 / 3.6; // Authored crew rover top speed: 50 km/h (~13.89 m/s), not a NASA rover specification.
+export const ROVER_BOOST_MAX_FORWARD = 75 / 3.6; // Boost mode top speed: 75 km/h (~20.83 m/s)
 export const ROVER_MAX_REVERSE = 10 / 3.6; // Authored exploration rover reverse limit: 10 km/h (~2.78 m/s)
 export const ROVER_ACCELERATION = 1.6; // Authored gradual acceleration in m/s^2
+export const ROVER_BOOST_ACCELERATION = 4.2; // Boost mode motor acceleration in m/s^2 (2.6x torque)
 export const ROVER_BRAKE = 4.5;        // m/s^2 active service brake
 export const ROVER_HANDBRAKE = 7.5;    // m/s^2 emergency stop
 export const ROVER_COAST_DRAG = 0.85;  // rolling friction m/s^2
@@ -18,6 +20,15 @@ export const ROVER_COLLISION_RADIUS = Math.hypot(1.69, 2.475);
 export const roverFootprint = (x:number,z:number,yaw:number) => boxObstacle(x,z,1.69,2.475,"parked-rover",yaw);
 export const ROVER_CHASSIS_CLEARANCE = 0.024; // anti-Z-fighting surface clearance bias
 
+// Physical Constants & Power Grid
+export const ROVER_MASS = 3200; // kg - NASA Space Exploration Vehicle (MMSEV) realistic dry+crew mass
+export const MARS_GRAVITY = 3.72; // m/s^2 - Martian surface gravity
+export const ROVER_NOMINAL_RANGE_KM = 85.0; // Nominal distance at standard cruise on full 100% battery
+export const ROVER_BASE_DRAIN_RATE = 0.005; // % per second base avionics & life support drain while driving
+export const ROVER_DRIVE_DRAIN_RATE = 0.075; // % per second standard cruise consumption at full throttle
+export const ROVER_BOOST_DRAIN_MULT = 3.0; // 3x battery consumption multiplier during Boost Mode
+export const ROVER_SOLAR_MAX_RATE = 0.085; // % per second peak solar charging rate at high noon
+
 export const ROVER_WHEEL_OFFSETS: readonly (readonly [number, number])[] = [
   [-1.425, -1.0313], // 0: Front Left
   [1.425, -1.0313],  // 1: Front Right
@@ -27,7 +38,7 @@ export const ROVER_WHEEL_OFFSETS: readonly (readonly [number, number])[] = [
   [1.425, 1.8179],   // 5: Rear Right
 ];
 
-export type RoverGear = "D" | "R" | "N";
+export type RoverGear = "D" | "R" | "N" | "B";
 
 export type RoverObstacle = CollisionObstacle;
 
@@ -51,9 +62,17 @@ export type RoverVehicle = {
   driving: boolean;     // whether astronaut is seated inside driving
   handbrake: boolean;   // whether handbrake is active
   upgrades?: readonly string[];
+  battery: number;          // 0..100 (%) onboard rover battery charge
+  boostActive: boolean;     // whether Boost Mode drivetrain is engaged
+  solarCharging: boolean;   // whether solar panels are actively generating net charge
+  solarRate: number;        // current solar generation rate (%/sec)
+  powerDrainRate: number;   // current battery consumption rate (%/sec)
+  estimatedRangeKm: number; // dynamically computed live estimated range in km
+  slopeAngle: number;       // incline angle in radians along heading
 };
 
-export function getRoverGear(speed: number): RoverGear {
+export function getRoverGear(speed: number, isBoost = false): RoverGear {
+  if (isBoost && speed > 0.12) return "B";
   if (speed > 0.12) return "D";
   if (speed < -0.12) return "R";
   return "N";
@@ -204,6 +223,13 @@ export const spawnRoverVehicle = (
     mudDepth: 0,
     driving: false,
     handbrake: false,
+    battery: 100,
+    boostActive: false,
+    solarCharging: false,
+    solarRate: 0,
+    powerDrainRate: 0,
+    estimatedRangeKm: ROVER_NOMINAL_RANGE_KM,
+    slopeAngle: settled.pitch,
   };
 };
 
@@ -245,6 +271,7 @@ export function exitRover(
       driving: false,
       speed: 0,
       handbrake: true,
+      boostActive: false,
     },
     exitPosition,
   };
@@ -254,6 +281,7 @@ export type RoverAnalogInput = {
   throttle?: number;
   steer?: number;
   handbrake?: boolean;
+  boost?: boolean;
 };
 
 export function stepRoverVehicle(
@@ -264,11 +292,38 @@ export function stepRoverVehicle(
   heightAt: (x: number, z: number) => number = () => 0,
   mudAt: (x: number, z: number) => number = () => 0,
   analog?: RoverAnalogInput,
-  options?: { speedMultiplier?: number; worldLimit?: number },
+  options?: {
+    speedMultiplier?: number;
+    worldLimit?: number;
+    daylightElapsed?: number;
+    solarIntensity?: number;
+  },
 ): RoverVehicle {
   const worldLimit = options?.worldLimit ?? ROVER_LIMIT;
   const dt = Math.max(0, Math.min(seconds, 0.05));
   if (dt <= 0) return rover;
+
+  const currentBattery = rover.battery ?? 100;
+  const isShift = keys.has("shift") || keys.has("Shift");
+  const boostRequested = isShift || Boolean(analog?.boost);
+  const boostActive = rover.driving && boostRequested && currentBattery > 0.05;
+
+  // Active Solar Regeneration from Sol Clock
+  let solarIntensity = options?.solarIntensity;
+  if (solarIntensity === undefined && options?.daylightElapsed !== undefined) {
+    // 600s daylight cycle, daylightAngle: 0=noon, pi=midnight
+    const angle = ((Math.max(0, options.daylightElapsed) % 600) / 600) * Math.PI * 2;
+    const cosSun = Math.cos(angle);
+    solarIntensity = Math.max(0, cosSun);
+  } else if (solarIntensity === undefined) {
+    // Default to daylight when unspecified (e.g. unit tests)
+    solarIntensity = 1.0;
+  }
+
+  // Roof tilt efficiency relative to sky
+  const roofTiltEfficiency = Math.max(0, Math.cos(rover.pitch) * Math.cos(rover.roll));
+  const solarRate = ROVER_SOLAR_MAX_RATE * solarIntensity * roofTiltEfficiency;
+  const solarCharging = solarRate > 0.008 && solarIntensity > 0.05;
 
   if (!rover.driving) {
     // When parked, friction holds the rover stationary and suspension settles on terrain
@@ -285,6 +340,9 @@ export function stepRoverVehicle(
       mudAt,
       dt,
     );
+    // Parked passive solar replenishment (zero motor drain)
+    const parkedBattery = clamp(currentBattery + solarRate * dt, 0, 100);
+    const nominalRange = (parkedBattery / 100) * ROVER_NOMINAL_RANGE_KM;
     return {
       ...rover,
       speed,
@@ -300,6 +358,13 @@ export function stepRoverVehicle(
       leftBogieAngle: settled.leftBogieAngle,
       rightBogieAngle: settled.rightBogieAngle,
       mudDepth: settled.mudDepth,
+      battery: parkedBattery,
+      boostActive: false,
+      solarCharging,
+      solarRate,
+      powerDrainRate: 0,
+      estimatedRangeKm: nominalRange,
+      slopeAngle: settled.pitch,
     };
   }
 
@@ -314,22 +379,55 @@ export function stepRoverVehicle(
     keys.has("handbrake") ||
     Boolean(analog?.handbrake);
 
-  let speed = clamp(rover.speed, -ROVER_MAX_REVERSE, ROVER_MAX_FORWARD);
+  const forwardMag = forwardKey ? 1 : analogThrottle > 0.12 ? analogThrottle : 0;
+  const reverseMag = reverseKey ? 1 : analogThrottle < -0.12 ? -analogThrottle : 0;
+  const throttleMag = Math.max(forwardMag, reverseMag);
+
+  // Power Consumption & Drain
+  // Idle avionics drain + driving drain. In Boost Mode, consumption increases 3x!
+  const hasPower = currentBattery > 0.05;
+  const idleDrain = ROVER_BASE_DRAIN_RATE;
+  const speedRatio = Math.abs(rover.speed) / (boostActive ? ROVER_BOOST_MAX_FORWARD : ROVER_MAX_FORWARD);
+  const baseDriveDrain = throttleMag * (ROVER_DRIVE_DRAIN_RATE * (0.6 + 0.4 * clamp(speedRatio, 0, 1)));
+  const driveDrain = boostActive ? baseDriveDrain * ROVER_BOOST_DRAIN_MULT : baseDriveDrain;
+  const powerDrainRate = idleDrain + driveDrain;
+  const battery = clamp(currentBattery + (solarRate - powerDrainRate) * dt, 0, 100);
+
+  // Dynamic live estimated range: instantly drops by half when shifting into Boost Mode
+  const nominalRange = (battery / 100) * ROVER_NOMINAL_RANGE_KM;
+  const estimatedRangeKm = battery <= 0.05 ? 0 : boostActive ? nominalRange * 0.5 : nominalRange;
+
+  const currentMaxForward = boostActive ? ROVER_BOOST_MAX_FORWARD : ROVER_MAX_FORWARD;
+  let speed = clamp(rover.speed, -ROVER_MAX_REVERSE, currentMaxForward);
   const handbrake = handbrakeKey;
 
-  // SnowRunner mud drag slows top cruise speed slightly in deep soft regolith while keeping torque high
+  // Off-road regolith & mud factor
   const hasMudTires = rover.upgrades?.includes("mud_tires") ?? false;
   const mudFactor = clamp(rover.mudDepth * (hasMudTires ? 0.15 : 1.0), 0, 1);
   const baseSpeedMul = clamp(options?.speedMultiplier ?? 1.0, 0.8, 1.4);
-  const effectiveMaxForward = ROVER_MAX_FORWARD * baseSpeedMul * (1 - mudFactor * (hasMudTires ? 0.05 : 0.28));
+
+  // Incline slope angle along heading:
+  // In our coordinate system, forward is along -Z. +pitch lifts -Z (nose) up.
+  // Driving forward with +pitch is climbing uphill.
+  const slopeAngle = rover.pitch;
+  const sinSlope = Math.sin(slopeAngle);
+  // Gravitational force component along the incline: F = m * g * sin(theta)
+  // Deceleration opposing forward motion = g * sin(theta)
+  const inclineDecel = MARS_GRAVITY * sinSlope;
+
+  // Steep mountain slope reduces the achievable top speed
+  const slopeResistanceFactor = Math.max(0.12, 1.0 - 0.72 * Math.max(0, sinSlope));
+  const mudSpeedPenalty = boostActive ? 0.06 : (hasMudTires ? 0.05 : 0.28);
+  const effectiveMaxForward = currentMaxForward * baseSpeedMul * (1 - mudFactor * mudSpeedPenalty) * slopeResistanceFactor;
   const effectiveCoastDrag = ROVER_COAST_DRAG * (1 + mudFactor * (hasMudTires ? 0.2 : 1.15));
-  const motorAcceleration = ROVER_ACCELERATION * (hasMudTires ? 1.35 : 1.0);
+
+  // Motor acceleration: standard 1.6 m/s^2, Boost Mode 4.2 m/s^2 (2.6x torque to climb steep mountains)
+  const baseMotorAcc = boostActive ? ROVER_BOOST_ACCELERATION : ROVER_ACCELERATION;
+  const motorAcceleration = (hasPower ? baseMotorAcc : 0) * (hasMudTires ? 1.35 : 1.0);
 
   // Steering angle rate of change
   const analogSteer = clamp(analog?.steer ?? 0, -1, 1);
   const steerInput = clamp((Number(leftKey) - Number(rightKey)) + analogSteer, -1, 1);
-  // Keep a tight turning circle at parking speeds, then widen it smoothly.
-  // Bicycle model lateral acceleration is speed² * tan(angle) / wheelbase.
   const steerLimit = Math.atan2(Math.tan(ROVER_STEER_MAX),
     1 + speed * speed * Math.tan(ROVER_STEER_MAX) / (4 * ROVER_WHEEL_BASE));
   const targetSteer = steerInput * steerLimit;
@@ -342,9 +440,7 @@ export function stepRoverVehicle(
     steerAngle += Math.sign(steerDiff) * steerStep;
   }
 
-  // Throttle and braking
-  const forwardMag = forwardKey ? 1 : analogThrottle > 0.12 ? analogThrottle : 0;
-  const reverseMag = reverseKey ? 1 : analogThrottle < -0.12 ? -analogThrottle : 0;
+  // Throttle, braking, and gravity-incline physics
   if (handbrakeKey) {
     if (speed > 0) {
       speed = Math.max(0, speed - ROVER_HANDBRAKE * dt);
@@ -354,21 +450,39 @@ export function stepRoverVehicle(
   } else if (forwardMag > 0 && reverseMag === 0) {
     if (speed < 0) {
       speed = Math.min(0, speed + ROVER_BRAKE * forwardMag * dt);
-    } else {
+    } else if (hasPower) {
       const motorPull = motorAcceleration * (1 - 0.3 * speed / effectiveMaxForward);
-      speed = Math.min(effectiveMaxForward, speed + motorPull * forwardMag * dt);
+      // Net forward acceleration = motor pull minus incline gravitational resistance
+      const netAcc = motorPull - inclineDecel;
+      if (netAcc > 0) {
+        speed = Math.min(effectiveMaxForward, speed + netAcc * forwardMag * dt);
+      } else {
+        // Motor torque cannot overcome steep mountain slope: speed realistically decelerates
+        speed = Math.max(0, speed + netAcc * forwardMag * dt);
+      }
     }
   } else if (reverseMag > 0 && forwardMag === 0) {
     if (speed > 0) {
       speed = Math.max(0, speed - ROVER_BRAKE * reverseMag * dt);
-    } else {
-      speed = Math.max(-ROVER_MAX_REVERSE, speed - motorAcceleration * 0.75 * reverseMag * dt);
+    } else if (hasPower) {
+      // Incline resistance opposes reversing uphill (when pitch < 0)
+      const reverseMotor = motorAcceleration * 0.75;
+      const netReverse = reverseMotor + inclineDecel;
+      speed = Math.max(-ROVER_MAX_REVERSE, speed - netReverse * reverseMag * dt);
     }
   } else {
-    if (speed > 0) {
-      speed = Math.max(0, speed - effectiveCoastDrag * dt);
-    } else if (speed < 0) {
-      speed = Math.min(0, speed + effectiveCoastDrag * dt);
+    // Coasting / idle rolling on slope
+    if (Math.abs(speed) > 0.05) {
+      if (speed > 0) {
+        speed = Math.max(0, speed - (effectiveCoastDrag + inclineDecel * 0.5) * dt);
+      } else {
+        speed = Math.min(0, speed + (effectiveCoastDrag - inclineDecel * 0.5) * dt);
+      }
+    } else if (Math.abs(sinSlope) > 0.35 && !handbrake) {
+      // Steep slope exceeding static regolith friction causes rolling
+      speed -= inclineDecel * 0.3 * dt;
+    } else {
+      speed = 0;
     }
   }
 
@@ -449,5 +563,12 @@ export function stepRoverVehicle(
     mudDepth: suspension.mudDepth,
     driving: true,
     handbrake,
+    battery,
+    boostActive,
+    solarCharging,
+    solarRate,
+    powerDrainRate,
+    estimatedRangeKm,
+    slopeAngle,
   };
 }

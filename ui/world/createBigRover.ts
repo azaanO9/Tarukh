@@ -151,6 +151,34 @@ export function createBigRover(
   const sensorBand = new T.Mesh(new T.CylinderGeometry(.145,.145,.055,20),new T.MeshStandardMaterial({color:0x145654,metalness:.4,roughness:.25}));
   sensorBand.position.set(0,2.78,-.35); fixtures.add(sensorBand);
 
+  // Roof-mounted photovoltaic solar arrays
+  const solarPanelGroup = new T.Group();
+  solarPanelGroup.name = "roof-mounted-solar-arrays";
+  const solarFrameMat = new T.MeshStandardMaterial({ color: 0x1a202c, metalness: 0.8, roughness: 0.35 });
+  const solarCellMat = new T.MeshStandardMaterial({
+    color: 0x071b2f,
+    emissive: 0x021326,
+    emissiveIntensity: 0.35,
+    roughness: 0.22,
+    metalness: 0.88,
+  });
+  for (const side of [-1, 1]) {
+    const frame = new T.Mesh(new T.BoxGeometry(0.72, 0.035, 1.8), solarFrameMat);
+    frame.name = `solar-frame-${side < 0 ? "left" : "right"}`;
+    frame.position.set(side * 0.62, 2.62, 0.45);
+    frame.castShadow = true;
+    frame.receiveShadow = true;
+    solarPanelGroup.add(frame);
+
+    const cells = new T.Mesh(new T.BoxGeometry(0.68, 0.015, 1.74), solarCellMat);
+    cells.name = `solar-cells-${side < 0 ? "left" : "right"}`;
+    cells.position.set(side * 0.62, 2.64, 0.45);
+    cells.castShadow = true;
+    cells.receiveShadow = true;
+    solarPanelGroup.add(cells);
+  }
+  fixtures.add(solarPanelGroup);
+
   // Wheel dust
   const tireDust = createRoverDust();
 
@@ -243,6 +271,7 @@ export function createBigRover(
       lidarMount.position.y = roof + .04;
       lidarHousing.position.y = roof + .18;
       sensorBand.position.y = roof + .20;
+      solarPanelGroup.position.y = roof - 2.62;
 
       // Replace the fallback after the prepared wheel rig is ready.
       root.remove(fallback);

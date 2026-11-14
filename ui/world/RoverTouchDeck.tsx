@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef } from "react";
 import { Camera, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import type { TouchControlProps } from "./touchControlTypes";
 
-type Control = "left" | "right" | "gas" | "rev";
+type Control = "left" | "right" | "gas" | "rev" | "boost";
 type Props = Pick<TouchControlProps,"onDriveAxes" | "onToggleView" | "onToggleRover">;
 
-const PEDAL_LABELS: Record<"gas" | "rev", string> = {
+const PEDAL_LABELS: Record<"gas" | "rev" | "boost", string> = {
   gas: "FWD",
   rev: "REV · BRK",
+  boost: "⚡ BOOST",
 };
 
 export function RoverTouchDeck({onDriveAxes,onToggleView,onToggleRover}: Props) {
@@ -35,7 +36,8 @@ export function RoverTouchDeck({onDriveAxes,onToggleView,onToggleRover}: Props) 
     onDriveAxes({
       steer:Number(held.has("left"))-Number(held.has("right")),
       throttle,
-      handbrake:false
+      handbrake:false,
+      boost: held.has("boost"),
     });
   }
   function button(control:Control,label:string) {
@@ -55,7 +57,7 @@ export function RoverTouchDeck({onDriveAxes,onToggleView,onToggleRover}: Props) 
         <button type="button" aria-label="Switch camera" onClick={onToggleView}><Camera/></button>
         <button type="button" aria-label="Exit rover" onClick={onToggleRover}><LogOut/></button>
       </div>
-      {button("rev","Brake and reverse")}{button("gas","Forward")}
+      {button("boost","Boost mode (75 km/h)")}{button("rev","Brake and reverse")}{button("gas","Forward")}
     </div>
   </>;
 }
