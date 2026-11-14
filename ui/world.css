@@ -1232,185 +1232,65 @@
   letter-spacing: 0.02em;
 }
 
-/* Bottom-Right Mars Telemetry GTA 5 Style Phone Window */
-.mars-radiation-hud {
+/* ==========================================================================
+   GTA 5 Style Mars Telemetry Communicator Smartphone (Bottom-Right HUD)
+   ========================================================================== */
+
+/* Peek Button in bottom-right corner when Phone is hidden */
+.mars-phone-peek-pill {
   position: absolute;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  right: max(18px, env(safe-area-inset-right));
-  left: auto;
-  transform: none;
-  z-index: 22;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 248px;
-  box-sizing: border-box;
-  background: linear-gradient(175deg, rgba(14, 23, 40, 0.94) 0%, rgba(8, 14, 26, 0.98) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.22);
-  border-radius: 26px;
-  padding: 10px 12px 8px;
-  backdrop-filter: blur(20px) saturate(190%);
-  -webkit-backdrop-filter: blur(20px) saturate(190%);
-  box-shadow:
-    0 20px 48px -6px rgba(0, 0, 0, 0.82),
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
-    0 0 24px rgba(56, 189, 248, 0.14);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
-  color: #e2e8f0;
-  pointer-events: auto;
-  user-select: none;
-  transition: transform 0.25s ease-out, opacity 0.25s ease-out;
-  max-width: calc(100vw - 24px);
-}
-
-.mars-radiation-hud.driving {
-  bottom: max(18px, env(safe-area-inset-bottom));
-  right: max(18px, env(safe-area-inset-right));
-  left: auto;
-  transform: none;
-}
-
-/* Phone Top Speaker & Status Bar */
-.mars-phone-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding-bottom: 2px;
-}
-
-.mars-phone-speaker {
-  width: 44px;
-  height: 3.5px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.25);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.mars-phone-status-bar {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
-  color: #64748b;
-  letter-spacing: 0.05em;
-}
-
-.mars-phone-carrier {
-  color: #94a3b8;
-}
-
-.mars-phone-net {
-  color: #38bdf8;
-}
-
-.mars-phone-home-indicator {
-  width: 68px;
-  height: 3.5px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.35);
-  margin: 2px auto 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-/* Phone Controls Row */
-.mars-phone-controls-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.mars-phone-controls-row .mars-rad-mode-btn {
-  flex: 1;
-  justify-content: center;
-}
-
-.mars-phone-controls-row .mars-rad-event-btn {
-  flex: 1;
-  justify-content: space-between;
-  max-width: 110px;
-}
-
-/* Phone Card Container */
-.mars-phone-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 7px 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.mars-phone-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.mars-phone-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font: 700 9px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.06em;
-}
-
-.mars-phone-flux-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-top: 1px;
-}
-
-.mars-phone-flux-val {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 15px;
-  font-weight: 800;
-  color: #f1f5f9;
-}
-
-.mars-phone-flux-val small {
-  font-size: 9.5px;
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-.mars-phone-flux-sub {
-  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
-  color: #64748b;
-  letter-spacing: 0.04em;
-}
-
-
-
-
-
-.mars-rad-mode-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #f1f5f9;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font: 700 9.5px/1 ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0.05em;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 23;
+  background: linear-gradient(135deg, rgba(14, 23, 40, 0.94) 0%, rgba(8, 14, 26, 0.98) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  padding: 6px 14px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  color: #f1f5f9;
+  font: 700 10px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  box-shadow:
+    0 12px 28px -4px rgba(0, 0, 0, 0.75),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 0 14px rgba(56, 189, 248, 0.15);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  pointer-events: auto;
 }
 
-.mars-rad-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(56, 189, 248, 0.5);
+.mars-phone-peek-pill:hover {
+  transform: translateY(-2px) scale(1.04);
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow:
+    0 16px 36px -4px rgba(0, 0, 0, 0.85),
+    0 0 20px rgba(56, 189, 248, 0.4);
 }
 
-.mars-rad-mode-btn.live .mars-mode-indicator {
+.mars-peek-phone-icon {
+  font-size: 13px;
+}
+
+.mars-peek-title {
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.mars-peek-hotkey {
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
+}
+
+.mars-peek-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1418,329 +1298,987 @@
   box-shadow: 0 0 6px #10b981;
 }
 
-.mars-rad-mode-btn.historical .mars-mode-indicator {
+.mars-peek-status-dot.storm {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: dotFlash 0.7s infinite alternate;
+}
+
+.mars-phone-peek-pill.storm-alert {
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.85);
+  animation: alertPulse 0.9s infinite alternate;
+}
+
+@keyframes alertPulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1.05); filter: brightness(1.25); }
+}
+
+/* Rugged Phone Chassis Container */
+.mars-radiation-hud.gta-phone {
+  position: absolute;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: auto;
+  z-index: 24;
+  width: 296px;
+  box-sizing: border-box;
+  background: #1c2432;
+  border: 3px solid #334155;
+  border-radius: 28px;
+  clip-path: polygon(
+    14px 0%,
+    calc(100% - 14px) 0%,
+    100% 14px,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0% calc(100% - 14px),
+    0% 14px
+  );
+  box-shadow:
+    0 24px 55px -6px rgba(0, 0, 0, 0.88),
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 28px rgba(56, 189, 248, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  color: #e2e8f0;
+  user-select: none;
+  pointer-events: auto;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.mars-radiation-hud.gta-phone.phone-closed {
+  transform: translateY(calc(100% + 50px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mars-radiation-hud.gta-phone.phone-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mars-radiation-hud.gta-phone.driving {
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: auto;
+}
+
+/* Phone Corner Bolts / Screws */
+.mars-phone-screw {
+  position: absolute;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 6px #d97706;
+  background: radial-gradient(circle, #94a3b8 30%, #475569 80%, #1e293b 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 5;
 }
 
-.mars-key-tag {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 3px;
-  padding: 1px 4px;
+.mars-phone-screw.top-left { top: 6px; left: 6px; }
+.mars-phone-screw.top-right { top: 6px; right: 6px; }
+.mars-phone-screw.bottom-left { bottom: 6px; left: 6px; }
+.mars-phone-screw.bottom-right { bottom: 6px; right: 6px; }
+
+/* Industrial Safety Orange Grip Bumpers */
+.mars-phone-grip-l,
+.mars-phone-grip-r {
+  position: absolute;
+  width: 4px;
+  height: 40px;
+  background: #ea580c;
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.7);
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.mars-phone-grip-l { left: -2px; top: 40%; }
+.mars-phone-grip-r { right: -2px; top: 22%; }
+
+/* Top Notch with Camera & Speaker */
+.mars-phone-notch {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0 3px;
+  background: #131a24;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mars-camera-pinhole {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #0284c7;
+  box-shadow: 0 0 3px #0284c7, inset 0 0 1px #000;
+}
+
+.mars-notch-speaker {
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Inner OLED Screen */
+.mars-phone-screen {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(234, 88, 12, 0.16) 0%, transparent 45%),
+    linear-gradient(180deg, #0e1520 0%, #080c14 100%);
+  padding: 8px 10px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top Header Row (NASA Meatball & TARUKH) */
+.mars-phone-brand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px 2px;
+}
+
+.mars-nasa-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.mars-nasa-logo {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.mars-tarukh-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mars-tarukh-star {
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.8));
+}
+
+.mars-tarukh-text {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: #f1f5f9;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Status Bar */
+.mars-phone-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  padding: 0 2px;
 }
 
-.mars-rad-event-btn {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-  border-radius: 6px;
-  padding: 3px 6px;
-  font: 600 9px/1 system-ui, sans-serif;
-  cursor: pointer;
+.mars-sat-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: 140px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mars-rad-event-btn:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: #f59e0b;
-}
-
-.mars-cycle-tag {
-  font-size: 7.5px;
-  opacity: 0.8;
-}
-
-.mars-rad-audio-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  padding: 3px 6px;
-  font-size: 11px;
   cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
-.mars-rad-audio-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
+.mars-sat-link-btn:hover {
+  opacity: 0.85;
 }
 
-.mars-rad-telemetry-flux {
+.sat-title {
+  color: #94a3b8;
+}
+
+.sat-badge.live {
+  color: #34d399;
+  text-shadow: 0 0 4px #10b981;
+}
+
+.sat-badge.historical {
+  color: #f59e0b;
+  text-shadow: 0 0 4px #d97706;
+}
+
+.mars-phone-clock {
+  color: #e2e8f0;
+  font-weight: 800;
+  font-size: 9.5px;
+}
+
+.mars-phone-net-stats {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
+  gap: 6px;
 }
 
-.mars-flux-label-row {
+.mars-signal-bars {
   display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 8px;
+}
+
+.mars-signal-bars i {
+  width: 2px;
+  background: #38bdf8;
+  border-radius: 0.5px;
+}
+
+.mars-signal-bars i:nth-child(1) { height: 2px; }
+.mars-signal-bars i:nth-child(2) { height: 4px; }
+.mars-signal-bars i:nth-child(3) { height: 6px; }
+.mars-signal-bars i:nth-child(4) { height: 8px; }
+
+.mars-battery-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mars-battery-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 7px;
+  border: 1px solid #94a3b8;
+  border-radius: 2px;
+  padding: 0.5px;
+  position: relative;
+}
+
+.mars-battery-icon::after {
+  content: "";
+  position: absolute;
+  right: -2.5px;
+  top: 1.5px;
+  width: 1.5px;
+  height: 3px;
+  background: #94a3b8;
+  border-radius: 0 1px 1px 0;
+}
+
+.mars-battery-icon i {
+  display: block;
+  height: 100%;
+  background: #34d399;
+  border-radius: 1px;
+}
+
+.mars-battery-pct {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+/* Hero Banner (Mission Telemetry & Mars Glow) */
+.mars-phone-hero {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.mars-hero-planet-glow {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ea580c 0%, #9a3412 40%, transparent 70%);
+  opacity: 0.38;
+  pointer-events: none;
+  filter: blur(3px);
+}
+
+.mars-hero-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.mars-hero-sep-badge {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font: 800 8.5px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
+}
+
+.mars-hero-sep-badge:hover {
+  background: rgba(56, 189, 248, 0.32);
+  border-color: #38bdf8;
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.mars-phone-minimize-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #94a3b8;
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mars-phone-minimize-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.mars-hero-title-wrap {
+  display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.mars-flux-title {
-  font: 700 9.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
+.mars-hero-bar {
+  width: 3px;
+  height: 14px;
+  background: #ea580c;
+  border-radius: 1.5px;
+  box-shadow: 0 0 6px #ea580c;
 }
 
-.mars-sep-info-trigger {
-  display: inline-flex;
+.mars-hero-title {
+  font-size: 13.5px;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.mars-hero-title b {
+  color: #f1f5f9;
+  font-weight: 800;
+}
+
+.mars-hero-title span {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.mars-hero-sub {
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+  padding-left: 8px;
+}
+
+/* 3-Column Grid Layout for Data Cards */
+.mars-phone-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.mars-grid-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 3px 5px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: rgba(56, 189, 248, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  color: #38bdf8;
-  padding: 0;
+  text-align: center;
+  gap: 2px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mars-grid-card:hover {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.mars-grid-card.clickable {
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.2);
 }
 
-.mars-sep-info-trigger:hover,
-.mars-sep-info-trigger:focus-visible {
-  background: rgba(56, 189, 248, 0.32);
-  border-color: #38bdf8;
-  color: #fff;
-  transform: scale(1.18);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
-  outline: none;
+.mars-grid-card.clickable:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.08);
 }
 
-.mars-flux-val {
+.mars-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1px;
+}
+
+.mars-card-icon.rad-icon { color: #facc15; }
+.mars-card-icon.atom-icon { color: #38bdf8; }
+.mars-card-icon.flare-icon { color: #fb923c; }
+.mars-card-icon.temp-icon { color: #38bdf8; }
+.mars-card-icon.gauge-icon { color: #a78bfa; }
+.mars-card-icon.o2-icon { color: #34d399; }
+
+.o2-symbol {
+  font: 800 12px/1 ui-monospace, "SF Mono", monospace;
+  color: #34d399;
+}
+
+.mars-card-label {
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.mars-card-val {
   font-family: ui-monospace, "SF Mono", monospace;
-  color: #94a3b8;
-  font-size: 9.5px;
-}
-
-.mars-flux-val b {
+  font-size: 11px;
+  font-weight: 800;
   color: #f1f5f9;
-  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.mars-storm-scale {
-  font: 700 9.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.05em;
-  padding: 2px 5px;
-  border-radius: 4px;
+.mars-card-val small {
+  font-size: 7.5px;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
-.mars-storm-scale.scale-s0 {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-.mars-storm-scale.scale-s1 {
-  color: #facc15;
-  background: rgba(250, 204, 21, 0.12);
-  border: 1px solid rgba(250, 204, 21, 0.3);
-}
-
-.mars-storm-scale.scale-s2 {
+.mars-card-val.flare-val {
+  font-size: 10px;
   color: #fb923c;
-  background: rgba(251, 146, 60, 0.15);
-  border: 1px solid rgba(251, 146, 60, 0.4);
 }
 
-.mars-storm-scale.scale-s3 {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.2);
-  border: 1px solid rgba(248, 113, 113, 0.5);
+.mars-card-val.temp-val {
+  color: #38bdf8;
 }
 
-.mars-storm-scale.scale-s4 {
-  color: #f43f5e;
-  background: rgba(244, 63, 94, 0.28);
-  border: 1px solid #f43f5e;
-  box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
-  animation: dotFlash 0.8s infinite alternate;
+.mars-card-val.o2-val {
+  color: #34d399;
 }
 
+/* Mini 5-Segment Meter in Card 1 */
+.mars-card-mini-meter {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+  width: 75%;
+  height: 2.5px;
+}
 
+.m-seg {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+}
 
-.mars-rad-bar-header {
+.m-seg.active-green { background: #34d399; box-shadow: 0 0 4px #10b981; }
+.m-seg.active-amber { background: #facc15; box-shadow: 0 0 4px #eab308; }
+.m-seg.active-orange { background: #fb923c; box-shadow: 0 0 4px #f97316; }
+.m-seg.active-red { background: #f87171; box-shadow: 0 0 4px #ef4444; }
+.m-seg.active-crimson { background: #f43f5e; box-shadow: 0 0 6px #e11d48; }
+
+/* Middle Full-Width Progress Bar Cards */
+.mars-phone-bar-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+}
+
+.mars-bar-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  font: 700 9.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
+  align-items: center;
 }
 
-.mars-rad-title {
+.mars-bar-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
   color: #94a3b8;
-  font-size: 9px;
+  letter-spacing: 0.06em;
 }
 
-.mars-rad-val {
+.mars-bar-card-title svg {
+  color: #38bdf8;
+}
+
+.health-bar-card .mars-bar-card-title svg {
+  color: #34d399;
+}
+
+.mars-bar-val {
   font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
   color: #cbd5e1;
 }
 
-.mars-rad-val b {
-  font-size: 12px;
+.mars-bar-val b {
+  font-size: 11px;
 }
 
-.mars-rad-val.nominal b { color: #34d399; }
-.mars-rad-val.caution b { color: #f59e0b; }
-.mars-rad-val.critical b { color: #ef4444; }
+.mars-bar-val.nominal b { color: #34d399; }
+.mars-bar-val.caution b { color: #f59e0b; }
+.mars-bar-val.critical b { color: #ef4444; }
 
-.mars-rad-progress-track {
+.mars-bar-val.warning { color: #f59e0b; }
+
+/* Segmented Track & Fill for Radiation */
+.mars-segmented-track {
   width: 100%;
-  height: 7px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 3px;
+  height: 6.5px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
   overflow: hidden;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-.mars-rad-progress-fill {
+.mars-segmented-fill {
   height: 100%;
   transition: width 0.2s ease-out;
 }
 
-.mars-rad-progress-fill.nominal {
+.mars-segmented-fill.nominal {
   background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
 }
 
-.mars-rad-progress-fill.caution {
+.mars-segmented-fill.caution {
   background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
   animation: cautionPulse 1.4s infinite alternate;
 }
 
-@keyframes cautionPulse {
-  0% { opacity: 0.85; filter: brightness(1); }
-  100% { opacity: 1; filter: brightness(1.25); }
-}
-
-.mars-rad-progress-fill.critical {
+.mars-segmented-fill.critical {
   background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
   animation: criticalFlash 0.7s infinite alternate;
 }
 
-@keyframes criticalFlash {
-  0% { opacity: 0.75; }
-  100% { opacity: 1; filter: brightness(1.3); }
-}
-
-.mars-rad-sub-status {
+.mars-bar-sub-status {
   display: flex;
   align-items: center;
+  gap: 4px;
+  margin-top: 1px;
 }
 
-.mars-shield-badge {
-  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.05em;
+.mars-sub-bar {
+  width: 2px;
+  height: 8px;
+  background: #34d399;
+  border-radius: 1px;
 }
 
-.mars-shield-badge.shielded {
+.mars-sub-text {
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.04em;
+}
+
+.mars-sub-text.shielded {
   color: #34d399;
-  text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+  text-shadow: 0 0 4px rgba(52, 211, 153, 0.4);
 }
 
-.mars-shield-badge.eva.nominal {
-  color: #94a3b8;
-}
-
-.mars-shield-badge.eva.hazard {
-  color: #f87171;
-  text-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
-  animation: dotFlash 0.9s infinite alternate;
-}
-
-
-
-.mars-health-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font: 700 9px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
-}
-
-.mars-health-title {
-  color: #94a3b8;
-}
-
-.mars-health-val {
-  font-weight: 800;
-  font-size: 11px;
-}
-
-.mars-health-val.nominal { color: #34d399; }
-.mars-health-val.warning { color: #f59e0b; }
-.mars-health-val.critical { color: #ef4444; }
-
-.mars-health-track {
-  width: 100%;
-  height: 5px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.mars-health-fill {
-  height: 100%;
-  transition: width 0.25s ease-out;
-}
-
-.mars-health-fill.nominal {
-  background: #10b981;
-}
-
-.mars-health-fill.warning {
-  background: #f59e0b;
-}
-
-.mars-health-fill.critical {
-  background: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
-}
-
-.mars-health-sub {
-  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.05em;
+.mars-sub-text.nominal {
   color: #64748b;
 }
 
-/* Responsive Rules for Small / Mobile Screens */
-@media (max-height: 520px) {
-  .mars-radiation-hud {
-    transform: scale(0.82);
+.mars-sub-text.storm {
+  color: #f87171;
+  text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+  animation: dotFlash 0.9s infinite alternate;
+}
+
+/* 45-Degree Angled Military Striped Health Bar Track & Fill */
+.mars-striped-health-track {
+  width: 100%;
+  height: 7.5px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.mars-striped-health-fill {
+  height: 100%;
+  transition: width 0.25s ease-out;
+  background: repeating-linear-gradient(
+    -45deg,
+    #10b981 0px,
+    #10b981 7px,
+    #059669 7px,
+    #059669 10px
+  );
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+}
+
+.mars-striped-health-fill.warning {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f59e0b 0px,
+    #f59e0b 7px,
+    #d97706 7px,
+    #d97706 10px
+  );
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+}
+
+.mars-striped-health-fill.critical {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ef4444 0px,
+    #ef4444 7px,
+    #b91c1c 7px,
+    #b91c1c 10px
+  );
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+  animation: criticalFlash 0.7s infinite alternate;
+}
+
+/* Tab Contents */
+.mars-phone-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Secondary Tabs (Data, Systems, Settings, Home) */
+.mars-tab-heading {
+  padding: 4px 2px 2px;
+}
+
+.mars-tab-heading h3 {
+  font-size: 11px;
+  margin: 0;
+  color: #f1f5f9;
+  font-weight: 800;
+}
+
+.mars-tab-heading p {
+  font-size: 8.5px;
+  color: #94a3b8;
+  margin: 2px 0 0;
+}
+
+.mars-events-list,
+.mars-systems-list,
+.mars-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.mars-event-item {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  color: #f1f5f9;
+  transition: all 0.15s ease;
+}
+
+.mars-event-item:hover,
+.mars-event-item.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.mars-event-meta b {
+  display: block;
+  font-size: 9.5px;
+  color: #f1f5f9;
+}
+
+.mars-event-meta small {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.mars-event-tag {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.mars-event-tag.live { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+.mars-event-tag.storm { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.mars-event-tag.extreme { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+.mars-system-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mars-sys-info b {
+  display: block;
+  font-size: 9.5px;
+  color: #f1f5f9;
+}
+
+.mars-sys-info small {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.mars-sys-status {
+  margin-left: auto;
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.mars-sys-status.ok { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+.mars-sys-status.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+.mars-setting-row {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mars-setting-label b {
+  display: block;
+  font-size: 9.5px;
+  color: #f1f5f9;
+}
+
+.mars-setting-label small {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.mars-setting-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f1f5f9;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: 700 8.5px/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mars-setting-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.mars-setting-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.mars-home-hero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.mars-home-avatar {
+  font-size: 22px;
+}
+
+.mars-home-user b {
+  display: block;
+  font-size: 10px;
+  color: #f1f5f9;
+}
+
+.mars-home-user small {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.mars-home-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.mars-home-stat-box {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.mars-home-stat-box .h-val {
+  display: block;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.mars-home-stat-box .h-lbl {
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.mars-home-launch-btn {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 6px;
+  padding: 7px;
+  font: 800 9.5px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+}
+
+.mars-home-launch-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* Bottom Navigation Bar (5 Tabs) */
+.mars-phone-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 2px 1px;
+  margin-top: 2px;
+}
+
+.mars-nav-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font: 600 7.5px/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  position: relative;
+}
+
+.mars-nav-btn:hover {
+  color: #cbd5e1;
+}
+
+.mars-nav-btn.active {
+  color: #f1f5f9;
+}
+
+.mars-nav-btn.active svg {
+  color: #ea580c;
+  filter: drop-shadow(0 0 5px rgba(234, 88, 12, 0.8));
+}
+
+.nav-active-bar {
+  position: absolute;
+  bottom: -2px;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: #ea580c;
+  border-radius: 1px;
+  box-shadow: 0 0 4px #ea580c;
+}
+
+/* Bottom Hardware Chin with 3 angled glowing slots */
+.mars-phone-chin {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0 3px;
+  background: #141c28;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mars-chin-grille {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mars-chin-grille i {
+  display: block;
+  width: 8px;
+  height: 3px;
+  background: #ffffff;
+  border-radius: 1px;
+  transform: skewX(-25deg);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.7);
+}
+
+/* Responsive Scaling for Short Displays & Mobile */
+@media (max-height: 720px) {
+  .mars-radiation-hud.gta-phone {
     transform-origin: bottom right;
-    bottom: max(6px, env(safe-area-inset-bottom));
-    right: max(6px, env(safe-area-inset-right));
+    transform: scale(0.85);
+  }
+  .mars-radiation-hud.gta-phone.phone-closed {
+    transform: translateY(calc(100% + 50px)) scale(0.85);
   }
 }
 
-@media (max-width: 620px) {
-  .mars-radiation-hud {
-    width: 216px;
-    padding: 8px 10px 6px;
-    gap: 6px;
-    border-radius: 20px;
-    bottom: max(10px, env(safe-area-inset-bottom));
+@media (max-width: 520px) {
+  .mars-radiation-hud.gta-phone {
+    width: 272px;
     right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
   }
 }
 
