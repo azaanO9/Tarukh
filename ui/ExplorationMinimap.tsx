@@ -17,12 +17,11 @@ export type MinimapZoomPreset = 120 | 220 | 450 | "overview";
 const ZOOM_CYCLE: MinimapZoomPreset[] = [120, 220, 450, "overview"];
 
 /**
- * Minimal GTA 5 style Mars Field Map.
- * - Defaults to a high-definition ZOOMED-IN view of the authentic NASA MOLA overview map
- *   (the real elevation map upon which the 3D ground, craters, and heights are built).
- * - Tracks the player in real-time in the center with a rotating heading chevron and sonar pulse.
- * - Scrolls the MOLA map smoothly under the player as they walk or drive across craters and plains.
- * - Supports one-click cycling between Close (120m), Cruising (220m), Wide (450m), and Full Regional Map.
+ * Minimal GTA 5 style Mars Field Map with Static Topography & Ground Altimeter.
+ * - Displays a high-definition live view of the authentic NASA MOLA map centered on the player.
+ * - Static elevation contours remain permanently locked to absolute ground heights.
+ * - Color-coded by Altimeter Highs and Lows: Gold = Peaks/Rims, Amber = Plains, Cyan = Basins.
+ * - Features vertical Altimeter Tape and spot markers (▲ High / ▼ Low) tracking the ground relief.
  */
 export default function ExplorationMinimap({
   view,
@@ -49,7 +48,7 @@ export default function ExplorationMinimap({
   const qx = Math.round(x * 2);
   const qz = Math.round(z * 2);
 
-  // Real Mars topography contours computed from actual elevation model (quantized for 60fps caching)
+  // Static Mars topography contours & altimeter highs/lows (quantized for 60fps caching)
   const topo = useMemo(
     () => generateTopoContours(qx * 0.5, qz * 0.5, activeRange, 6, 31, 188, 138),
     [qx, qz, activeRange]
@@ -84,15 +83,22 @@ export default function ExplorationMinimap({
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
-  const localStatus = driving
-    ? blocked
-      ? `OBSTACLE · ${threat.toFixed(1)} M`
-      : scan
-      ? "PATH CLEAR · 12 M"
-      : "SCANNING…"
-    : "LIDAR DOCKED IN ROVER";
+  // Altimeter telemetry
+  const altSpan = Math.max(0.6, topo.maxHeight - topo.minHeight);
+  const altRatio = Math.max(0, Math.min(1, (topo.centerHeight - topo.minHeight) / altSpan));
+  const altY = 146 - altRatio * 100;
+  const altSign = topo.centerHeight >= 0 ? "+" : "";
+  const altText = `ALT ${altSign}${topo.centerHeight.toFixed(0)}M [▲+${Math.round(
+    topo.maxHeight
+  )} ▼${Math.round(topo.minHeight)}]`;
 
-  const status = isOverview ? (blocked ? "HAZARD IN PATH" : coordsLabel) : localStatus;
+  const status = isOverview
+    ? blocked
+      ? "HAZARD IN PATH"
+      : coordsLabel
+    : blocked
+    ? `OBSTACLE · ${threat?.toFixed(1)} M`
+    : `${altText} · ${coordsLabel}`;
 
   const clearancePct =
     blocked && threat !== undefined
@@ -117,7 +123,7 @@ export default function ExplorationMinimap({
       data-open={open}
       data-zoom={activeZoom}
       data-blocked={blocked}
-      aria-label="Exploration minimap and rover LiDAR"
+      aria-label="Exploration minimap with static topography and ground altimeter"
     >
       <div className="roam-radar-frame">
         {/* Sleek minimal HUD tag overlay directly on the radar screen */}
@@ -132,6 +138,19 @@ export default function ExplorationMinimap({
             <span className="roam-badge-dot" />
             {zoomBadgeLabel}
           </button>
+
+          {/* Altimeter indicator badge in HUD */}
+          {!isOverview && (
+            <span
+              className="roam-map-badge roam-alt-badge"
+              title={`Ground Altimeter: High +${Math.round(topo.maxHeight)}m (Gold), Low ${Math.round(
+                topo.minHeight
+              )}m (Cyan)`}
+            >
+              <span className="alt-high-dot" />▲<span className="alt-low-dot" />▼
+            </span>
+          )}
+
           <button
             type="button"
             className="roam-map-toggle"
@@ -152,7 +171,7 @@ export default function ExplorationMinimap({
               isOverview
                 ? "full NASA MOLA elevation region map"
                 : `${activeRange} metre zoomed NASA MOLA terrain map`
-            } with real-time player location tracking and numbered landmarks.`}
+            } with static topography, ground altimeter highs/lows, and real-time player location.`}
           >
             <defs>
               {/* Rectangular radar clip */}
@@ -351,15 +370,16 @@ export default function ExplorationMinimap({
                 </>
               ) : (
                 /* =========================================================================
-                   ZOOMED-IN MOLA MAP: The authentic NASA MOLA big map zoomed in around the
-                   player with 100% precision! Every crater, ridge, and valley scrolls
-                   under the player arrow with crisp HD clarity.
+                   ZOOMED-IN MOLA MAP WITH STATIC TOPOGRAPHY & GROUND ALTIMETER:
+                   - Static contours locked to absolute heights (Gold = Highs, Cyan = Lows)
+                   - Local High (▲) and Low (▼) altimeter spot markers
+                   - Vertical Altimeter Tape along right frame
                    ========================================================================= */
                 <>
                   {/* Base Mars soil */}
                   <rect x="6" y="31" width="188" height="138" fill="#180e0a" />
 
-                  {/* Authentic NASA MOLA map zoomed in and smoothly scrolling around the player */}
+                  {/* Authentic NASA MOLA map zoomed in around the player */}
                   <image
                     href={assetUrl("art/mars-mola-overview.webp")}
                     xlinkHref={assetUrl("art/mars-mola-overview.webp")}
@@ -371,20 +391,56 @@ export default function ExplorationMinimap({
                     className="roam-mola-zoomed-img"
                   />
 
-                  {/* Vector Topographic Elevation Contour Lines */}
+                  {/* STATIC TOPOGRAPHIC CONTOURS (Fixed absolute heights color-coded by altimeter) */}
                   {topo.contours.map((contour, i) => (
                     <path
                       key={i}
                       d={contour.path}
                       fill="none"
-                      stroke={contour.isMajor ? "#fde047" : "#fb923c"}
-                      strokeOpacity={contour.isMajor ? 0.65 : 0.35}
-                      strokeWidth={contour.isMajor ? "1.1" : "0.7"}
+                      stroke={contour.color}
+                      strokeOpacity={contour.isMajor ? 0.85 : 0.48}
+                      strokeWidth={contour.isMajor ? "1.2" : "0.75"}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeDasharray={contour.isMajor ? undefined : "3 1.5"}
                     />
                   ))}
+
+                  {/* ALTIMETER LOCAL HIGH (▲) SPOT MARKER (Crater Rim / Peak) */}
+                  {altSpan >= 1.0 && (
+                    <g transform={`translate(${topo.maxPoint.x} ${topo.maxPoint.y})`} className="roam-topo-spot-high">
+                      <circle r="4.2" fill="rgba(253, 224, 71, 0.28)" stroke="#fde047" strokeWidth="0.8" />
+                      <text y="2" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#fde047">▲</text>
+                      <text
+                        y="-6"
+                        textAnchor="middle"
+                        fontSize="6"
+                        fontWeight="900"
+                        fill="#fde047"
+                        style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
+                      >
+                        +{Math.round(topo.maxPoint.height)}m
+                      </text>
+                    </g>
+                  )}
+
+                  {/* ALTIMETER LOCAL LOW (▼) SPOT MARKER (Crater Floor / Basin) */}
+                  {altSpan >= 1.0 && (
+                    <g transform={`translate(${topo.minPoint.x} ${topo.minPoint.y})`} className="roam-topo-spot-low">
+                      <circle r="4.2" fill="rgba(56, 189, 248, 0.28)" stroke="#38bdf8" strokeWidth="0.8" />
+                      <text y="2.5" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#38bdf8">▼</text>
+                      <text
+                        y="11"
+                        textAnchor="middle"
+                        fontSize="6"
+                        fontWeight="900"
+                        fill="#38bdf8"
+                        style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
+                      >
+                        {Math.round(topo.minPoint.height)}m
+                      </text>
+                    </g>
+                  )}
 
                   {/* Range Circles centered on player */}
                   <circle cx="100" cy="100" r={44} fill="none" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.7" strokeDasharray="3 3" />
@@ -395,7 +451,7 @@ export default function ExplorationMinimap({
 
                   {/* Subtle GPS Crosshairs */}
                   <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
-                  <line x1="6" y1="100" x2="194" y2="100" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
+                  <line x1="6" y1="100" x2="184" y2="100" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
 
                   {/* Surface Rocks (on foot) */}
                   {!driving &&
@@ -466,7 +522,7 @@ export default function ExplorationMinimap({
                     );
                   })()}
 
-                  {/* Landmark Diamonds: Placed right on the craters when in view, clamped to edge when distant */}
+                  {/* Landmark Diamonds */}
                   {MARS_LANDMARKS.filter((p) => p.id !== target.id)
                     .concat(target)
                     .map((place) => {
@@ -504,7 +560,7 @@ export default function ExplorationMinimap({
                       );
                     })}
 
-                  {/* REAL-TIME PLAYER MARKER (Always centered on the zoomed MOLA map at 100, 100) */}
+                  {/* REAL-TIME PLAYER MARKER (Always centered at 100, 100) */}
                   <g transform="translate(100 100)">
                     {/* Sonar Beacon Ring */}
                     <circle
@@ -546,6 +602,36 @@ export default function ExplorationMinimap({
                     >
                       YOU
                     </text>
+                  </g>
+
+                  {/* VERTICAL GROUND ALTIMETER TAPE (Along right edge of radar frame) */}
+                  <g className="roam-altimeter-tape">
+                    {/* Altimeter background track */}
+                    <line x1="187" y1="46" x2="187" y2="146" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="2.5" strokeLinecap="round" />
+                    
+                    {/* Top tick (High) */}
+                    <line x1="184" y1="46" x2="190" y2="46" stroke="#fde047" strokeWidth="1.2" />
+                    <text x="183" y="44" textAnchor="end" fontSize="5.5" fontWeight="900" fill="#fde047">
+                      ▲+{Math.round(topo.maxHeight)}
+                    </text>
+
+                    {/* Mid tick */}
+                    <line x1="185" y1="96" x2="189" y2="96" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="0.8" />
+
+                    {/* Bottom tick (Low) */}
+                    <line x1="184" y1="146" x2="190" y2="146" stroke="#38bdf8" strokeWidth="1.2" />
+                    <text x="183" y="152" textAnchor="end" fontSize="5.5" fontWeight="900" fill="#38bdf8">
+                      ▼{Math.round(topo.minHeight)}
+                    </text>
+
+                    {/* Moving Altimeter Pointer Pip at player altitude */}
+                    <polygon
+                      points={`185,${altY} 190,${altY - 2.5} 190,${altY + 2.5}`}
+                      fill="#ffffff"
+                      stroke="#060c14"
+                      strokeWidth="0.6"
+                    />
+                    <circle cx="185" cy={altY} r="1" fill="#38bdf8" />
                   </g>
                 </>
               )}
@@ -589,7 +675,7 @@ export default function ExplorationMinimap({
             </div>
           </div>
 
-          {/* 2. COMPACT GTA 5 LOCATION & TELEMETRY READOUT */}
+          {/* 2. COMPACT GTA 5 LOCATION & TELEMETRY READOUT (with Altimeter) */}
           <div className="roam-gta-readout">
             <span className="roam-gta-loc">{driving && blocked ? "HAZARD DETECTED" : surveyRegionLabel(x, z)}</span>
             <span className={`roam-gta-sub ${blocked ? "is-blocked" : ""}`}>{status}</span>

@@ -4,20 +4,31 @@ export type TopoContour = {
   level: number;
   isMajor: boolean;
   path: string;
+  kind: "high" | "mid" | "low";
+  color: string;
+};
+
+export type TopoPoint = {
+  x: number;
+  y: number;
+  height: number;
 };
 
 export type TopoData = {
   minHeight: number;
   maxHeight: number;
   centerHeight: number;
+  minPoint: TopoPoint;
+  maxPoint: TopoPoint;
   contours: TopoContour[];
   hillshadeGradient: { angleDeg: number; contrast: number };
 };
 
 /**
- * Generates GTA 5 style topographic contour lines from authentic Mars elevation data.
- * Uses marching squares on a regular grid centered on the player's world position.
- * Runs in < 0.2ms with zero allocations in the tight loop.
+ * Generates static Mars ground topography and altimeter contours based on actual surface highs and lows.
+ * - Uses fixed, static contour intervals tied to absolute elevation so contour lines remain stable during movement.
+ * - Categorizes contours by altimeter tiers: Highs (peaks, rims), Mids (plains), Lows (craters, basins).
+ * - Tracks exact spot coordinates of the local High and Low for altimeter spot markers.
  */
 export function generateTopoContours(
   centerX: number,
@@ -43,10 +54,17 @@ export function generateTopoContours(
   const startX = centerX - worldHalfW;
   const startZ = centerZ - worldHalfH;
 
-  // Sample grid heights
+  const pixelStepX = mapWidth / (cols - 1);
+  const pixelStepY = mapHeight / (rows - 1);
+
+  // Sample grid heights and locate local High and Low altimeter extremes
   const grid: number[][] = [];
   let minH = Infinity;
   let maxH = -Infinity;
+  let minC = 0;
+  let minR = 0;
+  let maxC = 0;
+  let maxR = 0;
 
   for (let r = 0; r < rows; r++) {
     const rowH: number[] = [];
@@ -55,8 +73,16 @@ export function generateTopoContours(
       const wx = startX + c * dx;
       const h = marsExpeditionHeight(wx, wz);
       rowH.push(h);
-      if (h < minH) minH = h;
-      if (h > maxH) maxH = h;
+      if (h < minH) {
+        minH = h;
+        minC = c;
+        minR = r;
+      }
+      if (h > maxH) {
+        maxH = h;
+        maxC = c;
+        maxR = r;
+      }
     }
     grid.push(rowH);
   }
@@ -64,36 +90,51 @@ export function generateTopoContours(
   const centerH = marsExpeditionHeight(centerX, centerZ);
   const diffH = maxH - minH;
 
-  // Choose contour step based on elevation variance in view
-  let step = 1.0;
-  if (diffH > 30) step = 5.0;
-  else if (diffH > 15) step = 2.5;
-  else if (diffH > 6) step = 1.0;
-  else if (diffH > 2) step = 0.5;
-  else step = 0.25;
+  // Static contour step tied to map range to ensure contour lines remain static during exploration
+  let baseStep = 1.0;
+  if (range <= 50) baseStep = 0.5;
+  else if (range <= 140) baseStep = 1.0;
+  else if (range <= 260) baseStep = 2.5;
+  else baseStep = 5.0;
+
+  // If local elevation span is large, scale by clean integer multiples
+  let step = baseStep;
+  while (diffH / step > 8) {
+    step *= 2;
+  }
 
   const startLevel = Math.ceil(minH / step) * step;
   const endLevel = Math.floor(maxH / step) * step;
-
-  const pixelStepX = mapWidth / (cols - 1);
-  const pixelStepY = mapHeight / (rows - 1);
 
   // Marching squares segment collection
   type Segment = [number, number, number, number];
   const contours: TopoContour[] = [];
 
-  // Limit to at most 8 contour lines to avoid visual clutter (matching GTA 5 minimalism)
   const levels: number[] = [];
-  for (let l = startLevel; l <= endLevel; l += step) {
+  for (let l = startLevel; l <= endLevel + 1e-6; l += step) {
     levels.push(Math.round(l * 100) / 100);
   }
 
-  const activeLevels = levels.length > 8
-    ? levels.filter((_, idx) => idx % Math.ceil(levels.length / 8) === 0)
-    : levels;
+  // Limit to at most 8 contour lines to avoid visual clutter (GTA 5 minimalism)
+  const activeLevels =
+    levels.length > 8
+      ? levels.filter((_, idx) => idx % Math.ceil(levels.length / 8) === 0)
+      : levels;
 
   for (const level of activeLevels) {
     const segments: Segment[] = [];
+
+    // Classify contour based on altimeter highs and lows
+    const ratio = diffH > 0.2 ? (level - minH) / diffH : 0.5;
+    const kind: "high" | "mid" | "low" =
+      ratio >= 0.62 ? "high" : ratio <= 0.38 ? "low" : "mid";
+
+    // Static color coding by altimeter level:
+    // - Highs: Sunlit Gold / Yellow (#fde047)
+    // - Mids: Warm Terracotta / Orange (#fb923c)
+    // - Lows: Deep Basin Cyan / Ice Blue (#38bdf8)
+    const color =
+      kind === "high" ? "#fde047" : kind === "low" ? "#38bdf8" : "#fb923c";
 
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {
@@ -178,19 +219,39 @@ export function generateTopoContours(
       level,
       isMajor,
       path: pathStr.trim(),
+      kind,
+      color,
     });
   }
 
   // Calculate terrain slope direction across center for authentic hillshading
-  const slopeX = (grid[Math.floor(rows / 2)][cols - 1] - grid[Math.floor(rows / 2)][0]) / (worldHalfW * 2);
-  const slopeZ = (grid[rows - 1][Math.floor(cols / 2)] - grid[0][Math.floor(cols / 2)]) / (worldHalfH * 2);
+  const slopeX =
+    (grid[Math.floor(rows / 2)][cols - 1] - grid[Math.floor(rows / 2)][0]) /
+    (worldHalfW * 2);
+  const slopeZ =
+    (grid[rows - 1][Math.floor(cols / 2)] - grid[0][Math.floor(cols / 2)]) /
+    (worldHalfH * 2);
   const angleDeg = (Math.atan2(slopeZ, slopeX) * 180) / Math.PI;
   const contrast = Math.min(0.4, Math.hypot(slopeX, slopeZ) * 1.5);
+
+  const minPoint: TopoPoint = {
+    x: mapLeft + minC * pixelStepX,
+    y: mapTop + minR * pixelStepY,
+    height: Math.round(minH * 10) / 10,
+  };
+
+  const maxPoint: TopoPoint = {
+    x: mapLeft + maxC * pixelStepX,
+    y: mapTop + maxR * pixelStepY,
+    height: Math.round(maxH * 10) / 10,
+  };
 
   return {
     minHeight: minH,
     maxHeight: maxH,
     centerHeight: centerH,
+    minPoint,
+    maxPoint,
     contours,
     hillshadeGradient: { angleDeg, contrast },
   };
