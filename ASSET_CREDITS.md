@@ -42,9 +42,16 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 
 ## Separate outpost review models
 
-`assets/outpost-review/` contains furnished cutaway and full-height GLBs, previews and Blender construction source. These are separate review assets and are not loaded by Mars exploration. Geometry and materials were authored procedurally in Blender through Higgsfield 3D Jutsu, following the user-supplied **Mars Dune Alpha** floor plan. The reference image itself is not distributed.
+`assets/outpost-review/` contains furnished cutaway and full-height GLBs, previews, source assets and a Blender assembly script. These separate review assets are not loaded by Mars exploration. The shell follows the user-supplied **Mars Dune Alpha** floor plan and retains the original TARUKH architecture authored through Higgsfield 3D Jutsu. The revised interior uses 32 openly licensed models assembled in local Blender. The reference image itself is not distributed.
 
-The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-space/chapea/), with architecture attributed to [ICON/BIG](https://big.dk/projects/mars-chapea-4310). It is an Earth-based analog habitat. TARUKH's furnishings, inferred elevations, roof and colour treatment are artistic adaptations, not an official NASA/ICON/BIG model or certified habitat design. See the [asset notes](assets/outpost-review/README.md) for scale, validation and integration limits.
+- Laptop: [MacBook by Nicholas-3D](https://sketchfab.com/3d-models/macbook-07f012fbd3bb4c37a1b9ed08533ee403), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The redistributed source has its maker logo removed and a lid pivot; TARUKH opens the lid, fits it to the desks and adds original display artwork.
+- Sofa: [Glam Velvet Sofa by Eric Chadwick / Wayfair LLC](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlamVelvetSofa), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Scaled and placed in the recreation area.
+- Lounge/dining chairs: [Sheen Chair by Eric Chadwick / Wayfair LLC](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SheenChair), CC0.
+- Ergonomic chairs, bedding, stainless sink and toilets: Innerscene, CC0. Remaining furnishings and equipment: 3D Assets, CC0; that library reports these models as AI-generated.
+
+Complete per-model links, authors, licenses, modifications and hashes are in the [outpost third-party notices](assets/outpost-review/THIRD_PARTY.md) and [source manifest](assets/outpost-review/sources.json). Those licenses continue to apply when the assembled GLBs are redistributed. The new geometry is not represented as entirely original TARUKH work.
+
+The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-space/chapea/), with architecture attributed to [ICON/BIG](https://big.dk/projects/mars-chapea-4310). It is an Earth-based analog habitat. The furnishings, inferred elevations, roof and colour treatment are artistic adaptations, not an official NASA/ICON/BIG model or certified habitat design. See the [asset notes](assets/outpost-review/README.md) for scale, validation and integration limits.
 
 ## Software notices
 
