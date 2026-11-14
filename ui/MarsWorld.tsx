@@ -2452,35 +2452,24 @@ export default function MarsWorld(props: Props) {
         </aside>
       )}
 
-      {/* Peek Button in bottom-right corner when Phone is hidden */}
-      {!phoneOpen && (
-        <button
-          type="button"
-          className={`mars-phone-peek-pill${spaceWeather.sepFluxPFU >= 10 ? " storm-alert" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            document.exitPointerLock?.();
-            setPhoneOpen(true);
-          }}
-          title="Open Mars Communicator Phone [Hotkey P or Up Arrow]"
-          aria-label="Open Mars Telemetry Phone"
-        >
-          <span className="mars-peek-phone-icon">📱</span>
-          <span className="mars-peek-title">PHONE</span>
-          <span className="mars-peek-hotkey">P</span>
-          <span className={`mars-peek-status-dot ${spaceWeather.sepFluxPFU >= 10 ? "storm" : "nominal"}`} />
-        </button>
-      )}
-
-      {/* GTA 5 Style Rugged Mars Telemetry Smartphone */}
+      {/* GTA 5 Style Rugged Mars Telemetry Smartphone (20% Peeking when closed, slides fully open) */}
       <div
         className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${roverDriving ? " driving" : ""}`}
         role="region"
         aria-label="Mars Communicator Phone"
+        onClick={() => {
+          if (!phoneOpen) {
+            setPhoneOpen(true);
+          }
+        }}
         onPointerDown={(e) => {
           e.stopPropagation();
           document.exitPointerLock?.();
+          if (!phoneOpen) {
+            setPhoneOpen(true);
+          }
         }}
+        title={!phoneOpen ? "Click or press [P] / [↑] to slide phone up" : undefined}
       >
         {/* Rugged Phone Casing Screws & Grip Bumpers */}
         <div className="mars-phone-screw top-left" aria-hidden="true" />
@@ -2490,10 +2479,13 @@ export default function MarsWorld(props: Props) {
         <div className="mars-phone-grip-l" aria-hidden="true" />
         <div className="mars-phone-grip-r" aria-hidden="true" />
 
-        {/* Top Notch with Camera Pinhole & Speaker */}
+        {/* Top Notch with Camera Pinhole, Speaker, and Peeking Pull-up indicator */}
         <div className="mars-phone-notch" aria-hidden="true">
           <span className="mars-camera-pinhole" />
           <span className="mars-notch-speaker" />
+          {!phoneOpen && (
+            <span className="mars-notch-peek-hint">▲ PULL UP [P]</span>
+          )}
         </div>
 
         {/* Inner OLED Display Screen */}
