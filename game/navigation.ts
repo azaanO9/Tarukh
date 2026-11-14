@@ -1,0 +1,69 @@
+/** Pure first-person walking: metres are illustrative world units. No reserve changes. */
+import { moveAndSlide, type CollisionObstacle } from "./collision.ts";
+export const WALKER_RADIUS = .32;
+export const WORLD_LIMIT = 176;
+export const WALK_SPEED = 5.2;
+/** Vertical state shared with the Mars locomotion solver. */
+export type JumpState = { height: number; velocity: number };
+export type Walker = {
+  x: number;
+  z: number;
+  vx: number;
+  vz: number;
+  yaw: number;
+};
+export const spawnWalker = (): Walker => ({
+  x: 0,
+  z: 12,
+  vx: 0,
+  vz: 0,
+  yaw: 0,
+});
+export type MoveAxes = {
+  side?: number;
+  forward?: number;
+  sprint?: boolean;
+};
+
+export function stepWalker(
+  w: Walker,
+  keys: ReadonlySet<string>,
+  seconds: number,
+  obstacles: readonly CollisionObstacle[] = [],
+  speed = WALK_SPEED,
+  grounded = true,
+  analog?: MoveAxes,
+  worldLimit = WORLD_LIMIT,
+): Walker {
+  const dt = Math.max(0, Math.min(seconds, 0.05));
+  if (!dt) return w;
+  const keySide =
+    Number(keys.has("d") || keys.has("arrowright")) -
+    Number(keys.has("a") || keys.has("arrowleft"));
+  const keyForward =
+    Number(keys.has("w") || keys.has("arrowup")) -
+    Number(keys.has("s") || keys.has("arrowdown"));
+  let side = keySide + (analog?.side ?? 0);
+  let forward = keyForward + (analog?.forward ?? 0);
+  const length = Math.hypot(side, forward);
+  if (length > 1 || ((keySide !== 0 || keyForward !== 0) && length > 0)) {
+    side /= length;
+    forward /= length;
+  }
+  const tx = (Math.cos(w.yaw) * side - Math.sin(w.yaw) * forward) * speed;
+  const tz = (-Math.sin(w.yaw) * side - Math.cos(w.yaw) * forward) * speed;
+  const blend = grounded ? 1 - Math.exp(-14 * dt) : 0,
+    vx = w.vx + (tx - w.vx) * blend,
+    vz = w.vz + (tz - w.vz) * blend;
+  const moved = moveAndSlide(w.x, w.z, vx * dt, vz * dt, [{x:0,z:0,radius:WALKER_RADIUS}], obstacles, worldLimit);
+  let slideX = vx, slideZ = vz;
+  for (const n of moved.normals) {
+    const into = Math.min(0, slideX * n.nx + slideZ * n.nz);
+    slideX -= into * n.nx; slideZ -= into * n.nz;
+  }
+  return {
+    ...w,
+    x: moved.x, z: moved.z,
+    vx: slideX, vz: slideZ,
+  };
+}

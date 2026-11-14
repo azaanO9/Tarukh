@@ -1,0 +1,17 @@
+.mars-root { background:#261d1b; }
+.mars-root::after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 45%,transparent 45%,#17100a44 100%); z-index:2; }
+.mars-root .sv-look-controls { top:112px; right:22px; width:224px; max-width:224px; }
+.mars-root .sv-look-controls details { width:100%; background:#172020e8; border:1px solid #d9c4ab35; padding:10px 12px; border-radius:3px; }
+.mars-root .sv-look-controls summary { color:#eee2d3; cursor:pointer; font:11px/1.6 "Segoe UI",sans-serif; letter-spacing:.5px; }
+.mars-root .sv-look-controls details[open] { display:grid; gap:9px; }
+.mars-root .sv-look-controls label { font:10px/1.5 "Segoe UI",sans-serif; justify-content:space-between; }
+.mars-root .sv-look-controls button { width:100%; margin-top:8px; font:10px/1.5 "Segoe UI",sans-serif; }
+.mars-root .sv-look-controls span { display:block; padding:6px 0; }
+.mars-root select { color:#f6ebdc; background:#303837; border:1px solid #d2c5ad55; border-radius:2px; padding:4px; font-size:11px; }
+.mars-root .sv-world-message { top:auto; bottom:105px; right:22px; max-width:250px; background:#162321de; font-size:10px; border:0; padding:9px 12px; }
+.mars-dialog button { background:#e9b080; color:#15202a; border:0; padding:13px 16px; font-weight:700; cursor:pointer; }
+.mars-dialog-backdrop { position:absolute; inset:0; z-index:6; background:#10172099; display:grid; place-items:center; padding:20px; }
+.mars-dialog { width:min(430px,100%); background:#15232f; border:1px solid #b5aea65c; padding:28px; } .mars-dialog p { line-height:1.6; } .mars-dialog h2 { font:28px Georgia,serif; }
+@media(max-width:800px){.mars-root .sv-look-controls{top:125px}}
+@media(max-width:800px){.mars-root .sv-look-controls{width:168px;right:12px;top:145px}.mars-root .sv-world-message{bottom:140px;right:12px;max-width:180px}}
+@media(max-height:560px){.mars-root .sv-world-message{bottom:40px}}

@@ -1,0 +1,107 @@
+# Tarukh
+
+**Mars survival Game**
+
+TARUKH is a browser-based Mars exploration game developed for the NASA Space Apps Challenge 2026, **Build a Junior Astronaut Mission Trainer**. Explore a compressed region of Mars on foot or in a crew rover, using NASA elevation data and a field map to find real landmarks.
+
+[Play the game](https://azaano9.github.io/Tarukh/)
+
+The game is free exploration. The repository contains the current Mars game and its build, asset-preparation and testing tools. Retired mission, quiz, survival, story and lunar modes have been removed.
+
+## Repository history
+
+This independent repository was initialized on 14 November 2026 from an existing TARUKH project snapshot. Development predates this repository. The initial commit records the migration date, not the start of the game's development. Earlier Git history, branches and tags were not imported.
+
+## Features
+
+- An explorable MOLA-based Mars region with continuous procedural terrain beyond its surveyed extent.
+- A shuttle arrival, terrain-aligned landing, opening hatch and astronaut exit; the sequence is skippable and respects reduced motion.
+- Walking, sprinting, jumping, mouse look and switchable first- and third-person cameras.
+- A driveable six-wheel crew rover with a cockpit, suspension, headlights, terrain contacts, tracks and a simulated LiDAR display.
+- An autonomous Curiosity rover and a stationary Perseverance model at its historical Jezero landing site.
+- A minimap and full-region atlas with seven landmark pins and NASA/IAU source links.
+- A smooth ten-minute day/night cycle during active exploration.
+- PC and mobile controls, a landscape layout for phones, pause/resume and WebGL retry options.
+- Auto, High, Ultra and Performance graphics, plus optional FPS diagnostics. Auto measures normal frames after loading and targets 40+ FPS; results depend on the device.
+
+The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:4,940, with exaggerated relief. Close-up rocks, materials, the shuttle and vehicle behavior are artistic or simulated. TARUKH is not an operational training simulator or a NASA-endorsed product. See [scientific sources](docs/SOURCES.md) and [model assumptions](docs/ASSUMPTIONS.md).
+
+## Technology
+
+React 19, TypeScript 5.9 and Three.js 0.180 provide the interface, simulation and WebGL rendering. Vite 8 builds the static GitHub Pages version. A separate Vinext/Cloudflare Worker build preserves the existing Sites integration. Styling uses CSS and Tailwind CSS; tests use Node's built-in test runner.
+
+The playable game needs no account or application API key. Models, textures, elevation data and Draco decoding files ship with the app. Curiosity's existing navigation save uses browser-local storage; player position and graphics measurements are not persistent. No gameplay telemetry service is used.
+
+## Run locally
+
+Requirements: **Node.js 22.18+** (Node 24 is used in CI) and **pnpm 11.25.0**.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open the URL printed by the development server, normally `http://localhost:5173`. Choose PC or Mobile, then select **Explore Mars**. Keep the terminal running while playing.
+
+To preview the static production build:
+
+```sh
+pnpm build:pages
+pnpm exec vite preview --config vite.pages.config.ts --host 127.0.0.1 --port 4173
+```
+
+Open `http://127.0.0.1:4173/Tarukh/`.
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| WASD / arrow keys | Walk; accelerate, brake/reverse and steer while driving |
+| Shift | Sprint on foot |
+| Space | Jump on foot; handbrake while driving; skip the landing sequence |
+| Drag with the mouse | Look around |
+| Click the world / Capture mouse | Request continuous mouse look when supported |
+| Q / R | Turn the view |
+| V | Switch first- and third-person views |
+| F | Enter or exit the nearby crew rover |
+| E | Inspect a nearby science rover |
+| Caps Lock | Open or close the landmark atlas |
+| Escape | Release mouse capture or close a dismissible dialog |
+| Pause button | Pause, resume or return to controls setup |
+
+Mobile mode enables the movement stick, swipe-to-look and contextual rover buttons. The Atlas button opens the full map. **Camera & graphics** contains sensitivity, touch controls, graphics quality and the FPS meter. Unsupported mouse capture falls back to drag-to-look.
+
+## Checks and publication
+
+```sh
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm build:pages
+```
+
+The `build` command produces the Sites/Cloudflare deployment in `dist/`; `build:pages` produces `dist-pages/`. The GitHub Actions workflow runs tests, type checking and the static build before publishing `main` to GitHub Pages. The deployed `version.json` records its source commit. Existing React lifecycle lint findings are described in the [engineering notes](docs/INTERFACE.md#validation).
+
+Keep `.openai/hosting.json`, environment configuration and the separate deployment paths intact. Do not commit credentials, generated builds, local caches or `node_modules`.
+
+## Repository guide
+
+| Directory | Responsibility |
+| --- | --- |
+| `app/`, `static-app/` | Framework and static entry points |
+| `game/` | Movement, collision, vehicle simulation, terrain sampling and state rules |
+| `content/` | MOLA crop, landmarks and scientific references |
+| `ui/`, `ui/world/` | Interface, rendering, models, cameras and effects |
+| `public/` | Shipped models, textures, decoder files and branding |
+| `tests/` | Automated simulation, geometry and interface-helper checks |
+| `scripts/` | Build integration and reproducible asset preparation |
+| `docs/` | Architecture, scientific sources and model assumptions |
+
+See [architecture and validation](docs/INTERFACE.md) and the [collaboration workflow](COLLABORATION.md) before contributing.
+
+## Attribution and limitations
+
+[ASSET_CREDITS.md](ASSET_CREDITS.md) identifies the NASA, CC BY, CC0 and original assets. Third-party license notices remain with their files. The repository does not currently contain a project-wide source-code `LICENSE`; asset-specific terms should not be treated as a license for the entire project.
+
+Performance on physical phones, thermal throttling and long-distance floating-point precision remain device-testing concerns. Public scientific data supports the regional terrain and landmarks; it does not validate the game's driving speeds or fictional spacecraft.

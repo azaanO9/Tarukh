@@ -1,0 +1,76 @@
+ .flight-actions, .flight-pad {
+  --ink: #10222ccc;
+  --rim: #cfebed8a;
+  --left: max(14px,env(safe-area-inset-left));
+  --right: max(14px,env(safe-area-inset-right));
+  --top: max(10px,env(safe-area-inset-top));
+  --bottom: max(12px,env(safe-area-inset-bottom));
+  position:absolute;
+  z-index:6;
+}
+ .flight-actions button {
+  position:absolute; pointer-events:auto; touch-action:manipulation;
+  display:grid; place-items:center; padding:0;
+  background:var(--ink); color:#eefcff; border:1px solid var(--rim);
+  border-radius:50%; width:44px; height:44px;
+}
+.flight-pad {left:0;bottom:0;width:min(36%,225px);height:53%;touch-action:none;user-select:none;overflow:clip}
+.flight-pad i {position:absolute;left:calc(var(--left) + 56px);top:calc(100% - var(--bottom) - 48px);translate:-50% -50%;width:79px;height:79px;border-radius:50%;border:1px solid var(--rim);background:#11243250;display:grid;place-items:center;color:#fff}
+.flight-pad[data-held] i {left:var(--x);top:var(--y);border-color:#bcf0dc}
+.flight-pad i svg {background:#142c38ba;border:1px solid var(--rim);border-radius:50%;padding:8px;box-sizing:content-box}
+.flight-pad[data-held] svg {translate:var(--dx) var(--dy)}
+.flight-actions {right:var(--right);bottom:var(--bottom);width:159px;height:120px;pointer-events:none}
+.flight-actions button {touch-action:none}
+.flight-actions .flight-main {right:0;bottom:0;width:66px;height:66px;background:#183337c7;border:2px solid #bfead9;box-shadow:inset 0 0 0 4px #b1ffe11c}
+.flight-main svg {width:30px;height:30px}
+.flight-view {bottom:0;right:78px}
+.flight-board {right:2px;bottom:75px}
+.flight-actions .flight-use {right:78px;bottom:55px;background:#6b4b28dd;border-color:#ffd699}
+.flight-actions button:active {background:#43706a}
+
+.roam-root[data-controls="mobile"] .sv-world .sv-rover-hud {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: auto;
+  pointer-events: none;
+  background: linear-gradient(
+    140deg,
+    rgba(14, 25, 41, 0.46) 0%,
+    rgba(8, 16, 28, 0.36) 45%,
+    rgba(3, 7, 16, 0.52) 100%
+  );
+  backdrop-filter: blur(24px) saturate(190%) contrast(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(108%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  box-shadow:
+    0 16px 40px -6px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 24px -2px rgba(56, 189, 248, 0.15);
+}
+
+.roam-root[data-controls="mobile"] .sv-rover-exit-btn,
+.roam-root[data-controls="mobile"] .sv-gear-rail {
+  display: none;
+}
+
+.wheel-controls {position:absolute;z-index:6;bottom:max(14px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:9px;pointer-events:none}
+.wheel-steering {left:max(16px,env(safe-area-inset-left))}
+.wheel-pedals {right:max(16px,env(safe-area-inset-right))}
+.wheel-controls button {pointer-events:auto;touch-action:none;user-select:none;display:grid;place-content:center;justify-items:center;gap:5px;padding:4px;background:linear-gradient(155deg,rgba(22,42,54,.6),rgba(10,22,32,.45));backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);color:#fff;border:1px solid #c9e1e4ad;border-radius:14px;box-shadow:inset 0 -4px #07131880}
+.wheel-steering button {width:clamp(52px,9vw,72px);height:54px}
+.wheel-steering svg {width:29px;height:29px}
+.wheel-controls .wheel-rev {width:62px;height:62px;border-color:#f4cc8a}
+.wheel-controls .wheel-gas {width:60px;height:74px;border-color:#ace4cd}
+.wheel-pedals i {width:28px;height:16px;border-radius:3px;background:repeating-linear-gradient(0deg,#b8c8c9 0 2px,transparent 2px 5px)}
+.wheel-rev i {width:24px;height:24px}
+.wheel-gas i {width:22px;height:34px}
+.wheel-pedals small {font:700 8px system-ui;letter-spacing:.06em;white-space:nowrap}
+.wheel-tools {position:absolute;bottom:81px;right:0;display:flex;gap:6px}
+.wheel-tools button {width:44px;height:44px;border-radius:50%}
+.wheel-tools svg {width:18px}
+.wheel-controls button:active,.wheel-tools button[aria-pressed="true"] {background:#40675f;transform:translateY(2px)}

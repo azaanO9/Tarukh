@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #0a1420;
+  --panel: #111f2d;
+  --line: #263440;
+  --text: #f2f2e9;
+  --muted: #9eabb7;
+  --lime: #deed9d;
+  --water: #9ed3e4;
+  --orange: #edb48e;
+  --oxygen: #b5bbef;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  color: inherit;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 5px;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h2:focus {
+  outline: none;
+}
+svg {
+  flex-shrink: 0;
+}
+button {
+  border: 0;
+}
+::selection {
+  background: #deed9d;
+  color: #0a1420;
+}
+main {
+  padding: 34px 46px 0;
+}
+h1 {
+  font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1.2;
+  letter-spacing: -1.5px;
+  font-weight: 600;
+  margin: 9px 0 10px;
+}
+h1 > span {
+  color: var(--lime);
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #8d9ca8;
+  padding: 24px 0 29px;
+  gap: 15px;
+}
+footer p > span {
+  color: #6e818f;
+}
+footer button {
+  padding: 0;
+  background: transparent;
+  color: #9aa995;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+footer button:hover {
+  color: var(--lime);
+}
+@media (max-width: 1150px) {
+  main {
+    padding: 28px 26px 0;
+  }
+}
+@media (max-width: 560px) {
+  main {
+    padding: 26px 16px 0;
+  }
+  h1 {
+    font-size: 31px;
+    letter-spacing: -1.2px;
+    margin: 11px 0;
+  }
+  footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 20px 0 25px;
+    font-size: 9px;
+  }
+  footer button {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+:root {
+  --cyan: #38bdf8;
+  --cyan-dark: #0369a1;
+  --cyan-glow: rgba(56, 189, 248, 0.25);
+  --purple-glow: rgba(192, 132, 252, 0.25);
+}
