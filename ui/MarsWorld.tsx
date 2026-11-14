@@ -50,6 +50,12 @@ import {
   type RoverPartId,
 } from "../game/roverVehicle";
 import { createShuttleLanding } from "./world/createShuttleLanding";
+import {
+  SpaceWeatherService,
+  type SpaceWeatherTelemetry,
+  calculateExposureDelta,
+} from "../game/spaceWeatherService";
+import { GeigerAudio } from "../game/geigerAudio";
 function shortestAngleDiff(from: number, to: number): number {
   let diff = (to - from) % (Math.PI * 2);
   if (diff > Math.PI)
@@ -78,6 +84,9 @@ export type View = {
   distance: number;
   locked: boolean;
   jumpHeight: number;
+  radiationExposure?: number;
+  sepFluxPFU?: number;
+  isShielded?: boolean;
   roverX?: number;
   roverZ?: number;
   roverYaw?: number;
@@ -159,6 +168,68 @@ export default function MarsWorld(props: Props) {
   const [introActive, setIntroActive] = useState(Boolean(props.playLandingIntro));
   const [introTelemetry, setIntroTelemetry] = useState({ alt: 52, speed: 48, phase: "Powered descent" });
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
+  const spaceWeatherService = useRef<SpaceWeatherService | null>(null);
+  if (!spaceWeatherService.current) {
+    spaceWeatherService.current = new SpaceWeatherService();
+  }
+  const geigerAudio = useRef<GeigerAudio | null>(null);
+  if (!geigerAudio.current) {
+    geigerAudio.current = new GeigerAudio();
+  }
+  const [spaceWeather, setSpaceWeather] = useState<SpaceWeatherTelemetry>(() =>
+    spaceWeatherService.current!.update(0)
+  );
+  const [radiationExposure, setRadiationExposure] = useState(0);
+  const radiationExposureRef = useRef(0);
+  radiationExposureRef.current = radiationExposure;
+  const [astronautHealth, setAstronautHealth] = useState(100);
+  const astronautHealthRef = useRef(100);
+  astronautHealthRef.current = astronautHealth;
+  const [isShielded, setIsShielded] = useState(false);
+  const isShieldedRef = useRef(false);
+  isShieldedRef.current = isShielded;
+  const [geigerMuted, setGeigerMuted] = useState(false);
+  const snowCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const toggleSpaceWeatherMode = useCallback(() => {
+    geigerAudio.current?.resume();
+    spaceWeatherService.current?.toggleMode();
+    if (spaceWeatherService.current) {
+      setSpaceWeather(spaceWeatherService.current.update(0));
+    }
+  }, []);
+
+  const handleNextHistoricalEvent = useCallback(() => {
+    geigerAudio.current?.resume();
+    spaceWeatherService.current?.nextHistoricalEvent();
+    if (spaceWeatherService.current) {
+      setSpaceWeather(spaceWeatherService.current.update(0));
+    }
+  }, []);
+
+  const handleToggleGeigerMute = useCallback(() => {
+    geigerAudio.current?.resume();
+    if (geigerAudio.current) {
+      const nextMuted = geigerAudio.current.toggleMute();
+      setGeigerMuted(nextMuted);
+    }
+  }, []);
+
+  const toggleSpaceWeatherAction = useRef(toggleSpaceWeatherMode);
+  toggleSpaceWeatherAction.current = toggleSpaceWeatherMode;
+
+  useEffect(() => {
+    const canvas = snowCanvasRef.current;
+    if (!canvas) return;
+    const updateSize = () => {
+      canvas.width = Math.min(window.innerWidth, 1920);
+      canvas.height = Math.min(window.innerHeight, 1080);
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
   const [loadingStage, setLoadingStage] = useState("Loading explorers and rovers…");
   const [loadingProgress, setLoadingProgress] = useState(10);
   const [loaded, setLoaded] = useState(false);
@@ -319,6 +390,23 @@ export default function MarsWorld(props: Props) {
       {
         model.obstacles.push(boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"));
         model.obstacles.push(boxObstacle(0, 15.7, .7, .5, "arrival-steps"));
+
+        // Regolith Water Bunker / Lava Tube Shelter Zone
+        const bunkerGroup = new T.Group();
+        bunkerGroup.name = "Regolith Water Bunker";
+        bunkerGroup.position.set(-24, model.heightAt(-24, 24), 24);
+        const domeGeo = new T.SphereGeometry(3.6, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const domeMat = new T.MeshStandardMaterial({ color: 0x47392f, roughness: 0.9, metalness: 0.1 });
+        const bunkerDome = new T.Mesh(domeGeo, domeMat);
+        bunkerDome.position.y = -0.4;
+        bunkerGroup.add(bunkerDome);
+        const beaconGeo = new T.CylinderGeometry(0.12, 0.16, 0.9, 8);
+        const beaconMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x10b981, emissiveIntensity: 0.8 });
+        const beacon = new T.Mesh(beaconGeo, beaconMat);
+        beacon.position.set(0, 3.5, 0);
+        bunkerGroup.add(beacon);
+        scene.add(bunkerGroup);
+        model.obstacles.push({ x: -24, z: 24, radius: 3.6, id: "regolith-bunker" });
       }
       if (landingIntro) {
         scene.add(landingIntro.root);
@@ -906,6 +994,12 @@ export default function MarsWorld(props: Props) {
           return;
         const onInteractive = tag === "BUTTON" || tag === "SUMMARY" || tag === "A";
         const k = e.key.toLowerCase();
+        geigerAudio.current?.resume();
+        if (k === "y" && !e.repeat && !onInteractive) {
+          e.preventDefault();
+          toggleSpaceWeatherAction.current();
+          return;
+        }
         if (landingIntro?.isActive()) {
           if (e.code === "Space" && !onInteractive) {
             e.preventDefault();
@@ -1055,6 +1149,9 @@ export default function MarsWorld(props: Props) {
       window.addEventListener("beforeunload", saveCuriosityNow);
       document.addEventListener("visibilitychange", saveOnHide);
       renderer.domElement.addEventListener("webglcontextlost", lost);
+      let lastReportedExposure = 0;
+      let lastReportedHp = 100;
+      let lastSpaceWeatherUpdate = 0;
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
@@ -1155,9 +1252,10 @@ export default function MarsWorld(props: Props) {
                 ...(curiosity ? [curiosityFootprint(curiosity.x, curiosity.z, curiosity.yaw)] : []),
               ];
               walker.yaw = cameraYaw;
+              const speedMultiplier = radiationExposureRef.current >= 70 ? 0.70 : 1.0;
               for (let i = 0; i < steps; i++) {
                 {
-                  const next = stepMarsLocomotion(walker, jump, keys, step, model.heightAt, dynamicObstacles, analogWalk.current, streaming ? STREAM_LIMIT : undefined);
+                  const next = stepMarsLocomotion(walker, jump, keys, step, model.heightAt, dynamicObstacles, analogWalk.current, streaming ? STREAM_LIMIT : undefined, speedMultiplier);
                   walker = next.walker;
                   jump = next.jump;
                   keys.delete("jump");
@@ -1292,6 +1390,73 @@ export default function MarsWorld(props: Props) {
             if (rover.handbrake !== lastRoverHandbrake) {
               lastRoverHandbrake = rover.handbrake;
               setRoverHandbrake(rover.handbrake);
+            }
+          }
+        }
+        // Space Weather & Radiation Telemetry Loop
+        if (p.enabled && !landingIntro?.isActive()) {
+          const playerPosX = rover.driving ? rover.x : walker.x;
+          const playerPosZ = rover.driving ? rover.z : walker.z;
+          // Shielded within 10.5m of Landing Shuttle/Hab at (0, 12) or Regolith Bunker at (-24, 24)
+          const distToShuttle = Math.hypot(playerPosX - 0, playerPosZ - 12);
+          const distToBunker = Math.hypot(playerPosX - (-24), playerPosZ - 24);
+          const shieldedNow = distToShuttle <= 10.5 || distToBunker <= 8.5;
+
+          if (shieldedNow !== isShieldedRef.current) {
+            isShieldedRef.current = shieldedNow;
+            setIsShielded(shieldedNow);
+          }
+
+          if (spaceWeatherService.current) {
+            const telemetry = spaceWeatherService.current.update(dt);
+            const expDelta = calculateExposureDelta(telemetry.sepFluxPFU, shieldedNow, dt);
+            const updatedExp = Math.max(0, Math.min(100, radiationExposureRef.current + expDelta));
+            radiationExposureRef.current = updatedExp;
+
+            let currentHp = astronautHealthRef.current;
+            if (updatedExp >= 75 && !shieldedNow) {
+              currentHp = Math.max(0, currentHp - 2.0 * dt);
+            } else if (shieldedNow && currentHp < 100) {
+              currentHp = Math.min(100, currentHp + 2.5 * dt);
+            }
+            astronautHealthRef.current = currentHp;
+
+            geigerAudio.current?.update(dt, telemetry.sepFluxPFU, shieldedNow);
+
+            if (time - lastSpaceWeatherUpdate > 100 || Math.abs(updatedExp - lastReportedExposure) > 0.08 || Math.abs(currentHp - lastReportedHp) > 0.5) {
+              lastSpaceWeatherUpdate = time;
+              lastReportedExposure = updatedExp;
+              lastReportedHp = currentHp;
+              setRadiationExposure(updatedExp);
+              setAstronautHealth(currentHp);
+              setSpaceWeather(telemetry);
+            }
+
+            // Draw CMOS sensor radiation snow
+            const canvas = snowCanvasRef.current;
+            if (canvas) {
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                if (telemetry.sepFluxPFU < 5 || shieldedNow) {
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                } else {
+                  ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+                  ctx.fillRect(0, 0, canvas.width, canvas.height);
+                  const hitCount = Math.min(45, Math.floor(Math.log10(telemetry.sepFluxPFU) * 8 + Math.random() * 4));
+                  for (let i = 0; i < hitCount; i++) {
+                    const sx = Math.random() * canvas.width;
+                    const sy = Math.random() * canvas.height;
+                    ctx.fillStyle = Math.random() > 0.35 ? "rgba(255, 255, 255, 0.95)" : "rgba(167, 243, 208, 0.9)";
+                    if (Math.random() > 0.6) {
+                      const len = 3 + Math.random() * 5;
+                      const ang = Math.random() * Math.PI * 2;
+                      ctx.fillRect(sx, sy, Math.cos(ang) * len, Math.sin(ang) * len);
+                    } else {
+                      ctx.fillRect(sx, sy, 1.5, 1.5);
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -1566,6 +1731,9 @@ export default function MarsWorld(props: Props) {
             distance: range,
             locked: document.pointerLockElement === element,
             jumpHeight: jump.height,
+            radiationExposure: radiationExposureRef.current,
+            sepFluxPFU: spaceWeatherService.current?.update(0).sepFluxPFU,
+            isShielded: isShieldedRef.current,
             roverX: rover.x,
             roverZ: rover.z,
             roverYaw: rover.yaw,
@@ -1972,7 +2140,23 @@ export default function MarsWorld(props: Props) {
   const handleToggleView = useCallback(() => setThirdPerson((v) => !v), []);
   const handleToggleRover = useCallback(() => toggleRoverAction.current(), []);
   const handleInspectNearby = useCallback(() => inspectAction.current(), []);
-  return (<div ref={host} className="sv-world" data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects."}`} tabIndex={0}>
+  const exposureClass = radiationExposure >= 70 ? "critical" : radiationExposure >= 30 ? "caution" : "nominal";
+  const healthClass = astronautHealth < 30 ? "critical" : astronautHealth < 60 ? "warning" : "nominal";
+  const blurAmount = radiationExposure >= 35 ? Math.min(8, ((radiationExposure - 35) / 65) * 8) : 0;
+  const vignetteAlpha = radiationExposure >= 35 ? Math.min(0.75, ((radiationExposure - 35) / 65) * 0.75) : 0;
+
+  return (<div ref={host} className="sv-world" data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+    {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
+    <div
+      className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
+      style={{
+        backdropFilter: blurAmount > 0 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
+        WebkitBackdropFilter: blurAmount > 0 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
+        boxShadow: vignetteAlpha > 0 ? `inset 0 0 ${Math.round(60 + (radiationExposure - 35) * 1.5)}px rgba(220, 38, 38, ${vignetteAlpha.toFixed(2)})` : undefined,
+      }}
+      aria-hidden="true"
+    />
+    <canvas ref={snowCanvasRef} className="mars-radiation-snow" aria-hidden="true" />
    {performanceMeter !== "off" && true && (debug || (props.enabled && !introActive)) &&
       <pre key={performanceMeter} ref={debugPanel} className="mars-debug" data-mode={performanceMeter} aria-label="Graphics performance diagnostics">Measuring FPS…</pre>}
    {!loaded && (<div className="sv-loading" role="status">
@@ -2138,6 +2322,137 @@ export default function MarsWorld(props: Props) {
         <span className="sv-key-badge">F</span> Exit Rover
        </button>
       </div>)}
+      {/* Solar Energetic Particle Alert Banner */}
+      {spaceWeather.sepFluxPFU >= 10 && !isShielded && (
+        <aside className="mars-sep-alert-banner" role="alert" aria-live="assertive">
+          <div className="mars-sep-alert-pulse" aria-hidden="true" />
+          <div className="mars-sep-alert-text">
+            <strong>
+              ALERT: SOLAR ENERGETIC PARTICLE STORM (SEP: {spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(1) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()} PFU · {spaceWeather.stormScale})
+            </strong>
+            <span>
+              {spaceWeather.activeEvent ? `${spaceWeather.activeEvent.name} [${spaceWeather.activeEvent.flareClass}] — ` : ""}
+              SEEK HABITAT OR REGOLITH SHELTER IMMEDIATELY
+            </span>
+          </div>
+        </aside>
+      )}
+
+      {/* Bottom Radiation Exposure & Space Weather HUD Bar */}
+      <div
+        className={`mars-radiation-hud${roverDriving ? " driving" : ""}`}
+        role="region"
+        aria-label="Radiation and Space Weather Telemetry"
+      >
+        {/* Telemetry Badge & Live/Historical Controls */}
+        <div className="mars-rad-telemetry-badge">
+          <div className="mars-rad-telemetry-top">
+            <button
+              type="button"
+              className={`mars-rad-mode-btn ${spaceWeather.mode}`}
+              onClick={toggleSpaceWeatherMode}
+              title="Toggle Live NOAA Feed vs NASA DONKI Archive Replay [Hotkey Y]"
+              aria-label={`Toggle Space Weather Mode (Current: ${spaceWeather.mode === "live" ? "Live Feed" : "NASA Archive"})`}
+            >
+              <span className="mars-mode-indicator" />
+              <b>{spaceWeather.mode === "live" ? "LIVE FEED" : "NASA ARCHIVE"}</b>
+              <span className="mars-key-tag">Y</span>
+            </button>
+
+            {spaceWeather.mode === "historical" && (
+              <button
+                type="button"
+                className="mars-rad-event-btn"
+                onClick={handleNextHistoricalEvent}
+                title="Select historical NASA SEP event"
+                aria-label="Cycle historical NASA SEP event"
+              >
+                <span>{spaceWeather.activeEvent?.name ?? "Superstorm"}</span>
+                <span className="mars-cycle-tag">Next ▾</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`mars-rad-audio-btn ${geigerMuted ? "muted" : "active"}`}
+              onClick={handleToggleGeigerMute}
+              title={geigerMuted ? "Unmute Geiger Counter" : "Mute Geiger Counter"}
+              aria-label="Toggle Geiger counter audio"
+            >
+              {geigerMuted ? "🔇" : "🔊"}
+            </button>
+          </div>
+
+          <div className="mars-rad-telemetry-flux">
+            <span className="mars-flux-val">
+              SEP: <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b> PFU
+            </span>
+            <span className={`mars-storm-scale scale-${spaceWeather.stormScale.slice(0, 2).toLowerCase()}`}>
+              {spaceWeather.stormScale}
+            </span>
+          </div>
+        </div>
+
+        {/* Main Radiation Exposure Bar */}
+        <div className="mars-rad-bar-section">
+          <div className="mars-rad-bar-header">
+            <span className="mars-rad-title">RADIATION EXPOSURE</span>
+            <span className={`mars-rad-val ${exposureClass}`}>
+              <b>{radiationExposure.toFixed(1)}</b> / 100.0 mSv
+            </span>
+          </div>
+          <div
+            className="mars-rad-progress-track"
+            role="progressbar"
+            aria-valuenow={Math.round(radiationExposure)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Radiation exposure in millisieverts"
+          >
+            <div
+              className={`mars-rad-progress-fill ${exposureClass}`}
+              style={{ width: `${Math.max(1, Math.min(100, radiationExposure))}%` }}
+            />
+          </div>
+          <div className="mars-rad-sub-status">
+            {isShielded ? (
+              <span className="mars-shield-badge shielded">
+                🛡️ SHIELDED HABITAT · RECOVERY (−1.5 mSv/s)
+              </span>
+            ) : (
+              <span className={`mars-shield-badge eva ${spaceWeather.sepFluxPFU >= 10 ? "hazard" : "nominal"}`}>
+                {spaceWeather.sepFluxPFU >= 10 ? "⚠️ CRITICAL EVA EXPOSURE" : "EVA EXPOSURE (+0.05 mSv/s GCR)"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Core Astronaut Health Indicator */}
+        <div className="mars-rad-health-section">
+          <div className="mars-health-header">
+            <span className="mars-health-title">CORE HEALTH</span>
+            <span className={`mars-health-val ${healthClass}`}>
+              {Math.round(astronautHealth)}%
+            </span>
+          </div>
+          <div
+            className="mars-health-track"
+            role="progressbar"
+            aria-valuenow={Math.round(astronautHealth)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Astronaut core health"
+          >
+            <div
+              className={`mars-health-fill ${healthClass}`}
+              style={{ width: `${Math.max(0, Math.min(100, astronautHealth))}%` }}
+            />
+          </div>
+          <small className="mars-health-sub">
+            {radiationExposure >= 70 ? "FATIGUE -30% SPD" : "NOMINAL VITALS"}
+          </small>
+        </div>
+      </div>
      {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
     </>)}
    {loaded && introActive && props.enabled && <div className="landing-caption" role="status"><b>{introTelemetry.phase}</b><span>{introTelemetry.alt > 0.1 ? `${introTelemetry.alt.toFixed(1)} m above landing surface` : "Elysium region · Mars"}</span><button onClick={() => skipIntroAction.current()}>Skip landing</button></div>}

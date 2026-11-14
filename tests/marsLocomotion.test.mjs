@@ -58,6 +58,20 @@ test('analog thumbstick scales locomotion smoothly and activates outer-ring spri
   assert.ok(gentle.z < startZ && walking.z < gentle.z && sprinting.z < walking.z);
 });
 
+test('speedMultiplier scales movement speed for radiation sickness fatigue', () => {
+  let normal = spawnWalker();
+  let fatigued = spawnWalker();
+  const startZ = normal.z;
+  for (let i = 0; i < 10; i++) {
+    normal = stepMarsLocomotion(normal, { height: 0, velocity: 0 }, new Set(['w']), 0.05, flat, [], undefined, undefined, 1.0).walker;
+    fatigued = stepMarsLocomotion(fatigued, { height: 0, velocity: 0 }, new Set(['w']), 0.05, flat, [], undefined, undefined, 0.70).walker;
+  }
+  const normalDist = Math.abs(normal.z - startZ);
+  const fatiguedDist = Math.abs(fatigued.z - startZ);
+  assert.ok(fatiguedDist < normalDist);
+  assert.ok(Math.abs(fatiguedDist / normalDist - 0.70) < 0.05);
+});
+
 
 test('rocks block walking at distant coordinates, but clear jumps cross them',()=>{
  const rock={x:300,z:0,radius:.6,topY:.5};

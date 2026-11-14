@@ -12,6 +12,7 @@ export function stepMarsLocomotion(
   obstacles: readonly CollisionObstacle[] = [],
   analog?: MoveAxes,
   worldLimit?: number,
+  speedMultiplier: number = 1,
 ) {
   const dt = Math.max(0, Math.min(seconds, .05));
   if (!dt) return { walker, jump };
@@ -22,7 +23,8 @@ export function stepMarsLocomotion(
     && Math.abs(startY-o.topY)<.025 && overlapDisc(walker.x,walker.z,WALKER_RADIUS,o));
   const airborne = !supported && (jump.height > 0 || jump.velocity > 0);
   const launching = !airborne && keys.has("jump");
-  const speed = keys.has("shift") || analog?.sprint ? MARS_PHYSICS.sprintSpeed : MARS_PHYSICS.walkSpeed;
+  const baseSpeed = keys.has("shift") || analog?.sprint ? MARS_PHYSICS.sprintSpeed : MARS_PHYSICS.walkSpeed;
+  const speed = baseSpeed * Math.max(0.1, speedMultiplier);
   // Only clear a rock once the feet are above its top. Walls/vehicles remain solid.
   const solid = obstacles.filter(o => o.topY === undefined || startY < o.topY-.025);
   const nextWalker = stepWalker(walker, keys, dt, solid, speed, !airborne, analog, worldLimit);

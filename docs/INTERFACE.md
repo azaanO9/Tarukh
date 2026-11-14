@@ -15,6 +15,7 @@
 | Surface and distance rendering | `ui/world/marsTerrain.ts`, `streamedMars.ts`, `marsRegionalLandscape.ts`; shared materials, bounded tile pool and regional far surface |
 | Atlas and field map | `ui/MarsAtlas.tsx`, `ExplorationMinimap.tsx`, `game/marsAtlas.ts`, `minimap.ts`, `topoContours.ts`; map selection stays in memory |
 | Daylight and landing | `game/daylightCycle.ts`, `shuttleLanding.ts`; presentation timing consumed by the renderer |
+| Space weather and radiation | `game/spaceWeatherService.ts`, `geigerAudio.ts`; live NOAA SWPC GOES proton flux polling (every 60s) with CORS-enabled JSON feed, historical NASA DONKI SEP storm simulation (May 2024, Sept 2017, Oct 2003) with realistic dynamic flux ramping curves, Web Audio synthetic Geiger counter click synthesis, and real-time biological exposure/shielding mechanics |
 | Quality selection | `game/autoGraphics.ts`, `backgroundGraphics.ts`, `ui/world/graphicsTiers.ts`; measured session-only selection with manual overrides |
 
 `MarsWorld` reports inspection IDs, view/rover state, readiness, WebGL failure, terrain mode, atlas requests and graphics-calibration status through callbacks. `createMarsWorld.ts` creates the terrain and science-rover targets. There is no hidden mission, lunar or outpost mode in this renderer.

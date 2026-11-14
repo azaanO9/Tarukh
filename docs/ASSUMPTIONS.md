@@ -20,6 +20,14 @@ LiDAR is a 2D collision scan: 180 horizontal beams over 30 metres, at up to 8 sc
 
 The fictional shuttle's 24-second descent, hatch opening and astronaut exit are presentation. A complete visual day/night cycle takes ten active minutes; pause and landing stop that cycle. This is not a real Martian sol, a survival deadline or a resource simulation.
 
+## Space weather and radiation exposure
+
+Real-world Mars surface radiation doses accumulate over months to years (typically ~0.21 mSv/day quiet GCR background, climbing during rare SEP events). For real-time interactive gameplay and demonstrations, radiation accumulation is time-compressed:
+- Baseline EVA exposure rate: `+0.05 mSv/s` (representing unshielded ambient cosmic radiation).
+- Active SEP storm exposure rate (`sepFluxPFU >= 10`): `0.6 + Math.log10(sepFluxPFU) * 1.4 mSv/s` (scaling logarithmically with proton flux up to extreme storm levels).
+- Habitat and bunker shielding: inside the landing shuttle (`(0, 12)`) or the regolith water bunker (`(-24, 24)`), incoming SEP protons are completely blocked (`0 mSv/s`) and the astronaut undergoes medical decontamination/recovery at `-1.5 mSv/s` down to 0 mSv.
+- Acute Radiation Sickness (ARS) symptoms: vision blur (`backdrop-filter: blur()`), red peripheral vignette, CMOS sensor static snow, audio Geiger clicks, 30% movement speed penalty (`radiationExposure >= 70 mSv`), and progressive health degradation above 75 mSv. These represent acute deterministic radiation sickness thresholds in a compressed interactive format rather than a certified medical simulation.
+
 ## Graphics measurements
 
 Auto targets 40 FPS with a 43 FPS trial threshold and a 90th-percentile frame-time check. Measurements happen after entry and remain in memory. A short probe cannot certify performance under battery saver, thermal throttling, different browser refresh limits or later scene complexity. GPU names do not set the maximum graphics tier; the bounded terrain pool is a separate budget.

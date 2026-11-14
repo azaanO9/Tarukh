@@ -21,6 +21,11 @@ The cockpit, seven measured glazing contours, vehicle lighting, dust and simulat
 
 The projected landscape is compressed and simplified for play. Close-up ground, grading, individual rocks and colors are artistic, not measured landing-site photogrammetry.
 
+## Space weather data
+
+- **NOAA Space Weather Prediction Center (SWPC)**: Real-time GOES satellite integral proton flux (`>=10 MeV`) telemetry via open public JSON feeds (`https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json`). NOAA SWPC data is public domain US Government data.
+- **NASA Space Weather Database Of Notifications, Knowledge, Information (DONKI)**: Historical Solar Energetic Particle (SEP) event archive parameters and metadata for significant solar superstorms (May 2024 AR3664 event, September 2017 Mars GLE event, October 2003 Halloween storm). Accessible via NASA Open Data API. NASA does not endorse TARUKH.
+
 ## Ground materials
 
 | Shipped prefix in `public/art/mars-surface/` | Source | Author |
