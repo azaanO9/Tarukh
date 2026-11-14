@@ -4,7 +4,7 @@ import type { LidarScan } from "../../game/roverLidar";
 import { assetUrl } from "../../lib/assetUrl";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { ROVER_WHEEL_OFFSETS, ROVER_WHEEL_OUTER_RADIUS, type RoverVehicle } from "../../game/roverVehicle";
+import { ROVER_WHEEL_OFFSETS, ROVER_WHEEL_OUTER_RADIUS, type RoverVehicle, type RoverPartId } from "../../game/roverVehicle";
 import { bindPreparedRover, type RoverWheelAssembly } from "./roverWheelAssembly";
 import { createSoftContactShadow } from "./contactShadow";
 
@@ -179,6 +179,36 @@ export function createBigRover(
   }
   fixtures.add(solarPanelGroup);
 
+  // Localized spark particle emitter for damaged roof solar array
+  const sparkCount = 32;
+  const sparkGeo = new T.BufferGeometry();
+  const sparkPositions = new Float32Array(sparkCount * 3);
+  const sparkVelocities: { x: number; y: number; z: number; life: number; maxLife: number }[] = [];
+  for (let i = 0; i < sparkCount; i++) {
+    sparkPositions[i * 3] = (Math.random() - 0.5) * 1.3;
+    sparkPositions[i * 3 + 1] = 2.66 + Math.random() * 0.05;
+    sparkPositions[i * 3 + 2] = 0.45 + (Math.random() - 0.5) * 1.5;
+    sparkVelocities.push({
+      x: (Math.random() - 0.5) * 1.6,
+      y: 0.9 + Math.random() * 1.8,
+      z: (Math.random() - 0.5) * 1.6,
+      life: Math.random() * 0.4,
+      maxLife: 0.25 + Math.random() * 0.35,
+    });
+  }
+  sparkGeo.setAttribute("position", new T.BufferAttribute(sparkPositions, 3));
+  const sparkMat = new T.PointsMaterial({
+    color: 0xffb74d,
+    size: 0.075,
+    transparent: true,
+    opacity: 0.85,
+    blending: T.AdditiveBlending,
+  });
+  const sparkParticles = new T.Points(sparkGeo, sparkMat);
+  sparkParticles.name = "solar-sparks";
+  sparkParticles.visible = false;
+  fixtures.add(sparkParticles);
+
   // Wheel dust
   const tireDust = createRoverDust();
 
@@ -306,21 +336,45 @@ export function createBigRover(
     const sinYaw = Math.sin(rover.yaw);
     const cosYaw = Math.cos(rover.yaw);
 
+    const partKeys: RoverPartId[] = [
+      "wheel_fl",
+      "wheel_fr",
+      "wheel_ml",
+      "wheel_mr",
+      "wheel_rl",
+      "wheel_rr",
+    ];
+
     for (let i = 0; i < activeWheels.length; i++) {
       const w = activeWheels[i];
-      // Rotate tire around axle with wheelRoll (spins forward when driving forward)
-      w.wheelMesh.rotation.x = -rover.wheelRoll;
+      const partKey = partKeys[i];
+      const hp = rover.damage ? (rover.damage[partKey] ?? 100) : 100;
+      const isDead = hp <= 25;
 
-      // Front wheels steer into turns
+      if (isDead) {
+        // Locked rotation on damaged wheel (creates heavy drag)
+        w.wheelMesh.rotation.x = 0;
+        // Joint sag, camber and toe misalignment
+        w.wheelMesh.rotation.z = (w.isLeft ? -1 : 1) * 0.30;
+        w.wheelMesh.rotation.y = w.isLeft ? 0.15 : -0.15;
+      } else {
+        // Rotate tire around axle with wheelRoll (spins forward when driving forward)
+        w.wheelMesh.rotation.x = -rover.wheelRoll;
+        w.wheelMesh.rotation.z = 0;
+        w.wheelMesh.rotation.y = 0;
+      }
+
+      // Front wheels steer into turns (dampened if damaged)
       if (w.isFront) {
-        w.steering.rotation.y = rover.steerAngle;
+        w.steering.rotation.y = isDead ? rover.steerAngle * 0.25 : rover.steerAngle;
       }
 
       // Real 6-wheel suspension reacting to Mars surface profile & rocker-bogie compression
+      const sag = isDead ? -0.10 : 0;
       if (rover.wheelCompression && rover.wheelCompression[i] !== undefined) {
         // Physics already damps each spring. A second filter caused visible ground penetration.
         w.suspensionOffset = rover.wheelCompression[i];
-        w.pivot.position.y = w.baseY + w.suspensionOffset;
+        w.pivot.position.y = w.baseY + w.suspensionOffset + sag;
       } else if (heightAt) {
         const worldWheelX = rover.x + cosYaw * w.baseX + sinYaw * w.baseZ;
         const worldWheelZ = rover.z - sinYaw * w.baseX + cosYaw * w.baseZ;
@@ -331,8 +385,47 @@ export function createBigRover(
         w.suspensionOffset +=
           (targetOffset - w.suspensionOffset) * (1 - Math.exp(-22 * dt));
         const travel = Math.max(-0.26, Math.min(0.32, w.suspensionOffset));
-        w.pivot.position.y = w.baseY + travel;
+        w.pivot.position.y = w.baseY + travel + sag;
       }
+    }
+
+    // Solar array damage: cracked/shattered glass appearance & localized spark particles
+    const solarHp = rover.damage ? (rover.damage.solar_array ?? 100) : 100;
+    const isSolarDamaged = solarHp < 50;
+    if (isSolarDamaged) {
+      solarCellMat.color.setHex(0x13171d);
+      solarCellMat.roughness = 0.92;
+      solarCellMat.metalness = 0.08;
+      solarCellMat.emissive.setHex(0x421808);
+      solarCellMat.emissiveIntensity = 0.65;
+
+      sparkParticles.visible = true;
+      const positions = sparkGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < sparkCount; i++) {
+        const sp = sparkVelocities[i];
+        sp.life += dt;
+        if (sp.life >= sp.maxLife) {
+          sp.life = 0;
+          positions[i * 3] = (Math.random() - 0.5) * 1.3;
+          positions[i * 3 + 1] = 2.66 + Math.random() * 0.05;
+          positions[i * 3 + 2] = 0.45 + (Math.random() - 0.5) * 1.5;
+          sp.x = (Math.random() - 0.5) * 1.6;
+          sp.y = 0.9 + Math.random() * 1.8;
+          sp.z = (Math.random() - 0.5) * 1.6;
+        } else {
+          positions[i * 3] += sp.x * dt;
+          positions[i * 3 + 1] += (sp.y - 4.5 * sp.life) * dt;
+          positions[i * 3 + 2] += sp.z * dt;
+        }
+      }
+      sparkGeo.attributes.position.needsUpdate = true;
+    } else {
+      solarCellMat.color.setHex(0x071b2f);
+      solarCellMat.roughness = 0.22;
+      solarCellMat.metalness = 0.88;
+      solarCellMat.emissive.setHex(0x021326);
+      solarCellMat.emissiveIntensity = 0.35;
+      sparkParticles.visible = false;
     }
 
     // 3. Headlight intensity & grounded contact shadow based on planetary solar lighting

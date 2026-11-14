@@ -33,7 +33,22 @@ import { graphicsTier } from "./world/graphicsTiers";
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
-import { spawnRoverVehicle, stepRoverVehicle, canEnterRover, enterRover, exitRover, roverFootprint, getRoverGear, type RoverAnalogInput, type RoverGear, } from "../game/roverVehicle";
+import {
+  spawnRoverVehicle,
+  stepRoverVehicle,
+  canEnterRover,
+  enterRover,
+  exitRover,
+  roverFootprint,
+  getRoverGear,
+  getNearestRoverPart,
+  repairRoverPart,
+  INITIAL_ROVER_DAMAGE,
+  type RoverAnalogInput,
+  type RoverGear,
+  type RoverDamageState,
+  type RoverPartId,
+} from "../game/roverVehicle";
 import { createShuttleLanding } from "./world/createShuttleLanding";
 function shortestAngleDiff(from: number, to: number): number {
   let diff = (to - from) % (Math.PI * 2);
@@ -42,6 +57,12 @@ function shortestAngleDiff(from: number, to: number): number {
   if (diff < -Math.PI)
     diff += Math.PI * 2;
   return diff;
+}
+
+function getPartDamageClass(health: number): string {
+  if (health >= 70) return "nominal";
+  if (health >= 30) return "warning";
+  return "critical";
 }
 export type View = {
   lightPhase?: string;
@@ -102,6 +123,7 @@ export default function MarsWorld(props: Props) {
   const toggleRoverAction = useRef<() => void>(() => { });
   const skipIntroAction = useRef<() => void>(() => { });
   const inspectAction = useRef<() => void>(() => { });
+  const repairAction = useRef<() => void>(() => { });
   const analogWalk = useRef<MoveAxes>({});
   const analogDrive = useRef<RoverAnalogInput>({});
   const [autoCoarse, setAutoCoarse] = useState(false);
@@ -128,6 +150,13 @@ export default function MarsWorld(props: Props) {
   const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
+  const [roverDamage, setRoverDamage] = useState<RoverDamageState>(INITIAL_ROVER_DAMAGE);
+  const [playerScrap, setPlayerScrap] = useState<number>(6);
+  const playerScrapRef = useRef(6);
+  playerScrapRef.current = playerScrap;
+  const [repairTarget, setRepairTarget] = useState<{ id: RoverPartId; name: string; health: number } | null>(null);
+  const repairTargetRef = useRef<{ id: RoverPartId; name: string; health: number } | null>(null);
+  repairTargetRef.current = repairTarget;
   const [introActive, setIntroActive] = useState(Boolean(props.playLandingIntro));
   const [introTelemetry, setIntroTelemetry] = useState({ alt: 52, speed: 48, phase: "Powered descent" });
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
@@ -532,6 +561,8 @@ export default function MarsWorld(props: Props) {
       let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
+      let lastRoverDamage: RoverDamageState = { ...INITIAL_ROVER_DAMAGE };
+      let lastRepairTarget: { id: RoverPartId; name: string; health: number } | null = null;
       let pitch = -0.04;
       let dragging = false;
       let lookPointer: number | null = null;
@@ -687,6 +718,21 @@ export default function MarsWorld(props: Props) {
           setMessage((prev) => (prev.startsWith(prefix) ? "" : prev));
           releaseMsgTimer = null;
         }, ms);
+      };
+      repairAction.current = () => {
+        if (!current.current.enabled || rover.driving) return;
+        const target = getNearestRoverPart(walker, rover);
+        if (target && target.distance <= 2.8 && target.health < 100) {
+          if (playerScrapRef.current > 0) {
+            rover = repairRoverPart(rover, target.id);
+            setPlayerScrap((s) => Math.max(0, s - 1));
+            lastRoverDamage = { ...(rover.damage ?? INITIAL_ROVER_DAMAGE) };
+            setRoverDamage({ ...(rover.damage ?? INITIAL_ROVER_DAMAGE) });
+            showTransientNotice(`Field repaired ${target.name} to 100% nominal!`, "Field repaired");
+          } else {
+            showTransientNotice("Insufficient Titanium Scrap for field repairs!", "Insufficient");
+          }
+        }
       };
       const setCursorMode = (free: boolean, notify = false) => {
         cursorReleased.current = free;
@@ -889,7 +935,11 @@ export default function MarsWorld(props: Props) {
         }
         if (k === "e" || (k === "enter" && !onInteractive)) {
           e.preventDefault();
-          inspect();
+          if (!rover.driving && repairTargetRef.current) {
+            repairAction.current();
+          } else {
+            inspect();
+          }
         }
         if (k === "q")
           keys.add("look-left");
@@ -1174,6 +1224,39 @@ export default function MarsWorld(props: Props) {
           if (nearNow !== lastRoverNear) {
             lastRoverNear = nearNow;
             setRoverNear(nearNow);
+          }
+          if (!rover.driving) {
+            const nearestPart = getNearestRoverPart(walker, rover);
+            if (nearestPart && nearestPart.distance <= 2.8 && nearestPart.health < 100) {
+              const roundedHp = Math.round(nearestPart.health);
+              if (lastRepairTarget?.id !== nearestPart.id || lastRepairTarget?.health !== roundedHp) {
+                lastRepairTarget = { id: nearestPart.id, name: nearestPart.name, health: roundedHp };
+                setRepairTarget({ id: nearestPart.id, name: nearestPart.name, health: roundedHp });
+              }
+            } else if (lastRepairTarget !== null) {
+              lastRepairTarget = null;
+              setRepairTarget(null);
+            }
+          } else if (lastRepairTarget !== null) {
+            lastRepairTarget = null;
+            setRepairTarget(null);
+          }
+
+          if (rover.damage) {
+            let dmgChanged = false;
+            const dmgKeys: RoverPartId[] = [
+              "wheel_fl", "wheel_fr", "wheel_ml", "wheel_mr", "wheel_rl", "wheel_rr", "solar_array"
+            ];
+            for (const dk of dmgKeys) {
+              if (Math.round(rover.damage[dk]) !== Math.round(lastRoverDamage[dk])) {
+                dmgChanged = true;
+                break;
+              }
+            }
+            if (dmgChanged) {
+              lastRoverDamage = { ...rover.damage };
+              setRoverDamage({ ...rover.damage });
+            }
           }
           if (rover.driving) {
             const spd = Math.round(Math.abs(rover.speed) * 3.6);
@@ -1920,7 +2003,72 @@ export default function MarsWorld(props: Props) {
         <span className="sv-key-badge">F</span> Drive Exploration Rover
        </button>
       </div>)}
+     {repairTarget && !roverDriving && (
+      <div className="sv-rover-prompt sv-eva-prompt" role="region" aria-label="EVA Component Maintenance">
+       <button
+         type="button"
+         className="sv-rover-prompt-btn sv-eva-repair-btn"
+         onClick={() => repairAction.current()}
+         disabled={playerScrap <= 0}
+       >
+        <span className="sv-key-badge">E</span> Repair {repairTarget.name} ({repairTarget.health}%) · 1 Scrap
+       </button>
+       <span className="sv-eva-scrap-pill">
+         Scrap: <b>{playerScrap}</b>
+       </span>
+      </div>
+     )}
      {roverDriving && (<div className={`sv-rover-hud${!thirdPerson ? " sv-rover-hud-cockpit" : ""}`} role="region" aria-label="Rover Vehicle HUD">
+       <div className="sv-rover-schematic" role="img" aria-label="Rover Component Diagnostics Schematic">
+        <svg viewBox="0 0 100 120" className="sv-schematic-svg" aria-hidden="true">
+         <rect x="24" y="18" width="52" height="84" rx="8" className="sv-schematic-chassis" />
+         <line x1="24" y1="46" x2="76" y2="46" className="sv-schematic-grid" />
+         <line x1="24" y1="74" x2="76" y2="74" className="sv-schematic-grid" />
+         <rect
+           x="33" y="26" width="34" height="42" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.solar_array)}`}
+         >
+          <title>{`Roof Solar Array: ${Math.round(roverDamage.solar_array)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="22" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_fl)}`}
+         >
+          <title>{`Front-Left Wheel: ${Math.round(roverDamage.wheel_fl)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="22" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_fr)}`}
+         >
+          <title>{`Front-Right Wheel: ${Math.round(roverDamage.wheel_fr)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="52" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_ml)}`}
+         >
+          <title>{`Mid-Left Wheel: ${Math.round(roverDamage.wheel_ml)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="52" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_mr)}`}
+         >
+          <title>{`Mid-Right Wheel: ${Math.round(roverDamage.wheel_mr)}%`}</title>
+         </rect>
+         <rect
+           x="8" y="82" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_rl)}`}
+         >
+          <title>{`Rear-Left Wheel: ${Math.round(roverDamage.wheel_rl)}%`}</title>
+         </rect>
+         <rect
+           x="79" y="82" width="13" height="24" rx="3"
+           className={`sv-schematic-part ${getPartDamageClass(roverDamage.wheel_rr)}`}
+         >
+          <title>{`Rear-Right Wheel: ${Math.round(roverDamage.wheel_rr)}%`}</title>
+         </rect>
+        </svg>
+        <span className="sv-schematic-title">DAMAGE</span>
+       </div>
        <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear === "B" ? "BOOST" : roverGear}`}>
         <div className="sv-gear-rail" aria-hidden="true">
          {(["R", "N", "D", "B"] as const).map((g) => (

@@ -276,6 +276,48 @@
   transform: translateX(0) scale(1.04);
 }
 
+.sv-eva-prompt {
+  bottom: 175px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-eva-repair-btn {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #f8fafc;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.45);
+}
+
+.sv-eva-repair-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  border-color: #7dd3fc;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.6);
+  transform: translateX(0) scale(1.04);
+}
+
+.sv-eva-repair-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.sv-eva-scrap-pill {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 3px 12px;
+  font: 600 11px/1 ui-monospace, monospace;
+  color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.sv-eva-scrap-pill b {
+  color: #38bdf8;
+}
+
 .sv-key-badge {
   background: rgba(56, 189, 248, 0.14);
   color: #38bdf8;
@@ -315,6 +357,76 @@
     0 0 24px -2px rgba(56, 189, 248, 0.15);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   pointer-events: auto;
+}
+
+.sv-rover-schematic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  padding-right: 14px;
+}
+
+.sv-schematic-svg {
+  width: 44px;
+  height: 52px;
+}
+
+.sv-schematic-chassis {
+  fill: rgba(15, 23, 42, 0.55);
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 2;
+}
+
+.sv-schematic-grid {
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-width: 1;
+}
+
+.sv-schematic-part {
+  transition: fill 0.25s ease, stroke 0.25s ease;
+}
+
+.sv-schematic-part.nominal {
+  fill: rgba(74, 222, 128, 0.35);
+  stroke: #4ade80;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 2px rgba(74, 222, 128, 0.5));
+}
+
+.sv-schematic-part.warning {
+  fill: rgba(250, 204, 21, 0.4);
+  stroke: #facc15;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.7));
+}
+
+.sv-schematic-part.critical {
+  animation: partDamagePulse 0.8s infinite alternate;
+}
+
+@keyframes partDamagePulse {
+  0% {
+    fill: rgba(239, 68, 68, 0.35);
+    stroke: #ef4444;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4));
+  }
+  100% {
+    fill: rgba(239, 68, 68, 0.85);
+    stroke: #ff6b6b;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 1));
+  }
+}
+
+.sv-schematic-title {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #94a3b8;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .sv-rover-gearbox {
