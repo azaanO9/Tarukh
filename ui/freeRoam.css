@@ -302,6 +302,12 @@
   margin: 0;
 }
 
+.roam-mola-zoomed-img {
+  image-rendering: auto;
+  filter: contrast(1.15) brightness(1.04) saturate(1.1);
+  transition: opacity 0.2s ease;
+}
+
 .roam-radar-svg text {
   font-family: 'Space Grotesk', system-ui, sans-serif;
   user-select: none;

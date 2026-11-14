@@ -1,8 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import type { View } from "./MarsWorld";
-import { mapRectPoint as mapPoint, mapHeading, mapLidarContacts, MAP_RANGE } from "../game/minimap";
-import { LIDAR_RANGE } from "../game/roverLidar";
+import { mapRectPoint, mapPoint, mapHeading, mapLidarContacts } from "../game/minimap";
 import { MARS_LANDMARKS } from "../content/marsLandmarks";
 import { surveyRegionLabel } from "../content/marsLandingSites";
 import {
@@ -14,13 +13,16 @@ import {
 import { assetUrl } from "../lib/assetUrl";
 import { generateTopoContours } from "../game/topoContours";
 
-type MinimapMode = "region" | "local";
+export type MinimapZoomPreset = 120 | 220 | 450 | "overview";
+const ZOOM_CYCLE: MinimapZoomPreset[] = [120, 220, 450, "overview"];
 
 /**
- * Minimal GTA 5 style Mars Field Map with real-time player location tracking.
- * - Defaults to the authentic NASA MOLA elevation region map (the image on which the 3D ground is based).
- * - Accurately displays all craters, valleys, volcanic peaks, and landmarks with real player GPS tracking.
- * - Supports one-click toggle between Full Region Map and Local LiDAR Radar.
+ * Minimal GTA 5 style Mars Field Map.
+ * - Defaults to a high-definition ZOOMED-IN view of the authentic NASA MOLA overview map
+ *   (the real elevation map upon which the 3D ground, craters, and heights are built).
+ * - Tracks the player in real-time in the center with a rotating heading chevron and sonar pulse.
+ * - Scrolls the MOLA map smoothly under the player as they walk or drive across craters and plains.
+ * - Supports one-click cycling between Close (120m), Cruising (220m), Wide (450m), and Full Regional Map.
  */
 export default function ExplorationMinimap({
   view,
@@ -32,20 +34,25 @@ export default function ExplorationMinimap({
   onOpenAtlas: () => void;
 }) {
   const [open, setOpen] = useState(true);
-  const [mode, setMode] = useState<MinimapMode>("region");
+  const [userZoom, setUserZoom] = useState<MinimapZoomPreset | null>(null);
 
   const driving = Boolean(view.roverDriving);
   const x = driving ? view.roverX ?? view.x : view.x;
   const z = driving ? view.roverZ ?? view.z : view.z;
   const scan = driving ? view.lidar : undefined;
-  const range = driving ? scan?.range ?? LIDAR_RANGE : MAP_RANGE;
+
+  // Active zoom preset: defaults to 120m on foot, 220m when driving rover, or user choice
+  const activeZoom: MinimapZoomPreset = userZoom ?? (driving ? 220 : 120);
+  const isOverview = activeZoom === "overview";
+  const activeRange: number = isOverview ? 942 : activeZoom;
+
   const qx = Math.round(x * 2);
   const qz = Math.round(z * 2);
 
-  // Real Mars topography contours computed from actual elevation model (quantized to 0.5m for 60fps cache)
+  // Real Mars topography contours computed from actual elevation model (quantized for 60fps caching)
   const topo = useMemo(
-    () => generateTopoContours(qx * 0.5, qz * 0.5, range, 6, 31, 188, 138),
-    [qx, qz, range]
+    () => generateTopoContours(qx * 0.5, qz * 0.5, activeRange, 6, 31, 188, 138),
+    [qx, qz, activeRange]
   );
 
   if (view.cockpitView) return null;
@@ -57,29 +64,23 @@ export default function ExplorationMinimap({
     coords.latitude < 0 ? "S" : "N"
   } ${coords.longitude.toFixed(2)}°E · ${elevation >= 0 ? "+" : ""}${elevation}M`;
 
-  // Local radar points
-  const home = mapPoint(0, 12, x, z, range);
-  const crew = mapPoint(view.roverX ?? x, view.roverZ ?? z, x, z, range);
-  const scout =
-    view.curiosityX === undefined
-      ? null
-      : mapPoint(view.curiosityX, view.curiosityZ ?? 0, x, z, range);
+  // Scale in pixels per game meter for the zoomed-in MOLA map
+  const scale = 88 / activeRange;
 
-  // Region map coordinate projection (maps world meters to the 188x138 radar frame)
+  // MOLA image position and dimensions in zoomed mode (centered on player at 100, 100)
+  const imgX = 100 + (B.west - x) * scale;
+  const imgY = 100 + (B.north - z) * scale;
+  const imgWidth = (B.east - B.west) * scale;
+  const imgHeight = (B.south - B.north) * scale;
+
+  // Overview mode coordinate projection (maps entire region to the 188x138 radar box)
   const toRegion = (wx: number, wz: number) => ({
     x: 6 + Math.max(0, Math.min(1, (wx - B.west) / (B.east - B.west))) * 188,
     y: 31 + Math.max(0, Math.min(1, (wz - B.north) / (B.south - B.north))) * 138,
     inBounds: isSurveyedRegion(wx, wz),
   });
 
-  const playerRegion = toRegion(x, z);
-  const homeRegion = toRegion(0, 12);
-  const crewRegion = toRegion(view.roverX ?? x, view.roverZ ?? z);
-  const scoutRegion =
-    view.curiosityX === undefined ? null : toRegion(view.curiosityX, view.curiosityZ ?? 0);
-
   const target = MARS_LANDMARKS.find((p) => p.id === selected) ?? MARS_LANDMARKS[0];
-  const topoScale = 88 / range;
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
@@ -91,19 +92,30 @@ export default function ExplorationMinimap({
       : "SCANNING…"
     : "LIDAR DOCKED IN ROVER";
 
-  const status = mode === "region" ? (blocked ? "HAZARD IN PATH" : coordsLabel) : localStatus;
+  const status = isOverview ? (blocked ? "HAZARD IN PATH" : coordsLabel) : localStatus;
 
   const clearancePct =
     blocked && threat !== undefined
       ? Math.min(100, Math.max(15, (threat / 20) * 100))
       : 100;
 
+  const handleCycleZoom = () => {
+    const currentIndex = ZOOM_CYCLE.indexOf(activeZoom);
+    const nextIndex = (currentIndex + 1) % ZOOM_CYCLE.length;
+    setUserZoom(ZOOM_CYCLE[nextIndex]);
+  };
+
+  const zoomBadgeLabel =
+    activeZoom === "overview"
+      ? "MOLA · REGION"
+      : `MOLA · ${activeZoom}M`;
+
   return (
     <aside
       className="roam-minimap gta-minimap"
       data-driving={driving}
       data-open={open}
-      data-mode={mode}
+      data-zoom={activeZoom}
       data-blocked={blocked}
       aria-label="Exploration minimap and rover LiDAR"
     >
@@ -113,18 +125,12 @@ export default function ExplorationMinimap({
           <button
             type="button"
             className="roam-map-badge roam-mode-btn"
-            onClick={() => setMode((m) => (m === "region" ? "local" : "region"))}
-            title="Click to toggle Full Region MOLA Map / Local Radar"
-            aria-label={`Current view: ${
-              mode === "region" ? "Full MOLA Region" : "Local Radar"
-            }. Click to switch view.`}
+            onClick={handleCycleZoom}
+            title="Click to cycle zoom: 120m (close), 220m (medium), 450m (wide), Full Region"
+            aria-label={`Current minimap zoom: ${zoomBadgeLabel}. Click to cycle zoom level.`}
           >
             <span className="roam-badge-dot" />
-            {mode === "region"
-              ? "MOLA REGION"
-              : driving
-              ? `LIDAR · ${range}M`
-              : `SURFACE · ${range}M`}
+            {zoomBadgeLabel}
           </button>
           <button
             type="button"
@@ -143,9 +149,9 @@ export default function ExplorationMinimap({
             className="roam-radar-svg roam-gta-rect-svg"
             role="img"
             aria-label={`North-up ${
-              mode === "region"
+              isOverview
                 ? "full NASA MOLA elevation region map"
-                : `${range} metre local terrain radar`
+                : `${activeRange} metre zoomed NASA MOLA terrain map`
             } with real-time player location tracking and numbered landmarks.`}
           >
             <defs>
@@ -153,46 +159,6 @@ export default function ExplorationMinimap({
               <clipPath id="gta-rect-clip">
                 <rect x="6" y="31" width="188" height="138" rx="6" />
               </clipPath>
-
-              {/* HD Photographic Mars Ground Texture for local mode */}
-              <pattern
-                id="gta-mars-hd-ground"
-                patternUnits="userSpaceOnUse"
-                width="80"
-                height="80"
-                patternTransform={`translate(${((100 - (x * 88) / range) % 80 + 80) % 80} ${
-                  ((100 - (z * 88) / range) % 80 + 80) % 80
-                })`}
-              >
-                <image
-                  href={assetUrl("art/mars-surface/dry-rocky-soil-color.webp")}
-                  xlinkHref={assetUrl("art/mars-surface/dry-rocky-soil-color.webp")}
-                  width="80"
-                  height="80"
-                  preserveAspectRatio="xMidYMid slice"
-                />
-              </pattern>
-
-              {/* Local Topographic Relief Shading */}
-              <linearGradient
-                id="gta-topo-hillshade"
-                x1={`${50 - Math.cos((topo.hillshadeGradient.angleDeg * Math.PI) / 180) * 50}%`}
-                y1={`${50 - Math.sin((topo.hillshadeGradient.angleDeg * Math.PI) / 180) * 50}%`}
-                x2={`${50 + Math.cos((topo.hillshadeGradient.angleDeg * Math.PI) / 180) * 50}%`}
-                y2={`${50 + Math.sin((topo.hillshadeGradient.angleDeg * Math.PI) / 180) * 50}%`}
-              >
-                <stop
-                  offset="0%"
-                  stopColor="#ffffff"
-                  stopOpacity={0.28 * topo.hillshadeGradient.contrast}
-                />
-                <stop offset="50%" stopColor="#000000" stopOpacity={0} />
-                <stop
-                  offset="100%"
-                  stopColor="#000000"
-                  stopOpacity={0.55 * topo.hillshadeGradient.contrast}
-                />
-              </linearGradient>
 
               {/* 1. CREW ROVER VECTOR ICON */}
               <g id="icon-crew-rover">
@@ -279,17 +245,12 @@ export default function ExplorationMinimap({
 
             {/* Clipped Map Contents */}
             <g clipPath="url(#gta-rect-clip)">
-              {mode === "region" ? (
+              {isOverview ? (
                 /* =========================================================================
-                   REGION MODE: The exact authentic NASA MOLA overview map from the image,
-                   showing all real craters, canyons, volcanoes and elevation in crisp HD,
-                   with real-time player GPS tracking across Mars.
+                   FULL OVERVIEW MODE: Complete Mars Trek region map (1884m x 1466m extent)
                    ========================================================================= */
                 <>
-                  {/* Base warm Mars background */}
                   <rect x="6" y="31" width="188" height="138" fill="#180e0a" />
-
-                  {/* Real NASA MOLA Elevation Map (Full extent matching the terrain heightmap) */}
                   <image
                     href={assetUrl("art/mars-mola-overview.webp")}
                     xlinkHref={assetUrl("art/mars-mola-overview.webp")}
@@ -300,42 +261,41 @@ export default function ExplorationMinimap({
                     preserveAspectRatio="none"
                   />
 
-                  {/* Subtle GPS Grid Lines */}
-                  <line x1="53" y1="31" x2="53" y2="169" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
+                  {/* Regional GPS Grid */}
                   <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="0.75" />
-                  <line x1="147" y1="31" x2="147" y2="169" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
-                  <line x1="6" y1="77" x2="194" y2="77" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
                   <line x1="6" y1="100" x2="194" y2="100" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="0.75" />
-                  <line x1="6" y1="123" x2="194" y2="123" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
 
                   {/* Landing Shuttle Base */}
-                  <g transform={`translate(${homeRegion.x} ${homeRegion.y}) scale(0.65)`}>
-                    <use href="#icon-landing-shuttle" />
-                  </g>
+                  {(() => {
+                    const homePos = toRegion(0, 12);
+                    return (
+                      <g transform={`translate(${homePos.x} ${homePos.y}) scale(0.65)`}>
+                        <use href="#icon-landing-shuttle" />
+                      </g>
+                    );
+                  })()}
 
-                  {/* Parked Crew Rover (when walking on foot) */}
-                  {!driving && (
-                    <g
-                      transform={`translate(${crewRegion.x} ${crewRegion.y}) rotate(${mapHeading(
-                        view.roverYaw ?? 0
-                      )}) scale(0.65)`}
-                    >
-                      <use href="#icon-crew-rover" />
-                    </g>
-                  )}
+                  {/* Crew Rover */}
+                  {!driving && (() => {
+                    const crewPos = toRegion(view.roverX ?? x, view.roverZ ?? z);
+                    return (
+                      <g transform={`translate(${crewPos.x} ${crewPos.y}) rotate(${mapHeading(view.roverYaw ?? 0)}) scale(0.65)`}>
+                        <use href="#icon-crew-rover" />
+                      </g>
+                    );
+                  })()}
 
                   {/* Curiosity Rover */}
-                  {scoutRegion && (
-                    <g
-                      transform={`translate(${scoutRegion.x} ${scoutRegion.y}) rotate(${mapHeading(
-                        view.curiosityYaw ?? 0
-                      )}) scale(0.65)`}
-                    >
-                      <use href="#icon-curiosity-rover" />
-                    </g>
-                  )}
+                  {view.curiosityX !== undefined && (() => {
+                    const scoutPos = toRegion(view.curiosityX, view.curiosityZ ?? 0);
+                    return (
+                      <g transform={`translate(${scoutPos.x} ${scoutPos.y}) rotate(${mapHeading(view.curiosityYaw ?? 0)}) scale(0.65)`}>
+                        <use href="#icon-curiosity-rover" />
+                      </g>
+                    );
+                  })()}
 
-                  {/* Numbered Landmark Pins positioned at their actual craters / mountains */}
+                  {/* Numbered Landmark Pins */}
                   {MARS_LANDMARKS.map((place) => {
                     const pin = toRegion(place.x, place.z);
                     const isSelected = place.id === target.id;
@@ -372,119 +332,82 @@ export default function ExplorationMinimap({
                     );
                   })}
 
-                  {/* REAL-TIME PLAYER GPS TRACKING ON MARS MAP */}
-                  <g transform={`translate(${playerRegion.x} ${playerRegion.y})`}>
-                    {/* Pulsing Sonar Ring */}
-                    <circle
-                      r="8"
-                      fill="rgba(56, 189, 248, 0.28)"
-                      stroke="#38bdf8"
-                      strokeWidth="1.2"
-                      className="roam-radar-pulse-ring"
-                    />
-                    <circle r="14" fill="none" stroke="#38bdf8" strokeWidth="0.7" strokeDasharray="2.5 2" opacity="0.45" />
-
-                    {/* GTA 5 Sharp Player Chevron Arrow */}
-                    <g
-                      transform={`rotate(${mapHeading(
-                        driving ? view.roverYaw ?? view.yaw : view.yaw
-                      )})`}
-                    >
-                      {/* Arrow drop shadow */}
-                      <polygon points="0,-8 5,5.5 0,2.2 -5,5.5" fill="rgba(0,0,0,0.6)" transform="translate(0, 0.8)" />
-                      {/* Sharp white arrow */}
-                      <polygon
-                        points="0,-8 5,5.5 0,2.2 -5,5.5"
-                        fill="#ffffff"
-                        stroke="#060c14"
-                        strokeWidth="1.3"
-                        strokeLinejoin="round"
-                      />
-                      <circle cx="0" cy="2.2" r="0.9" fill="#38bdf8" />
-                    </g>
-
-                    {/* High-Contrast "YOU" Badge */}
-                    <text
-                      y="-10"
-                      textAnchor="middle"
-                      fill="#38bdf8"
-                      fontSize="7"
-                      fontWeight="900"
-                      letterSpacing="0.4"
-                      style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
-                    >
-                      YOU
-                    </text>
-                  </g>
+                  {/* Player Marker across region */}
+                  {(() => {
+                    const playerPos = toRegion(x, z);
+                    return (
+                      <g transform={`translate(${playerPos.x} ${playerPos.y})`}>
+                        <circle r="8" fill="rgba(56, 189, 248, 0.28)" stroke="#38bdf8" strokeWidth="1.2" className="roam-radar-pulse-ring" />
+                        <g transform={`rotate(${mapHeading(driving ? view.roverYaw ?? view.yaw : view.yaw)})`}>
+                          <polygon points="0,-8 5,5.5 0,2.2 -5,5.5" fill="#ffffff" stroke="#060c14" strokeWidth="1.3" />
+                          <circle cx="0" cy="2.2" r="0.9" fill="#38bdf8" />
+                        </g>
+                        <text y="-10" textAnchor="middle" fill="#38bdf8" fontSize="7" fontWeight="900" style={{ filter: "drop-shadow(0 1px 2px #000000)" }}>
+                          YOU
+                        </text>
+                      </g>
+                    );
+                  })()}
                 </>
               ) : (
                 /* =========================================================================
-                   LOCAL RADAR MODE: Close-up 30m / 80m LiDAR scan centered on the player,
-                   with local vector elevation contours, rocks and obstacle hazard diamonds.
+                   ZOOMED-IN MOLA MAP: The authentic NASA MOLA big map zoomed in around the
+                   player with 100% precision! Every crater, ridge, and valley scrolls
+                   under the player arrow with crisp HD clarity.
                    ========================================================================= */
                 <>
+                  {/* Base Mars soil */}
                   <rect x="6" y="31" width="188" height="138" fill="#180e0a" />
 
-                  {/* Local photographic ground texture */}
-                  <rect x="6" y="31" width="188" height="138" fill="url(#gta-mars-hd-ground)" opacity="0.92" />
-
-                  {/* Registered MOLA relief overlay */}
+                  {/* Authentic NASA MOLA map zoomed in and smoothly scrolling around the player */}
                   <image
                     href={assetUrl("art/mars-mola-overview.webp")}
                     xlinkHref={assetUrl("art/mars-mola-overview.webp")}
-                    x={100 + (B.west - x) * topoScale}
-                    y={100 + (B.north - z) * topoScale}
-                    width={(B.east - B.west) * topoScale}
-                    height={(B.south - B.north) * topoScale}
-                    opacity="0.35"
-                    style={{ mixBlendMode: "overlay" }}
+                    x={imgX}
+                    y={imgY}
+                    width={imgWidth}
+                    height={imgHeight}
                     preserveAspectRatio="none"
+                    className="roam-mola-zoomed-img"
                   />
 
-                  {/* Shaded relief hillshade */}
-                  <rect
-                    x="6"
-                    y="31"
-                    width="188"
-                    height="138"
-                    fill="url(#gta-topo-hillshade)"
-                    style={{ mixBlendMode: "multiply" }}
-                  />
-
-                  {/* Vector Topographic Contour Lines */}
+                  {/* Vector Topographic Elevation Contour Lines */}
                   {topo.contours.map((contour, i) => (
                     <path
                       key={i}
                       d={contour.path}
                       fill="none"
-                      stroke={contour.isMajor ? "#fde047" : "#f97316"}
-                      strokeOpacity={contour.isMajor ? 0.9 : 0.55}
-                      strokeWidth={contour.isMajor ? "1.2" : "0.75"}
+                      stroke={contour.isMajor ? "#fde047" : "#fb923c"}
+                      strokeOpacity={contour.isMajor ? 0.65 : 0.35}
+                      strokeWidth={contour.isMajor ? "1.1" : "0.7"}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeDasharray={contour.isMajor ? undefined : "3 1.5"}
                     />
                   ))}
 
-                  {/* GPS Radar Crosshairs */}
+                  {/* Range Circles centered on player */}
+                  <circle cx="100" cy="100" r={44} fill="none" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.7" strokeDasharray="3 3" />
+                  <circle cx="100" cy="100" r={88} fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="0.8" />
+                  <text x="146" y="98" fill="rgba(255, 255, 255, 0.45)" fontSize="6" fontWeight="700">
+                    {Math.round(activeRange / 2)}m
+                  </text>
+
+                  {/* Subtle GPS Crosshairs */}
                   <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
                   <line x1="6" y1="100" x2="194" y2="100" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
-
-                  {/* Range Rings */}
-                  <circle cx="100" cy="100" r={44} fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.7" strokeDasharray="3 3" />
-                  <circle cx="100" cy="100" r={88} fill="none" stroke="rgba(255, 255, 255, 0.22)" strokeWidth="0.8" />
 
                   {/* Surface Rocks (on foot) */}
                   {!driving &&
                     (view.mapRocks ?? []).map((r, i) => {
-                      const p = mapPoint(r.x, r.z, x, z);
+                      const p = mapPoint(r.x, r.z, x, z, activeRange);
                       return (
                         !p.edge && (
                           <circle
                             key={i}
                             cx={p.x}
                             cy={p.y}
-                            r={Math.max(1.5, (r.radius * 88) / MAP_RANGE)}
+                            r={Math.max(1.5, (r.radius * 88) / activeRange)}
                             fill="#b39879"
                             stroke="#5c4833"
                             strokeWidth="0.5"
@@ -493,7 +416,7 @@ export default function ExplorationMinimap({
                       );
                     })}
 
-                  {/* Active LiDAR Detected Contacts */}
+                  {/* Active LiDAR Obstacles & Contacts (when driving rover) */}
                   {scan &&
                     mapLidarContacts(scan, x, z).map((contact, i) => (
                       <g
@@ -504,72 +427,76 @@ export default function ExplorationMinimap({
                       >
                         {contact.inPath ? (
                           <>
-                            <path
-                              d="M0 -8.5 L8.5 0 L0 8.5 L-8.5 0 Z"
-                              fill="#ef4444"
-                              stroke="#ffffff"
-                              strokeWidth="1.2"
-                            />
-                            <text y="3" textAnchor="middle" fill="#ffffff" fontSize="8.5" fontWeight="900">
-                              !
-                            </text>
+                            <path d="M0 -8.5 L8.5 0 L0 8.5 L-8.5 0 Z" fill="#ef4444" stroke="#ffffff" strokeWidth="1.2" />
+                            <text y="3" textAnchor="middle" fill="#ffffff" fontSize="8.5" fontWeight="900">!</text>
                           </>
                         ) : (
-                          <circle
-                            r={contact.radius}
-                            fill="#38bdf8"
-                            fillOpacity="0.75"
-                            stroke="#0284c7"
-                            strokeWidth="0.8"
-                          />
+                          <circle r={contact.radius} fill="#38bdf8" fillOpacity="0.75" stroke="#0284c7" strokeWidth="0.8" />
                         )}
                       </g>
                     ))}
 
-                  {/* Local Landing Shuttle */}
-                  <g transform={`translate(${home.x} ${home.y})`}>
-                    <use href="#icon-landing-shuttle" />
-                  </g>
+                  {/* Landing Shuttle Base */}
+                  {(() => {
+                    const homePin = mapPoint(0, 12, x, z, activeRange);
+                    return (
+                      <g transform={`translate(${homePin.x} ${homePin.y})`}>
+                        <use href="#icon-landing-shuttle" />
+                      </g>
+                    );
+                  })()}
 
-                  {/* Local Parked Crew Rover */}
-                  {!driving && (
-                    <g transform={`translate(${crew.x} ${crew.y}) rotate(${mapHeading(view.roverYaw ?? 0)})`}>
-                      <use href="#icon-crew-rover" />
-                    </g>
-                  )}
+                  {/* Parked Crew Rover */}
+                  {!driving && (() => {
+                    const crewPin = mapPoint(view.roverX ?? x, view.roverZ ?? z, x, z, activeRange);
+                    return (
+                      <g transform={`translate(${crewPin.x} ${crewPin.y}) rotate(${mapHeading(view.roverYaw ?? 0)})`}>
+                        <use href="#icon-crew-rover" />
+                      </g>
+                    );
+                  })()}
 
-                  {/* Local Curiosity */}
-                  {scout && (
-                    <g transform={`translate(${scout.x} ${scout.y}) rotate(${mapHeading(view.curiosityYaw ?? 0)})`}>
-                      <use href="#icon-curiosity-rover" />
-                    </g>
-                  )}
+                  {/* Curiosity Science Rover */}
+                  {view.curiosityX !== undefined && (() => {
+                    const scoutPin = mapPoint(view.curiosityX, view.curiosityZ ?? 0, x, z, activeRange);
+                    return (
+                      <g transform={`translate(${scoutPin.x} ${scoutPin.y}) rotate(${mapHeading(view.curiosityYaw ?? 0)})`}>
+                        <use href="#icon-curiosity-rover" />
+                      </g>
+                    );
+                  })()}
 
-                  {/* Local Landmark Clamped Bearing Diamonds */}
+                  {/* Landmark Diamonds: Placed right on the craters when in view, clamped to edge when distant */}
                   {MARS_LANDMARKS.filter((p) => p.id !== target.id)
                     .concat(target)
                     .map((place) => {
-                      const pin = mapPoint(place.x, place.z, x, z, range);
+                      const pin = mapRectPoint(place.x, place.z, x, z, activeRange);
+                      const isSelected = place.id === target.id;
+                      const dist = Math.round(Math.hypot(place.x - x, place.z - z));
                       return (
                         <g
                           key={place.id}
-                          opacity={place.id === target.id ? 1 : 0.7}
+                          opacity={isSelected ? 1 : 0.8}
                           transform={`translate(${pin.x} ${pin.y})`}
+                          style={{ cursor: "pointer" }}
+                          onClick={onOpenAtlas}
                         >
-                          <title>
-                            {place.name} · {Math.round(Math.hypot(place.x - x, place.z - z))} game metres
-                          </title>
+                          <title>{place.name} · {dist} game metres</title>
+                          {isSelected && (
+                            <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3 2" />
+                          )}
                           <path
-                            d="M0 -10L9 0L0 10L-9 0Z"
-                            fill={place.id === target.id ? "#fff1b9" : "#b9d9df"}
-                            stroke="#18242d"
+                            d="M0 -9 L8 0 L0 9 L-8 0 Z"
+                            fill={isSelected ? "#f59e0b" : "#0f172a"}
+                            stroke={isSelected ? "#ffffff" : "#94a3b8"}
+                            strokeWidth={isSelected ? "1.4" : "0.9"}
                           />
                           <text
-                            y="5"
+                            y="3.5"
                             textAnchor="middle"
-                            fontSize="14"
-                            fontWeight="700"
-                            fill="#18242d"
+                            fontSize="8"
+                            fontWeight="900"
+                            fill={isSelected ? "#09111c" : "#ffffff"}
                           >
                             {place.number}
                           </text>
@@ -577,22 +504,48 @@ export default function ExplorationMinimap({
                       );
                     })}
 
-                  {/* Centered Player Arrow */}
-                  <g
-                    transform={`translate(100 100) rotate(${mapHeading(
-                      driving ? view.roverYaw ?? view.yaw : view.yaw
-                    )})`}
-                    className="roam-player-arrow"
-                  >
-                    <circle r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.8" opacity="0.6" />
-                    <path
-                      d="M 0 -9.5 L 5.5 6.5 L 0 3.2 L -5.5 6.5 Z"
-                      fill="#ffffff"
-                      stroke="#040811"
-                      strokeWidth="1.6"
-                      strokeLinejoin="round"
+                  {/* REAL-TIME PLAYER MARKER (Always centered on the zoomed MOLA map at 100, 100) */}
+                  <g transform="translate(100 100)">
+                    {/* Sonar Beacon Ring */}
+                    <circle
+                      r="8"
+                      fill="rgba(56, 189, 248, 0.28)"
+                      stroke="#38bdf8"
+                      strokeWidth="1.2"
+                      className="roam-radar-pulse-ring"
                     />
-                    <circle cx="0" cy="3.2" r="1.1" fill="#38bdf8" />
+                    <circle r="14" fill="none" stroke="#38bdf8" strokeWidth="0.7" strokeDasharray="2.5 2" opacity="0.45" />
+
+                    {/* GTA 5 Sharp Heading Chevron */}
+                    <g
+                      transform={`rotate(${mapHeading(
+                        driving ? view.roverYaw ?? view.yaw : view.yaw
+                      )})`}
+                      className="roam-player-arrow"
+                    >
+                      <polygon points="0,-8.5 5,5.5 0,2.2 -5,5.5" fill="rgba(0,0,0,0.6)" transform="translate(0, 0.8)" />
+                      <polygon
+                        points="0,-8.5 5,5.5 0,2.2 -5,5.5"
+                        fill="#ffffff"
+                        stroke="#060c14"
+                        strokeWidth="1.4"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="0" cy="2.2" r="1.1" fill="#38bdf8" />
+                    </g>
+
+                    {/* High-Contrast "YOU" Badge */}
+                    <text
+                      y="-11"
+                      textAnchor="middle"
+                      fill="#38bdf8"
+                      fontSize="7"
+                      fontWeight="900"
+                      letterSpacing="0.4"
+                      style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
+                    >
+                      YOU
+                    </text>
                   </g>
                 </>
               )}
@@ -619,7 +572,7 @@ export default function ExplorationMinimap({
         <div className="roam-gta-hud-bottom">
           {/* 1. STATUS GAUGES (GTA 5 Tri-Bars directly beneath the radar frame) */}
           <div className="roam-gta-bars" aria-label="Status gauges">
-            {/* Bar 1 (Path Clearance / Health): Green, turns Red on hazard */}
+            {/* Bar 1 (Path Clearance / Health): Cyan/Green, turns Orange/Red on hazard */}
             <div
               className={`roam-gta-bar roam-bar-clearance ${blocked ? "is-hazard" : "is-clear"}`}
               title={`Path clearance: ${blocked ? "Hazard detected" : "All clear"}`}
