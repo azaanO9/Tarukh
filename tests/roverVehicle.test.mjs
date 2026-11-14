@@ -214,7 +214,7 @@ test("incline resistance realistically reduces climbing speed on steep slopes", 
   assert.ok(mountainRover.pitch > 0.2);
 });
 
-test("Boost Mode with Shift reaches 75 km/h and delivers high torque", () => {
+test("Boost Mode with Shift retains 50 km/h speed limit while delivering high motor torque", () => {
   let standard = enterRover(spawnRoverVehicle(0, 0, 0));
   let boosted = enterRover(spawnRoverVehicle(0, 0, 0));
 
@@ -231,7 +231,7 @@ test("Boost Mode with Shift reaches 75 km/h and delivers high torque", () => {
     boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
   }
   assert.equal(boosted.speed, ROVER_BOOST_MAX_FORWARD);
-  assert.equal(Math.round(boosted.speed * 3.6), 75);
+  assert.equal(Math.round(boosted.speed * 3.6), 50);
   assert.equal(getRoverGear(boosted.speed, boosted.boostActive), "B");
 });
 
@@ -241,10 +241,9 @@ test("onboard battery drains while driving and drains 3x faster in boost mode", 
   standard.battery = 100;
   boosted.battery = 100;
 
-  // Run at night (solarIntensity = 0) to measure pure battery drain
   for (let i = 0; i < 40; i++) {
-    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 0 });
-    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 0 });
+    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05);
+    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
   }
 
   const standardDrain = 100 - standard.battery;
@@ -264,20 +263,13 @@ test("estimated range drops by half upon shifting into Boost Mode", () => {
     `expected range to drop by half, got normal: ${normalStep.estimatedRangeKm}, boost: ${boostStep.estimatedRangeKm}`);
 });
 
-test("solar panels regenerate rover battery during daytime and stay dormant at night", () => {
-  let dayRover = spawnRoverVehicle(0, 0, 0);
-  let nightRover = spawnRoverVehicle(0, 0, 0);
-  dayRover.battery = 50;
-  nightRover.battery = 50;
+test("internal power cell trickle recharges rover battery while parked", () => {
+  let parked = spawnRoverVehicle(0, 0, 0);
+  parked.battery = 50;
 
-  for (let i = 0; i < 40; i++) {
-    // daylightElapsed: 0 is noon (high sun), 300 is midnight (dark)
-    dayRover = stepRoverVehicle(dayRover, new Set(), 0.05, [], () => 0, () => 0, undefined, { daylightElapsed: 0 });
-    nightRover = stepRoverVehicle(nightRover, new Set(), 0.05, [], () => 0, () => 0, undefined, { daylightElapsed: 300 });
+  for (let i = 0; i < 60; i++) {
+    parked = stepRoverVehicle(parked, new Set(), 0.05);
   }
 
-  assert.ok(dayRover.battery > 50, "battery should regenerate during daytime");
-  assert.equal(dayRover.solarCharging, true);
-  assert.equal(nightRover.battery, 50, "battery should not charge at night");
-  assert.equal(nightRover.solarCharging, false);
+  assert.ok(parked.battery > 50, "battery should replenish while resting");
 });

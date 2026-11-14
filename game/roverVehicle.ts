@@ -3,7 +3,7 @@ import { boxObstacle, moveAndSlide, overlapBody, overlapDisc, type CollisionObst
 export const ROVER_LIMIT = 173;
 export const ROVER_ENTER_RADIUS = 4.8;
 export const ROVER_MAX_FORWARD = 50 / 3.6; // Authored crew rover top speed: 50 km/h (~13.89 m/s), not a NASA rover specification.
-export const ROVER_BOOST_MAX_FORWARD = 75 / 3.6; // Boost mode top speed: 75 km/h (~20.83 m/s)
+export const ROVER_BOOST_MAX_FORWARD = 50 / 3.6; // In Boost Mode, speed limit stays 50 km/h (~13.89 m/s); motor torque is increased
 export const ROVER_MAX_REVERSE = 10 / 3.6; // Authored exploration rover reverse limit: 10 km/h (~2.78 m/s)
 export const ROVER_ACCELERATION = 1.6; // Authored gradual acceleration in m/s^2
 export const ROVER_BOOST_ACCELERATION = 4.2; // Boost mode motor acceleration in m/s^2 (2.6x torque)
@@ -27,7 +27,64 @@ export const ROVER_NOMINAL_RANGE_KM = 85.0; // Nominal distance at standard crui
 export const ROVER_BASE_DRAIN_RATE = 0.005; // % per second base avionics & life support drain while driving
 export const ROVER_DRIVE_DRAIN_RATE = 0.075; // % per second standard cruise consumption at full throttle
 export const ROVER_BOOST_DRAIN_MULT = 3.0; // 3x battery consumption multiplier during Boost Mode
-export const ROVER_SOLAR_MAX_RATE = 0.085; // % per second peak solar charging rate at high noon
+export const ROVER_PARKED_RECHARGE_RATE = 0.035; // % per second rest replenishment from internal power cell
+export const ROVER_SOLAR_MAX_RATE = 0; // Deprecated: solar panels removed from rover
+
+// Component Damage & EVA Maintenance
+export type RoverPartId =
+  | "wheel_fl"
+  | "wheel_fr"
+  | "wheel_ml"
+  | "wheel_mr"
+  | "wheel_rl"
+  | "wheel_rr"
+  | "cabin_roof"
+  | "solar_array"; // alias retained for backward-compatibility
+
+export type RoverDamageState = {
+  wheel_fl: number;
+  wheel_fr: number;
+  wheel_ml: number;
+  wheel_mr: number;
+  wheel_rl: number;
+  wheel_rr: number;
+  cabin_roof: number;
+  solar_array: number;
+};
+
+export const INITIAL_ROVER_DAMAGE: RoverDamageState = {
+  wheel_fl: 100,
+  wheel_fr: 100,
+  wheel_ml: 100,
+  wheel_mr: 100,
+  wheel_rl: 100,
+  wheel_rr: 100,
+  cabin_roof: 100,
+  solar_array: 100,
+};
+
+export const ROVER_SAFE_IMPACT_FORCE = 85; // kN safe threshold before collision causes mechanical damage
+export const ROVER_DAMAGE_FORCE_SCALE = 18; // kN per 1% damage reduction
+
+export const ROVER_PART_LABELS: Record<RoverPartId, string> = {
+  wheel_fl: "Front-Left Wheel",
+  wheel_fr: "Front-Right Wheel",
+  wheel_ml: "Mid-Left Wheel",
+  wheel_mr: "Mid-Right Wheel",
+  wheel_rl: "Rear-Left Wheel",
+  wheel_rr: "Rear-Right Wheel",
+  cabin_roof: "Cabin Roof & Avionics",
+  solar_array: "Cabin Roof & Avionics",
+};
+
+export const ROVER_PART_WHEEL_INDICES: Record<string, number> = {
+  wheel_fl: 0,
+  wheel_fr: 1,
+  wheel_ml: 2,
+  wheel_mr: 3,
+  wheel_rl: 4,
+  wheel_rr: 5,
+};
 
 export const ROVER_WHEEL_OFFSETS: readonly (readonly [number, number])[] = [
   [-1.425, -1.0313], // 0: Front Left
@@ -69,7 +126,67 @@ export type RoverVehicle = {
   powerDrainRate: number;   // current battery consumption rate (%/sec)
   estimatedRangeKm: number; // dynamically computed live estimated range in km
   slopeAngle: number;       // incline angle in radians along heading
+  damage: RoverDamageState; // component-level health diagnostics
 };
+
+export function getRoverPartWorldPosition(rover: RoverVehicle, partId: RoverPartId): { x: number; y: number; z: number } {
+  const cosY = Math.cos(rover.yaw);
+  const sinY = Math.sin(rover.yaw);
+  if (partId === "cabin_roof" || partId === "solar_array") {
+    const lx = 0, lz = 0.45;
+    const wx = rover.x + lx * cosY + lz * sinY;
+    const wz = rover.z - lx * sinY + lz * cosY;
+    return { x: wx, y: rover.chassisY + 1.8, z: wz };
+  }
+  const wheelIndex = ROVER_PART_WHEEL_INDICES[partId] ?? 0;
+  const [lx, lz] = ROVER_WHEEL_OFFSETS[wheelIndex];
+  const wx = rover.x + lx * cosY + lz * sinY;
+  const wz = rover.z - lx * sinY + lz * cosY;
+  const wy = rover.wheelContacts?.[wheelIndex] ?? rover.chassisY;
+  return { x: wx, y: wy, z: wz };
+}
+
+export function getNearestRoverPart(
+  position: { x: number; z: number },
+  rover: RoverVehicle,
+): { id: RoverPartId; name: string; distance: number; health: number } | null {
+  const allParts: RoverPartId[] = [
+    "wheel_fl", "wheel_fr", "wheel_ml", "wheel_mr", "wheel_rl", "wheel_rr", "cabin_roof"
+  ];
+  let nearest: RoverPartId | null = null;
+  let minDistance = Infinity;
+
+  for (const partId of allParts) {
+    const worldPos = getRoverPartWorldPosition(rover, partId);
+    const dist = Math.hypot(position.x - worldPos.x, position.z - worldPos.z);
+    if (dist < minDistance) {
+      minDistance = dist;
+      nearest = partId;
+    }
+  }
+
+  if (!nearest) return null;
+  const currentHealth = rover.damage?.[nearest] ?? (nearest === "cabin_roof" ? rover.damage?.solar_array : undefined) ?? 100;
+  return {
+    id: nearest,
+    name: ROVER_PART_LABELS[nearest],
+    distance: minDistance,
+    health: currentHealth,
+  };
+}
+
+export function repairRoverPart(rover: RoverVehicle, partId: RoverPartId): RoverVehicle {
+  const currentDamage = rover.damage ?? INITIAL_ROVER_DAMAGE;
+  const isRoof = partId === "cabin_roof" || partId === "solar_array";
+  return {
+    ...rover,
+    damage: {
+      ...currentDamage,
+      [partId]: 100,
+      ...(isRoof ? { cabin_roof: 100, solar_array: 100 } : {}),
+    },
+  };
+}
 
 export function getRoverGear(speed: number, isBoost = false): RoverGear {
   if (isBoost && speed > 0.12) return "B";
@@ -230,6 +347,7 @@ export const spawnRoverVehicle = (
     powerDrainRate: 0,
     estimatedRangeKm: ROVER_NOMINAL_RANGE_KM,
     slopeAngle: settled.pitch,
+    damage: { ...INITIAL_ROVER_DAMAGE },
   };
 };
 
@@ -308,22 +426,13 @@ export function stepRoverVehicle(
   const boostRequested = isShift || Boolean(analog?.boost);
   const boostActive = rover.driving && boostRequested && currentBattery > 0.05;
 
-  // Active Solar Regeneration from Sol Clock
-  let solarIntensity = options?.solarIntensity;
-  if (solarIntensity === undefined && options?.daylightElapsed !== undefined) {
-    // 600s daylight cycle, daylightAngle: 0=noon, pi=midnight
-    const angle = ((Math.max(0, options.daylightElapsed) % 600) / 600) * Math.PI * 2;
-    const cosSun = Math.cos(angle);
-    solarIntensity = Math.max(0, cosSun);
-  } else if (solarIntensity === undefined) {
-    // Default to daylight when unspecified (e.g. unit tests)
-    solarIntensity = 1.0;
-  }
+  const damage: RoverDamageState = rover.damage
+    ? { ...rover.damage }
+    : { ...INITIAL_ROVER_DAMAGE };
 
-  // Roof tilt efficiency relative to sky
-  const roofTiltEfficiency = Math.max(0, Math.cos(rover.pitch) * Math.cos(rover.roll));
-  const solarRate = ROVER_SOLAR_MAX_RATE * solarIntensity * roofTiltEfficiency;
-  const solarCharging = solarRate > 0.008 && solarIntensity > 0.05;
+  // Rover internal power cell: rest replenishment when parked (solar panels removed)
+  const solarRate = 0;
+  const solarCharging = false;
 
   if (!rover.driving) {
     // When parked, friction holds the rover stationary and suspension settles on terrain
@@ -340,8 +449,8 @@ export function stepRoverVehicle(
       mudAt,
       dt,
     );
-    // Parked passive solar replenishment (zero motor drain)
-    const parkedBattery = clamp(currentBattery + solarRate * dt, 0, 100);
+    // Parked passive replenishment from internal power cell (zero motor drain)
+    const parkedBattery = clamp(currentBattery + ROVER_PARKED_RECHARGE_RATE * dt, 0, 100);
     const nominalRange = (parkedBattery / 100) * ROVER_NOMINAL_RANGE_KM;
     return {
       ...rover,
@@ -360,11 +469,12 @@ export function stepRoverVehicle(
       mudDepth: settled.mudDepth,
       battery: parkedBattery,
       boostActive: false,
-      solarCharging,
-      solarRate,
+      solarCharging: false,
+      solarRate: 0,
       powerDrainRate: 0,
       estimatedRangeKm: nominalRange,
       slopeAngle: settled.pitch,
+      damage,
     };
   }
 
@@ -401,6 +511,35 @@ export function stepRoverVehicle(
   let speed = clamp(rover.speed, -ROVER_MAX_REVERSE, currentMaxForward);
   const handbrake = handbrakeKey;
 
+  // Mechanical failures from component damage
+  const wheelKeys: readonly RoverPartId[] = [
+    "wheel_fl",
+    "wheel_fr",
+    "wheel_ml",
+    "wheel_mr",
+    "wheel_rl",
+    "wheel_rr",
+  ];
+  let activeWheelCount = 0;
+  let deadWheelCount = 0;
+  let leftDeadCount = 0;
+  let rightDeadCount = 0;
+
+  for (let i = 0; i < 6; i++) {
+    const key = wheelKeys[i];
+    const hp = damage[key] ?? 100;
+    if (hp <= 25) {
+      deadWheelCount++;
+      if (i % 2 === 0) leftDeadCount++;
+      else rightDeadCount++;
+    } else {
+      activeWheelCount++;
+    }
+  }
+
+  // Active wheel torque ratio: independent hub motors deliver power only through functional wheels
+  const activeTorqueRatio = activeWheelCount / 6;
+
   // Off-road regolith & mud factor
   const hasMudTires = rover.upgrades?.includes("mud_tires") ?? false;
   const mudFactor = clamp(rover.mudDepth * (hasMudTires ? 0.15 : 1.0), 0, 1);
@@ -415,15 +554,17 @@ export function stepRoverVehicle(
   // Deceleration opposing forward motion = g * sin(theta)
   const inclineDecel = MARS_GRAVITY * sinSlope;
 
-  // Steep mountain slope reduces the achievable top speed
+  // Steep mountain slope reduces achievable top speed, dead wheels drag regolith and reduce top speed
   const slopeResistanceFactor = Math.max(0.12, 1.0 - 0.72 * Math.max(0, sinSlope));
+  const deadWheelSpeedPenalty = Math.max(0.2, 1 - 0.12 * deadWheelCount);
   const mudSpeedPenalty = boostActive ? 0.06 : (hasMudTires ? 0.05 : 0.28);
-  const effectiveMaxForward = currentMaxForward * baseSpeedMul * (1 - mudFactor * mudSpeedPenalty) * slopeResistanceFactor;
-  const effectiveCoastDrag = ROVER_COAST_DRAG * (1 + mudFactor * (hasMudTires ? 0.2 : 1.15));
+  const effectiveMaxForward = currentMaxForward * baseSpeedMul * (1 - mudFactor * mudSpeedPenalty) * slopeResistanceFactor * deadWheelSpeedPenalty;
+  const deadWheelDrag = deadWheelCount * 1.35;
+  const effectiveCoastDrag = (ROVER_COAST_DRAG + deadWheelDrag) * (1 + mudFactor * (hasMudTires ? 0.2 : 1.15));
 
-  // Motor acceleration: standard 1.6 m/s^2, Boost Mode 4.2 m/s^2 (2.6x torque to climb steep mountains)
+  // Motor acceleration: standard 1.6 m/s^2, Boost Mode 4.2 m/s^2 (2.6x torque), scaled by functioning hub motors
   const baseMotorAcc = boostActive ? ROVER_BOOST_ACCELERATION : ROVER_ACCELERATION;
-  const motorAcceleration = (hasPower ? baseMotorAcc : 0) * (hasMudTires ? 1.35 : 1.0);
+  const motorAcceleration = (hasPower ? baseMotorAcc : 0) * (hasMudTires ? 1.35 : 1.0) * activeTorqueRatio;
 
   // Steering angle rate of change
   const analogSteer = clamp(analog?.steer ?? 0, -1, 1);
@@ -451,7 +592,7 @@ export function stepRoverVehicle(
     if (speed < 0) {
       speed = Math.min(0, speed + ROVER_BRAKE * forwardMag * dt);
     } else if (hasPower) {
-      const motorPull = motorAcceleration * (1 - 0.3 * speed / effectiveMaxForward);
+      const motorPull = motorAcceleration * (1 - 0.3 * speed / Math.max(0.1, effectiveMaxForward));
       // Net forward acceleration = motor pull minus incline gravitational resistance
       const netAcc = motorPull - inclineDecel;
       if (netAcc > 0) {
@@ -486,15 +627,20 @@ export function stepRoverVehicle(
     }
   }
 
-  // Turn rate: Ackermann bicycle kinematics
+  // Turn rate: Ackermann bicycle kinematics + asymmetric yaw pull from locked wheels
   // Forward in this coordinate system is along (-sin(yaw), -cos(yaw))
   let yaw = rover.yaw;
   if (Math.abs(speed) > 0.05) {
     const turnRate = (speed / ROVER_WHEEL_BASE) * Math.tan(steerAngle);
-    yaw += turnRate * dt;
+    const deadYawPull = (leftDeadCount - rightDeadCount) * 0.26 * (speed / ROVER_MAX_FORWARD);
+    yaw += (turnRate + deadYawPull) * dt;
     while (yaw > Math.PI) yaw -= Math.PI * 2;
     while (yaw < -Math.PI) yaw += Math.PI * 2;
   }
+
+  // Pre-collision velocity vector in world coordinates
+  const preVx = -Math.sin(rover.yaw) * rover.speed;
+  const preVz = -Math.cos(rover.yaw) * rover.speed;
 
   // Only nearby geometry needs precise outline tests; keep the swept travel margin.
   const contactReach=ROVER_COLLISION_RADIUS+Math.abs(speed)*dt+.2;
@@ -514,7 +660,47 @@ export function stepRoverVehicle(
   const moved=moveAndSlide(rover.x,rover.z,-Math.sin(yaw)*speed*dt,-Math.cos(yaw)*speed*dt,[shape],solid,worldLimit);
   let x=moved.x,z=moved.z;
   const travelled=(x-rover.x)*-Math.sin(yaw)+(z-rover.z)*-Math.cos(yaw);
-  if(moved.normals.length) speed=Math.sign(speed)*Math.min(Math.abs(speed),Math.max(0,travelled*Math.sign(speed)/dt));
+  if(moved.normals.length) {
+    speed=Math.sign(speed)*Math.min(Math.abs(speed),Math.max(0,travelled*Math.sign(speed)/dt));
+
+    // Collision impact force calculation and localized hitbox damage
+    for (const norm of moved.normals) {
+      // Relative impact speed along contact normal
+      const vRel = -(preVx * norm.nx + preVz * norm.nz);
+      if (vRel > 0.08) {
+        // Impact force in kN: F = (mass * vRel) / dt_impact (dt_impact ~ 0.05s => 3200 / 50 = 64 * vRel)
+        const impactForceKn = (ROVER_MASS * vRel) / 50;
+        if (impactForceKn > ROVER_SAFE_IMPACT_FORCE) {
+          const excessForce = impactForceKn - ROVER_SAFE_IMPACT_FORCE;
+          const damageAmount = excessForce / ROVER_DAMAGE_FORCE_SCALE;
+
+          // Map contact normal to local rover coordinate space
+          const cosY = Math.cos(rover.yaw);
+          const sinY = Math.sin(rover.yaw);
+          const localNormX = norm.nx * cosY - norm.nz * sinY;
+          const localNormZ = norm.nx * sinY + norm.nz * cosY;
+
+          // Impact location on outer hull in opposing direction of collision normal
+          const impactLocalX = -localNormX * 1.6;
+          const impactLocalZ = -localNormZ * 2.0;
+
+          // Map to closest wheel assembly
+          let closestWheelIndex = 0;
+          let minDist = Infinity;
+          for (let i = 0; i < 6; i++) {
+            const [wx, wz] = ROVER_WHEEL_OFFSETS[i];
+            const dist = Math.hypot(impactLocalX - wx, impactLocalZ - wz);
+            if (dist < minDist) {
+              minDist = dist;
+              closestWheelIndex = i;
+            }
+          }
+          const targetPart = wheelKeys[closestWheelIndex];
+          damage[targetPart] = Math.max(0, damage[targetPart] - damageAmount);
+        }
+      }
+    }
+  }
 
   // Boundary limits
   if (x < -worldLimit || x > worldLimit) {
@@ -544,6 +730,17 @@ export function stepRoverVehicle(
     dt,
   );
 
+  // Rollover / catastrophic pitch/roll impact damage to cabin roof
+  const absPitch = Math.abs(suspension.pitch);
+  const absRoll = Math.abs(suspension.roll);
+  if (absPitch > 0.82 || absRoll > 0.82) {
+    // Flipped on side or roof: apply severe cabin roof damage
+    const rollDamage = 60 * dt;
+    const currentRoof = damage.cabin_roof ?? damage.solar_array ?? 100;
+    damage.cabin_roof = Math.max(0, currentRoof - rollDamage);
+    damage.solar_array = damage.cabin_roof;
+  }
+
   return {
     x,
     z,
@@ -570,5 +767,6 @@ export function stepRoverVehicle(
     powerDrainRate,
     estimatedRangeKm,
     slopeAngle,
+    damage,
   };
 }

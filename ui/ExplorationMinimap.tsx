@@ -111,8 +111,6 @@ export default function ExplorationMinimap({view,selected,onOpenAtlas}:{view:Vie
                   <rect x="-5.5" y="-8.5" width="11" height="17" rx="3.5" fill="#0284c7" stroke="#e0f2fe" strokeWidth="0.9" />
                   {/* Cockpit canopy */}
                   <path d="M -4 -3.5 C -4 -7.5, 4 -7.5, 4 -3.5 Z" fill="#bae6fd" />
-                  {/* Solar panel roof tiles */}
-                  <rect x="-3.5" y="-1.5" width="7" height="6.5" rx="0.8" fill="#0369a1" stroke="#38bdf8" strokeWidth="0.5" />
                   {/* Headlights */}
                   <circle cx="-3" cy="-8.5" r="0.8" fill="#f8fafc" />
                   <circle cx="3" cy="-8.5" r="0.8" fill="#f8fafc" />
@@ -157,8 +155,6 @@ export default function ExplorationMinimap({view,selected,onOpenAtlas}:{view:Vie
                   <circle cx="-9" cy="9" r="1.4" fill="#fbbf24" />
                   <line x1="5" y1="5" x2="9" y2="9" stroke="#d97706" strokeWidth="1.2" />
                   <circle cx="9" cy="9" r="1.4" fill="#fbbf24" />
-                  {/* Solar arrays */}
-                  <rect x="-10" y="-1.5" width="20" height="3" rx="0.8" fill="#fde68a" stroke="#b45309" strokeWidth="0.6" />
                   {/* Central Module */}
                   <circle r="5.5" fill="#f59e0b" stroke="#78350f" strokeWidth="0.9" />
                   <circle r="2" fill="#ffffff" />
