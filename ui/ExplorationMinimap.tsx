@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import type { View } from "./MarsWorld";
 import { mapRectPoint, mapPoint, mapHeading, mapLidarContacts } from "../game/minimap";
 import { MARS_LANDMARKS } from "../content/marsLandmarks";
@@ -11,17 +11,16 @@ import {
   sampleMarsElevation,
 } from "../game/marsRegion";
 import { assetUrl } from "../lib/assetUrl";
-import { generateTopoContours } from "../game/topoContours";
 
 export type MinimapZoomPreset = 120 | 220 | 450 | "overview";
 const ZOOM_CYCLE: MinimapZoomPreset[] = [120, 220, 450, "overview"];
 
 /**
- * Minimal GTA 5 style Mars Field Map with Static Topography & Ground Altimeter.
- * - Displays a high-definition live view of the authentic NASA MOLA map centered on the player.
- * - Static elevation contours remain permanently locked to absolute ground heights.
- * - Color-coded by Altimeter Highs and Lows: Gold = Peaks/Rims, Amber = Plains, Cyan = Basins.
- * - Features vertical Altimeter Tape and spot markers (▲ High / ▼ Low) tracking the ground relief.
+ * Minimal GTA 5 style Mars Field Map.
+ * - Clean HD zoomed-in view of the authentic NASA MOLA map centered on the player.
+ * - Subtle, minimal LiDAR rock pips and minimal vehicle/base blips (Lander, Crew, Curiosity).
+ * - Real-time player tracking with heading chevron and smooth map scrolling.
+ * - One-click zoom cycling: 120m (close), 220m (medium), 450m (wide), Full Region.
  */
 export default function ExplorationMinimap({
   view,
@@ -44,15 +43,6 @@ export default function ExplorationMinimap({
   const activeZoom: MinimapZoomPreset = userZoom ?? (driving ? 220 : 120);
   const isOverview = activeZoom === "overview";
   const activeRange: number = isOverview ? 942 : activeZoom;
-
-  const qx = Math.round(x * 2);
-  const qz = Math.round(z * 2);
-
-  // Static Mars topography contours & altimeter highs/lows (quantized for 60fps caching)
-  const topo = useMemo(
-    () => generateTopoContours(qx * 0.5, qz * 0.5, activeRange, 6, 31, 188, 138),
-    [qx, qz, activeRange]
-  );
 
   if (view.cockpitView) return null;
 
@@ -83,22 +73,13 @@ export default function ExplorationMinimap({
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
-  // Altimeter telemetry
-  const altSpan = Math.max(0.6, topo.maxHeight - topo.minHeight);
-  const altRatio = Math.max(0, Math.min(1, (topo.centerHeight - topo.minHeight) / altSpan));
-  const altY = 146 - altRatio * 100;
-  const altSign = topo.centerHeight >= 0 ? "+" : "";
-  const altText = `ALT ${altSign}${topo.centerHeight.toFixed(0)}M [▲+${Math.round(
-    topo.maxHeight
-  )} ▼${Math.round(topo.minHeight)}]`;
-
   const status = isOverview
     ? blocked
       ? "HAZARD IN PATH"
       : coordsLabel
-    : blocked
+    : driving && blocked
     ? `OBSTACLE · ${threat?.toFixed(1)} M`
-    : `${altText} · ${coordsLabel}`;
+    : coordsLabel;
 
   const clearancePct =
     blocked && threat !== undefined
@@ -123,7 +104,7 @@ export default function ExplorationMinimap({
       data-open={open}
       data-zoom={activeZoom}
       data-blocked={blocked}
-      aria-label="Exploration minimap with static topography and ground altimeter"
+      aria-label="Exploration minimap and navigation radar"
     >
       <div className="roam-radar-frame">
         {/* Sleek minimal HUD tag overlay directly on the radar screen */}
@@ -138,18 +119,6 @@ export default function ExplorationMinimap({
             <span className="roam-badge-dot" />
             {zoomBadgeLabel}
           </button>
-
-          {/* Altimeter indicator badge in HUD */}
-          {!isOverview && (
-            <span
-              className="roam-map-badge roam-alt-badge"
-              title={`Ground Altimeter: High +${Math.round(topo.maxHeight)}m (Gold), Low ${Math.round(
-                topo.minHeight
-              )}m (Cyan)`}
-            >
-              <span className="alt-high-dot" />▲<span className="alt-low-dot" />▼
-            </span>
-          )}
 
           <button
             type="button"
@@ -171,7 +140,7 @@ export default function ExplorationMinimap({
               isOverview
                 ? "full NASA MOLA elevation region map"
                 : `${activeRange} metre zoomed NASA MOLA terrain map`
-            } with static topography, ground altimeter highs/lows, and real-time player location.`}
+            } with real-time player location and minimal landmark pins.`}
           >
             <defs>
               {/* Rectangular radar clip */}
@@ -179,74 +148,22 @@ export default function ExplorationMinimap({
                 <rect x="6" y="31" width="188" height="138" rx="6" />
               </clipPath>
 
-              {/* 1. CREW ROVER VECTOR ICON */}
+              {/* 1. MINIMAL CREW ROVER ICON (Compact 5x8px GTA 5 vehicle blip) */}
               <g id="icon-crew-rover">
-                <circle
-                  r="12"
-                  fill="#38bdf8"
-                  fillOpacity="0.18"
-                  stroke="#38bdf8"
-                  strokeWidth="0.8"
-                  strokeDasharray="3 2"
-                />
-                <rect x="-7.5" y="-7" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <rect x="-7.5" y="-2.1" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <rect x="-7.5" y="2.8" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <rect x="4.7" y="-7" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <rect x="4.7" y="-2.1" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <rect x="4.7" y="2.8" width="2.8" height="4.2" rx="0.8" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.5" />
-                <line x1="-6" y1="-5" x2="6" y2="-5" stroke="#475569" strokeWidth="0.8" />
-                <line x1="-6" y1="0" x2="6" y2="0" stroke="#475569" strokeWidth="0.8" />
-                <line x1="-6" y1="5" x2="6" y2="5" stroke="#475569" strokeWidth="0.8" />
-                <rect x="-5" y="-7.5" width="10" height="15" rx="3" fill="#0284c7" stroke="#e0f2fe" strokeWidth="0.8" />
-                <path d="M -3.5 -3 C -3.5 -6.5, 3.5 -6.5, 3.5 -3 Z" fill="#bae6fd" />
-                <circle cx="-2.5" cy="-7.5" r="0.7" fill="#f8fafc" />
-                <circle cx="2.5" cy="-7.5" r="0.7" fill="#f8fafc" />
+                <rect x="-2.5" y="-4.2" width="5" height="8.4" rx="1.4" fill="#0284c7" stroke="#ffffff" strokeWidth="0.9" />
+                <rect x="-1.6" y="-3.2" width="3.2" height="2.2" rx="0.5" fill="#bae6fd" />
               </g>
 
-              {/* 2. CURIOSITY / SCIENCE ROVER VECTOR ICON */}
+              {/* 2. MINIMAL CURIOSITY ROVER ICON (Compact 4.5x7.5px science blip) */}
               <g id="icon-curiosity-rover">
-                <circle
-                  r="12"
-                  fill="#c084fc"
-                  fillOpacity="0.18"
-                  stroke="#c084fc"
-                  strokeWidth="0.8"
-                  strokeDasharray="3 2"
-                />
-                <rect x="-7.5" y="-6.5" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="-7.5" y="-1.8" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="-7.5" y="3" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="5" y="-6.5" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="5" y="-1.8" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="5" y="3" width="2.5" height="4" rx="0.6" fill="#1e1b4b" stroke="#c084fc" strokeWidth="0.5" />
-                <rect x="-4.5" y="-5" width="9" height="10.5" rx="1.8" fill="#7e22ce" stroke="#f3e8ff" strokeWidth="0.8" />
-                <line x1="1.5" y1="-5" x2="1.8" y2="-9.5" stroke="#fbbf24" strokeWidth="1" />
-                <circle cx="1.8" cy="-10" r="1.3" fill="#f59e0b" stroke="#78350f" strokeWidth="0.4" />
-                <circle cx="1.8" cy="-10" r="0.5" fill="#ef4444" />
+                <rect x="-2.2" y="-3.6" width="4.4" height="7.2" rx="1.2" fill="#7e22ce" stroke="#ffffff" strokeWidth="0.9" />
+                <circle cx="0.8" cy="-3.6" r="0.9" fill="#f59e0b" />
               </g>
 
-              {/* 3. LANDING SHUTTLE / BASE MODULE ICON */}
+              {/* 3. MINIMAL LANDING SHUTTLE / BASE ICON (Compact 8px amber diamond) */}
               <g id="icon-landing-shuttle">
-                <circle
-                  r="12"
-                  fill="#f59e0b"
-                  fillOpacity="0.2"
-                  stroke="#f59e0b"
-                  strokeWidth="0.8"
-                  strokeDasharray="3 2"
-                />
-                <line x1="-4" y1="-4" x2="-8" y2="-8" stroke="#d97706" strokeWidth="1.2" />
-                <circle cx="-8" cy="-8" r="1.2" fill="#fbbf24" />
-                <line x1="4" y1="-4" x2="8" y2="-8" stroke="#d97706" strokeWidth="1.2" />
-                <circle cx="8" cy="-8" r="1.2" fill="#fbbf24" />
-                <line x1="-4" y1="4" x2="-8" y2="8" stroke="#d97706" strokeWidth="1.2" />
-                <circle cx="-8" cy="8" r="1.2" fill="#fbbf24" />
-                <line x1="4" y1="4" x2="8" y2="8" stroke="#d97706" strokeWidth="1.2" />
-                <circle cx="8" cy="8" r="1.2" fill="#fbbf24" />
-                <rect x="-9" y="-1.5" width="18" height="3" rx="0.8" fill="#fde68a" stroke="#b45309" strokeWidth="0.5" />
-                <circle r="4.8" fill="#f59e0b" stroke="#78350f" strokeWidth="0.8" />
-                <circle r="1.8" fill="#ffffff" />
+                <polygon points="0,-4.5 4.5,0 0,4.5 -4.5,0" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
+                <circle cx="0" cy="0" r="1.2" fill="#09111c" />
               </g>
             </defs>
 
@@ -288,7 +205,7 @@ export default function ExplorationMinimap({
                   {(() => {
                     const homePos = toRegion(0, 12);
                     return (
-                      <g transform={`translate(${homePos.x} ${homePos.y}) scale(0.65)`}>
+                      <g transform={`translate(${homePos.x} ${homePos.y})`}>
                         <use href="#icon-landing-shuttle" />
                       </g>
                     );
@@ -298,7 +215,7 @@ export default function ExplorationMinimap({
                   {!driving && (() => {
                     const crewPos = toRegion(view.roverX ?? x, view.roverZ ?? z);
                     return (
-                      <g transform={`translate(${crewPos.x} ${crewPos.y}) rotate(${mapHeading(view.roverYaw ?? 0)}) scale(0.65)`}>
+                      <g transform={`translate(${crewPos.x} ${crewPos.y}) rotate(${mapHeading(view.roverYaw ?? 0)})`}>
                         <use href="#icon-crew-rover" />
                       </g>
                     );
@@ -308,7 +225,7 @@ export default function ExplorationMinimap({
                   {view.curiosityX !== undefined && (() => {
                     const scoutPos = toRegion(view.curiosityX, view.curiosityZ ?? 0);
                     return (
-                      <g transform={`translate(${scoutPos.x} ${scoutPos.y}) rotate(${mapHeading(view.curiosityYaw ?? 0)}) scale(0.65)`}>
+                      <g transform={`translate(${scoutPos.x} ${scoutPos.y}) rotate(${mapHeading(view.curiosityYaw ?? 0)})`}>
                         <use href="#icon-curiosity-rover" />
                       </g>
                     );
@@ -356,12 +273,12 @@ export default function ExplorationMinimap({
                     const playerPos = toRegion(x, z);
                     return (
                       <g transform={`translate(${playerPos.x} ${playerPos.y})`}>
-                        <circle r="8" fill="rgba(56, 189, 248, 0.28)" stroke="#38bdf8" strokeWidth="1.2" className="roam-radar-pulse-ring" />
+                        <circle r="7" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" strokeWidth="1.1" className="roam-radar-pulse-ring" />
                         <g transform={`rotate(${mapHeading(driving ? view.roverYaw ?? view.yaw : view.yaw)})`}>
-                          <polygon points="0,-8 5,5.5 0,2.2 -5,5.5" fill="#ffffff" stroke="#060c14" strokeWidth="1.3" />
-                          <circle cx="0" cy="2.2" r="0.9" fill="#38bdf8" />
+                          <polygon points="0,-7.5 4.5,5 0,2 -4.5,5" fill="#ffffff" stroke="#060c14" strokeWidth="1.2" />
+                          <circle cx="0" cy="2" r="0.9" fill="#38bdf8" />
                         </g>
-                        <text y="-10" textAnchor="middle" fill="#38bdf8" fontSize="7" fontWeight="900" style={{ filter: "drop-shadow(0 1px 2px #000000)" }}>
+                        <text y="-9.5" textAnchor="middle" fill="#38bdf8" fontSize="6.5" fontWeight="900" style={{ filter: "drop-shadow(0 1px 2px #000000)" }}>
                           YOU
                         </text>
                       </g>
@@ -370,10 +287,8 @@ export default function ExplorationMinimap({
                 </>
               ) : (
                 /* =========================================================================
-                   ZOOMED-IN MOLA MAP WITH STATIC TOPOGRAPHY & GROUND ALTIMETER:
-                   - Static contours locked to absolute heights (Gold = Highs, Cyan = Lows)
-                   - Local High (▲) and Low (▼) altimeter spot markers
-                   - Vertical Altimeter Tape along right frame
+                   ZOOMED-IN MOLA MAP: Clean, pristine HD ground relief without contour clutter.
+                   Subtle minimal rocks and sleek minimal vehicle blips.
                    ========================================================================= */
                 <>
                   {/* Base Mars soil */}
@@ -391,69 +306,18 @@ export default function ExplorationMinimap({
                     className="roam-mola-zoomed-img"
                   />
 
-                  {/* STATIC TOPOGRAPHIC CONTOURS (Fixed absolute heights color-coded by altimeter) */}
-                  {topo.contours.map((contour, i) => (
-                    <path
-                      key={i}
-                      d={contour.path}
-                      fill="none"
-                      stroke={contour.color}
-                      strokeOpacity={contour.isMajor ? 0.85 : 0.48}
-                      strokeWidth={contour.isMajor ? "1.2" : "0.75"}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeDasharray={contour.isMajor ? undefined : "3 1.5"}
-                    />
-                  ))}
-
-                  {/* ALTIMETER LOCAL HIGH (▲) SPOT MARKER (Crater Rim / Peak) */}
-                  {altSpan >= 1.0 && (
-                    <g transform={`translate(${topo.maxPoint.x} ${topo.maxPoint.y})`} className="roam-topo-spot-high">
-                      <circle r="4.2" fill="rgba(253, 224, 71, 0.28)" stroke="#fde047" strokeWidth="0.8" />
-                      <text y="2" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#fde047">▲</text>
-                      <text
-                        y="-6"
-                        textAnchor="middle"
-                        fontSize="6"
-                        fontWeight="900"
-                        fill="#fde047"
-                        style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
-                      >
-                        +{Math.round(topo.maxPoint.height)}m
-                      </text>
-                    </g>
-                  )}
-
-                  {/* ALTIMETER LOCAL LOW (▼) SPOT MARKER (Crater Floor / Basin) */}
-                  {altSpan >= 1.0 && (
-                    <g transform={`translate(${topo.minPoint.x} ${topo.minPoint.y})`} className="roam-topo-spot-low">
-                      <circle r="4.2" fill="rgba(56, 189, 248, 0.28)" stroke="#38bdf8" strokeWidth="0.8" />
-                      <text y="2.5" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#38bdf8">▼</text>
-                      <text
-                        y="11"
-                        textAnchor="middle"
-                        fontSize="6"
-                        fontWeight="900"
-                        fill="#38bdf8"
-                        style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
-                      >
-                        {Math.round(topo.minPoint.height)}m
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Range Circles centered on player */}
-                  <circle cx="100" cy="100" r={44} fill="none" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.7" strokeDasharray="3 3" />
-                  <circle cx="100" cy="100" r={88} fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="0.8" />
-                  <text x="146" y="98" fill="rgba(255, 255, 255, 0.45)" fontSize="6" fontWeight="700">
+                  {/* Subtle Range Circles centered on player */}
+                  <circle cx="100" cy="100" r={44} fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="0.6" strokeDasharray="3 3" />
+                  <circle cx="100" cy="100" r={88} fill="none" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="0.75" />
+                  <text x="146" y="98" fill="rgba(255, 255, 255, 0.35)" fontSize="6" fontWeight="700">
                     {Math.round(activeRange / 2)}m
                   </text>
 
                   {/* Subtle GPS Crosshairs */}
-                  <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
-                  <line x1="6" y1="100" x2="184" y2="100" stroke="rgba(255, 255, 255, 0.14)" strokeWidth="0.75" />
+                  <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.7" />
+                  <line x1="6" y1="100" x2="194" y2="100" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.7" />
 
-                  {/* Surface Rocks (on foot) */}
+                  {/* Surface Rocks (on foot) - subtle and minimal */}
                   {!driving &&
                     (view.mapRocks ?? []).map((r, i) => {
                       const p = mapPoint(r.x, r.z, x, z, activeRange);
@@ -463,16 +327,15 @@ export default function ExplorationMinimap({
                             key={i}
                             cx={p.x}
                             cy={p.y}
-                            r={Math.max(1.5, (r.radius * 88) / activeRange)}
-                            fill="#b39879"
-                            stroke="#5c4833"
-                            strokeWidth="0.5"
+                            r={1.2}
+                            fill="#d97706"
+                            fillOpacity="0.25"
                           />
                         )
                       );
                     })}
 
-                  {/* Active LiDAR Obstacles & Contacts (when driving rover) */}
+                  {/* Active LiDAR Obstacles & Contacts (driving) - SUBTLE & MINIMAL BLUE DOTS */}
                   {scan &&
                     mapLidarContacts(scan, x, z).map((contact, i) => (
                       <g
@@ -482,17 +345,22 @@ export default function ExplorationMinimap({
                         transform={`translate(${contact.x} ${contact.y})`}
                       >
                         {contact.inPath ? (
-                          <>
-                            <path d="M0 -8.5 L8.5 0 L0 8.5 L-8.5 0 Z" fill="#ef4444" stroke="#ffffff" strokeWidth="1.2" />
-                            <text y="3" textAnchor="middle" fill="#ffffff" fontSize="8.5" fontWeight="900">!</text>
-                          </>
+                          <g>
+                            <polygon points="0,-4 4,0 0,4 -4,0" fill="#ef4444" stroke="#ffffff" strokeWidth="0.8" />
+                            <circle cx="0" cy="0" r="0.8" fill="#ffffff" />
+                          </g>
                         ) : (
-                          <circle r={contact.radius} fill="#38bdf8" fillOpacity="0.75" stroke="#0284c7" strokeWidth="0.8" />
+                          /* Subtle, small, translucent cyan pip */
+                          <circle
+                            r="1.6"
+                            fill="#38bdf8"
+                            fillOpacity="0.45"
+                          />
                         )}
                       </g>
                     ))}
 
-                  {/* Landing Shuttle Base */}
+                  {/* Minimal Landing Shuttle Base */}
                   {(() => {
                     const homePin = mapPoint(0, 12, x, z, activeRange);
                     return (
@@ -502,7 +370,7 @@ export default function ExplorationMinimap({
                     );
                   })()}
 
-                  {/* Parked Crew Rover */}
+                  {/* Minimal Parked Crew Rover */}
                   {!driving && (() => {
                     const crewPin = mapPoint(view.roverX ?? x, view.roverZ ?? z, x, z, activeRange);
                     return (
@@ -512,7 +380,7 @@ export default function ExplorationMinimap({
                     );
                   })()}
 
-                  {/* Curiosity Science Rover */}
+                  {/* Minimal Curiosity Science Rover */}
                   {view.curiosityX !== undefined && (() => {
                     const scoutPin = mapPoint(view.curiosityX, view.curiosityZ ?? 0, x, z, activeRange);
                     return (
@@ -522,7 +390,7 @@ export default function ExplorationMinimap({
                     );
                   })()}
 
-                  {/* Landmark Diamonds */}
+                  {/* Minimal Landmark Diamonds */}
                   {MARS_LANDMARKS.filter((p) => p.id !== target.id)
                     .concat(target)
                     .map((place) => {
@@ -532,25 +400,25 @@ export default function ExplorationMinimap({
                       return (
                         <g
                           key={place.id}
-                          opacity={isSelected ? 1 : 0.8}
+                          opacity={isSelected ? 1 : 0.75}
                           transform={`translate(${pin.x} ${pin.y})`}
                           style={{ cursor: "pointer" }}
                           onClick={onOpenAtlas}
                         >
                           <title>{place.name} · {dist} game metres</title>
                           {isSelected && (
-                            <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3 2" />
+                            <circle r="9.5" fill="none" stroke="#f59e0b" strokeWidth="1.1" strokeDasharray="2.5 1.5" />
                           )}
                           <path
-                            d="M0 -9 L8 0 L0 9 L-8 0 Z"
+                            d="M0 -7.5 L6.5 0 L0 7.5 L-6.5 0 Z"
                             fill={isSelected ? "#f59e0b" : "#0f172a"}
                             stroke={isSelected ? "#ffffff" : "#94a3b8"}
-                            strokeWidth={isSelected ? "1.4" : "0.9"}
+                            strokeWidth={isSelected ? "1.2" : "0.8"}
                           />
                           <text
-                            y="3.5"
+                            y="2.8"
                             textAnchor="middle"
-                            fontSize="8"
+                            fontSize="7"
                             fontWeight="900"
                             fill={isSelected ? "#09111c" : "#ffffff"}
                           >
@@ -562,15 +430,14 @@ export default function ExplorationMinimap({
 
                   {/* REAL-TIME PLAYER MARKER (Always centered at 100, 100) */}
                   <g transform="translate(100 100)">
-                    {/* Sonar Beacon Ring */}
+                    {/* Subtle Sonar Beacon Ring */}
                     <circle
-                      r="8"
-                      fill="rgba(56, 189, 248, 0.28)"
+                      r="7"
+                      fill="rgba(56, 189, 248, 0.22)"
                       stroke="#38bdf8"
-                      strokeWidth="1.2"
+                      strokeWidth="1"
                       className="roam-radar-pulse-ring"
                     />
-                    <circle r="14" fill="none" stroke="#38bdf8" strokeWidth="0.7" strokeDasharray="2.5 2" opacity="0.45" />
 
                     {/* GTA 5 Sharp Heading Chevron */}
                     <g
@@ -579,59 +446,29 @@ export default function ExplorationMinimap({
                       )})`}
                       className="roam-player-arrow"
                     >
-                      <polygon points="0,-8.5 5,5.5 0,2.2 -5,5.5" fill="rgba(0,0,0,0.6)" transform="translate(0, 0.8)" />
+                      <polygon points="0,-7.5 4.5,5 0,2 -4.5,5" fill="rgba(0,0,0,0.5)" transform="translate(0, 0.7)" />
                       <polygon
-                        points="0,-8.5 5,5.5 0,2.2 -5,5.5"
+                        points="0,-7.5 4.5,5 0,2 -4.5,5"
                         fill="#ffffff"
                         stroke="#060c14"
-                        strokeWidth="1.4"
+                        strokeWidth="1.3"
                         strokeLinejoin="round"
                       />
-                      <circle cx="0" cy="2.2" r="1.1" fill="#38bdf8" />
+                      <circle cx="0" cy="2" r="0.9" fill="#38bdf8" />
                     </g>
 
                     {/* High-Contrast "YOU" Badge */}
                     <text
-                      y="-11"
+                      y="-10"
                       textAnchor="middle"
                       fill="#38bdf8"
-                      fontSize="7"
+                      fontSize="6.5"
                       fontWeight="900"
                       letterSpacing="0.4"
                       style={{ filter: "drop-shadow(0 1px 2px #000000)" }}
                     >
                       YOU
                     </text>
-                  </g>
-
-                  {/* VERTICAL GROUND ALTIMETER TAPE (Along right edge of radar frame) */}
-                  <g className="roam-altimeter-tape">
-                    {/* Altimeter background track */}
-                    <line x1="187" y1="46" x2="187" y2="146" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="2.5" strokeLinecap="round" />
-                    
-                    {/* Top tick (High) */}
-                    <line x1="184" y1="46" x2="190" y2="46" stroke="#fde047" strokeWidth="1.2" />
-                    <text x="183" y="44" textAnchor="end" fontSize="5.5" fontWeight="900" fill="#fde047">
-                      ▲+{Math.round(topo.maxHeight)}
-                    </text>
-
-                    {/* Mid tick */}
-                    <line x1="185" y1="96" x2="189" y2="96" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="0.8" />
-
-                    {/* Bottom tick (Low) */}
-                    <line x1="184" y1="146" x2="190" y2="146" stroke="#38bdf8" strokeWidth="1.2" />
-                    <text x="183" y="152" textAnchor="end" fontSize="5.5" fontWeight="900" fill="#38bdf8">
-                      ▼{Math.round(topo.minHeight)}
-                    </text>
-
-                    {/* Moving Altimeter Pointer Pip at player altitude */}
-                    <polygon
-                      points={`185,${altY} 190,${altY - 2.5} 190,${altY + 2.5}`}
-                      fill="#ffffff"
-                      stroke="#060c14"
-                      strokeWidth="0.6"
-                    />
-                    <circle cx="185" cy={altY} r="1" fill="#38bdf8" />
                   </g>
                 </>
               )}
@@ -675,7 +512,7 @@ export default function ExplorationMinimap({
             </div>
           </div>
 
-          {/* 2. COMPACT GTA 5 LOCATION & TELEMETRY READOUT (with Altimeter) */}
+          {/* 2. COMPACT GTA 5 LOCATION & TELEMETRY READOUT */}
           <div className="roam-gta-readout">
             <span className="roam-gta-loc">{driving && blocked ? "HAZARD DETECTED" : surveyRegionLabel(x, z)}</span>
             <span className={`roam-gta-sub ${blocked ? "is-blocked" : ""}`}>{status}</span>
