@@ -8,6 +8,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     "dist/**",
     "dist-pages/**",
+    "dist-vercel/**",
+    ".vercel/**",
     "public/draco/**",
     ".vinext/**",
     ".wrangler/**",

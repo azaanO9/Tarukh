@@ -91,6 +91,8 @@ Game GLBs and WebPs, including the prepared outpost, greenhouse and garage, are 
 
 `vite.pages.config.ts` builds `dist-pages/`; the GitHub workflow publishes it and records `source_commit` in `version.json`. `vite.config.ts`, `worker/`, `db/`, `lib/connectors*` and `scripts/connector-preview/` support the separate Sites build. Their dependencies may be unused by the static game while still required by that integration. Do not remove them based solely on the active UI import graph.
 
+`vercel.json` explicitly selects Vite instead of Next.js auto-detection. `build:vercel` reuses the static configuration with `--base / --outDir ../dist-vercel`; it publishes the same game, public assets and source-version marker at the domain root. These command-line overrides leave the Pages subpath and Sites build intact. Vercel must consume `dist-vercel/`, not `.next` or the Cloudflare server bundle. Configuration properties override the corresponding Vercel dashboard build settings; no deployment token or project identifier is stored in the repository.
+
 ## Persistence and shared systems
 
 ### Rover garage contract

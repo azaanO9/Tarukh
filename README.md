@@ -48,6 +48,7 @@ To preview the static production build:
 
 ```sh
 pnpm build:pages
+pnpm build:vercel
 pnpm exec vite preview --config vite.pages.config.ts --host 127.0.0.1 --port 4173
 ```
 
@@ -102,6 +103,8 @@ pnpm build:pages
 ```
 
 The `build` command produces the Sites/Cloudflare deployment in `dist/`; `build:pages` produces `dist-pages/`. The GitHub Actions workflow runs tests, type checking and the static build before publishing `main` to GitHub Pages. The deployed `version.json` records its source commit. Existing React lifecycle lint findings are described in the [engineering notes](docs/INTERFACE.md#validation).
+
+Vercel uses the same static game with root-relative asset URLs: `vercel.json` selects the Vite preset, runs `pnpm run build:vercel` and publishes `dist-vercel/`. Import the repository with its root directory unchanged. Do not select Next.js or `.next` for this deployment: the default `build` script targets Sites/Cloudflare and does not generate Next.js manifests. The Pages build retains its `/Tarukh/` base path.
 
 Keep `.openai/hosting.json`, environment configuration and the separate deployment paths intact. Do not commit credentials, generated builds, local caches or `node_modules`.
 
