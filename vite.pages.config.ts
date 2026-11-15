@@ -1,12 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import {pwaPlugin} from './scripts/vite/pwa-plugin';
 
 export default defineConfig({
   root: "static-app",
   base: "/Tarukh/",
   publicDir: "../public",
-  plugins: [react(), {
+  plugins: [react(), pwaPlugin(), {
     name: "publication-source",
     generateBundle() {
       this.emitFile({ type: "asset", fileName: ".nojekyll", source: "" });

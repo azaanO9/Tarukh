@@ -210,3 +210,19 @@ dialog.mars-sep-modal-backdrop button { min-height: 44px; min-width: 44px; font-
   .mars-phone-modal[open] { animation: none; }
   .mars-phone-modal *, .mars-phone-modal *::before, .mars-phone-modal *::after { animation: none !important; transition: none !important; }
 }
+
+/* Keep every handset action reachable on compact touch screens. */
+.roam-root[data-controls="mobile"] .mars-phone-modal {
+  right:var(--ui-right);bottom:var(--ui-bottom);
+  width:min(296px,calc(100vw - var(--ui-left) - var(--ui-right)));
+  height:min(520px,calc(100dvh - var(--ui-top) - var(--ui-bottom)));
+}
+.roam-root[data-controls="mobile"] .mars-phone-modal :is(button,a) {min-height:48px;min-width:48px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-top-bar {flex-basis:48px;min-height:48px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-status-bar {min-height:48px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-nav-bar {min-height:56px;gap:8px;padding:4px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-nav-bar button {padding:4px;font-size:14px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-content {overscroll-behavior:contain;touch-action:pan-y;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-grid {gap:8px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal :is(.handset-app,.mars-event-item,.mars-system-card,.mars-setting-row) {min-height:48px;}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-app-title {font-size:16px;}

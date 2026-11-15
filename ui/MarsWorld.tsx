@@ -13,6 +13,7 @@ import { greenhousePoint } from "../game/greenhouses";
 import { GARAGE_SITE } from "../game/garageSite";
 import { createGarageState, garageControlsRover, garageIndoors, garagePrompt, requestGarageCycle, stepGarage } from "../game/roverGarage";
 import { createRoverGarage } from "./world/createRoverGarage";
+import { roverHiddenByGarage } from './world/garageVisibility';
 import { ARRIVAL_SPAWN, ARRIVAL_YAW } from "../game/arrivalSpawn";
 import { streamingBudget, STREAM_LIMIT, streamedHeight } from "../game/terrainStreaming";
 import { PERSEVERANCE_LANDING } from '../content/marsLandingSites';
@@ -49,6 +50,7 @@ import {createGraphicsSamplingGate,updateGraphicsSamplingGate} from '../game/gra
 import {prepareWorldMaterials} from './world/prepareWorldBuffers';
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
+import { mobileGraphicsTier, mobileAutoPixelCap, createRenderPacer, renderFrameDue } from '../game/mobileGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
 import {
   spawnRoverVehicle,
@@ -137,6 +139,7 @@ export type View = {
 type Props = {
   story?: ElysiumWorldBridge;
   onReady?: () => void;
+  onLoadingProgress?: (progress: number, stage: string) => void;
   onGraphicsCalibration?: (status: string) => void;
   onTerrainMode?: (enabled: boolean) => void;
   enabled: boolean;
@@ -168,8 +171,7 @@ function MarsWorld(props: Props) {
   const analogWalk = useRef<MoveAxes>({});
   const analogDrive = useRef<RoverAnalogInput>({});
   const [autoCoarse, setAutoCoarse] = useState(false);
-  const [touchOverride, setTouchOverride] = useState<boolean | null>(null);
-  const touchControlsActive = touchOverride ?? (props.showTouchControls || (props.autoDetectTouch !== false && autoCoarse));
+  const touchControlsActive = props.showTouchControls || (props.autoDetectTouch !== false && autoCoarse);
   useEffect(() => {
     const syncCoarse = () => setAutoCoarse(isCoarsePointerDevice());
     syncCoarse();
@@ -178,6 +180,8 @@ function MarsWorld(props: Props) {
     return () => media?.removeEventListener?.("change", syncCoarse);
   }, []);
   useEffect(() => {
+    controls.current.clear();
+    analogWalk.current = {}; analogDrive.current = {};
     props.onTouchControlsChange?.(touchControlsActive);
   }, [touchControlsActive, props.onTouchControlsChange]);
   const [roverDriving, setRoverDriving] = useState(false);
@@ -220,6 +224,8 @@ function MarsWorld(props: Props) {
   const releasePhoneInput = useRef<() => void>(() => {});
   const openPhone = useCallback(() => {
     if (!current.current.enabled || current.current.coveredByArrival) return;
+    const graphicsPanel = host.current?.querySelector<HTMLDetailsElement>(".sv-look-controls details");
+    if (graphicsPanel) graphicsPanel.open = false;
     phoneReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     phoneOpenRef.current = true;
     controls.current.clear();
@@ -257,7 +263,7 @@ function MarsWorld(props: Props) {
     const service = spaceWeatherService.current!;
     void service.fetchLiveTelemetry();
     const timer = window.setInterval(() => {
-      if (service.getMode() === 'live') void service.fetchLiveTelemetry();
+      if (!document.hidden && navigator.onLine && service.getMode() === 'live') void service.fetchLiveTelemetry();
     }, 60000);
     return () => {
       window.clearInterval(timer);
@@ -471,6 +477,7 @@ function MarsWorld(props: Props) {
 
   const [loadingStage, setLoadingStage] = useState("Loading explorers and rovers…");
   const [loadingProgress, setLoadingProgress] = useState(10);
+  useEffect(() => { current.current.onLoadingProgress?.(loadingProgress, loadingStage); }, [loadingProgress, loadingStage]);
   const [loaded, setLoaded] = useState(false);
   const [locked, setLocked] = useState(false);
   const [cursorFree, setCursorFree] = useState(false);
@@ -516,9 +523,12 @@ function MarsWorld(props: Props) {
       if (cancelled || !host.current)
         return;
       const element = host.current;
-      const mobileMars = isCoarsePointerDevice();
-      // Measure up to the Ultra cap even on an iGPU/phone; never infer its ceiling from a name.
-      const displayRatio = Math.max(.55, Math.min(devicePixelRatio, 2));
+      const mobileMars = cameraSettings.current.touchControlsActive;
+      const tierFor = (name: string) => mobileMars ? mobileGraphicsTier(name, cameraSettings.current.quality === 'auto') : graphicsTier(name);
+      const wantsEffects = () => !mobileMars || effectiveQuality() === "ultra";
+      const lightRendering = () => effectiveQuality() === "performance" || (mobileMars && cameraSettings.current.quality === "auto");
+      // Bound mobile fill cost; ordinary frame samples choose optional detail.
+      const displayRatio = Math.max(.55, Math.min(devicePixelRatio, mobileMars ? 1.5 : 2));
       const renderer = new T.WebGLRenderer({
         antialias: !mobileMars && props.initialQuality !== "performance",
         powerPreference: "high-performance",
@@ -532,11 +542,13 @@ function MarsWorld(props: Props) {
       const terrainBudget = streamingBudget(gpuName, navigator.hardwareConcurrency, (navigator as Navigator & {
         deviceMemory?: number;
       }).deviceMemory, mobileMars, props.initialQuality ?? "auto");
+      const autoPixelCap = mobileMars ? mobileAutoPixelCap(navigator.hardwareConcurrency, (navigator as Navigator & {deviceMemory?: number}).deviceMemory, gpuName, Boolean((navigator as Navigator & {connection?: {saveData?: boolean}}).connection?.saveData)) : displayRatio;
+      const qualityCap = (name: string) => Math.min(displayRatio, tierFor(name).resolutionCap, cameraSettings.current.quality === 'auto' ? autoPixelCap : displayRatio);
       const effectiveQuality = () => cameraSettings.current.quality === "auto" ? autoProfile : cameraSettings.current.quality;
       const profileLabel = () => profileName(autoProfile);
       setAutoLabel(profileLabel());
-      const initialPreset = graphicsTier(effectiveQuality());
-      renderer.setPixelRatio(Math.min(displayRatio, initialPreset.resolutionCap));
+      const initialPreset = tierFor(effectiveQuality());
+      renderer.setPixelRatio(qualityCap(effectiveQuality()));
       renderer.shadowMap.enabled = initialPreset.shadows;
       renderer.shadowMap.type = T.PCFSoftShadowMap;
       renderer.outputColorSpace = T.SRGBColorSpace;
@@ -582,7 +594,7 @@ function MarsWorld(props: Props) {
       const light = new T.DirectionalLight(0xffe5c7, 3.5);
       light.position.set(-55, 28, -80);
       light.castShadow = true;
-      const shadowSize = graphicsTier(effectiveQuality()).shadowSize;
+      const shadowSize = tierFor(effectiveQuality()).shadowSize;
       light.shadow.mapSize.set(shadowSize, shadowSize);
       Object.assign(light.shadow.camera, {
         left: -34,
@@ -863,6 +875,7 @@ function MarsWorld(props: Props) {
         ]);
         if (cancelled)
           return;
+        if (mobileMars && !wantsEffects()) { effectsLoading = null; return; }
         // HDR resolves with HalfFloatType
         const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: 0 });
         // Ultra's contact shading reuses the scene depth instead of drawing
@@ -871,7 +884,7 @@ function MarsWorld(props: Props) {
         composer = new EffectComposer(renderer, target);
         composer.addPass(new RenderPass(scene, camera));
         occlusion = new BoundedGTAOPass(scene, camera, 256, 256);
-        occlusion.setDetailDistance(graphicsTier(effectiveQuality()).viewDistance);
+        occlusion.setDetailDistance(tierFor(effectiveQuality()).viewDistance);
         occlusion.updateGtaoMaterial({ radius: .52, thickness: .55, distanceFallOff: 1.2, samples: 10 });
         occlusion.updatePdMaterial({ samples: 8, radius: 4, rings: 2 });
         occlusion.blendIntensity = .52;
@@ -888,16 +901,16 @@ function MarsWorld(props: Props) {
         const effects = graphicsEffects(effectiveQuality(),outpostRendering.active,reduced.matches);
         outpost.setUltraLighting(effects.roomHighlights);
         if (occlusion) {
-          occlusion.enabled = effects.occlusion;
+          occlusion.enabled = wantsEffects() && effects.occlusion;
           occlusion.setReuseSceneDepth(effects.reuseSceneDepth);
-          occlusion.setDetailDistance(graphicsTier(effectiveQuality()).viewDistance);
+          occlusion.setDetailDistance(tierFor(effectiveQuality()).viewDistance);
         }
         if (bloom)
-          bloom.enabled = effects.bloom;
+          bloom.enabled = wantsEffects() && effects.bloom;
         if (render && effectiveQuality() !== "performance")
           renderEffects();
       }
-      if (effectsSupported && effectiveQuality() !== "performance")
+      if (effectsSupported && wantsEffects() && effectiveQuality() !== "performance")
         await prepareEffects();
       const keys = controls.current;
       const ray = new T.Raycaster();
@@ -961,6 +974,7 @@ function MarsWorld(props: Props) {
       let px = 0;
       let py = 0;
       let frame = 0;
+      const renderPacer = createRenderPacer();
       let last = 0;
       let lastReport = 0;
       let hover: string | null = null;
@@ -1020,9 +1034,9 @@ function MarsWorld(props: Props) {
       let lastSelection = cameraSettings.current.quality;
       let metricStart = 0;
       let metricFrames = 0;
-      let autoState = createAutoGraphics(autoProfile, Math.min(displayRatio, graphicsTier(autoProfile).resolutionCap));
+      let autoState = createAutoGraphics(autoProfile, qualityCap(autoProfile));
       const backgroundProbe = cameraSettings.current.quality === 'auto'
-        ? createBackgroundGraphics(displayRatio, name => graphicsTier(name).resolutionCap) : null;
+        ? createBackgroundGraphics(Math.min(displayRatio, autoPixelCap), name => tierFor(name).resolutionCap, {mobile: mobileMars}) : null;
       let backgroundPrepared = !backgroundProbe;
       let backgroundStarted = 0;
       let lastResolutionChange = 0;
@@ -1056,9 +1070,10 @@ function MarsWorld(props: Props) {
       resize();
       function applyQuality(name: string, scale: number) {
         lastQuality = name;
-        const tier = graphicsTier(name);
-        garage.setPerformance(name === "performance");
-        model.setLightSurfaces?.(name === 'performance');
+        const tier = tierFor(name);
+        if (mobileMars && !wantsEffects() && composer) { disposeEffects(); effectsLoading = null; }
+        garage.setPerformance(lightRendering());
+        model.setLightSurfaces?.(lightRendering());
         {
           // Only the low-detail regional surface uses the full horizon range.
           // Equipment and detailed terrain retain the tier's nearer draw budget.
@@ -1466,8 +1481,13 @@ function MarsWorld(props: Props) {
         autoState.slow = 0;
         autoState.fast = 0;
         backgroundProbe?.reset();
-        if (document.hidden)
+        last = 0; renderPacer.next = 0;
+        keys.clear(); analogWalk.current = {}; analogDrive.current = {};
+        dragging = false; lookPointer = null;
+        if (document.hidden) {
+          cancelAnimationFrame(frame); frame = 0;
           saveCuriosityNow();
+        } else if (!cancelled && element.dataset.catchSite === "ready" && !frame) frame = requestAnimationFrame(animate);
       };
       element.addEventListener("pointerdown", down);
       element.addEventListener("click", sceneClick);
@@ -1490,9 +1510,17 @@ function MarsWorld(props: Props) {
       let deathCollapse = 0;
       const sevObstacles: CollisionObstacle[] = [], dynamicObstacles: CollisionObstacle[] = [], curiosityObstacles: CollisionObstacle[] = [];
       const lidarObstacles: CollisionObstacle[] = [];
+      const crewObstacle = roverFootprint(0, 0, 0), scoutObstacle = curiosityFootprint(0, 0, 0);
+      const playerObstacle = {x:0,z:0,radius:WALKER_RADIUS,id:'walker'};
+      const garagePlayerObstacle = {x:0,z:0,radius:WALKER_RADIUS+.1,id:'walker'};
+      const crewFootprint = () => { crewObstacle.x=rover.x;crewObstacle.z=rover.z;crewObstacle.yaw=rover.yaw;return crewObstacle; };
+      const scoutFootprint = () => { if(curiosity){scoutObstacle.x=curiosity.x;scoutObstacle.z=curiosity.z;scoutObstacle.yaw=curiosity.yaw;}return scoutObstacle; };
+      const physicsOptions = {...streamOptions,daylightElapsed};
       let previousArrivalTime=0;
       function animate(time: number) {
         const frameStarted = performance.now();
+        frame = 0;
+        if (cancelled || document.hidden) { last = 0; return; }
         frame = requestAnimationFrame(animate);
         if (current.current.coveredByArrival) {
           const arrival=current.current.arrivalPlayback;
@@ -1534,8 +1562,7 @@ function MarsWorld(props: Props) {
           return;
         }
         // A stationary view behind a dialog needs only occasional refreshes.
-        if (!current.current.enabled && !current.current.story?.ending && time - last < 100)
-          return;
+        if (!renderFrameDue(time, mobileMars, (!current.current.enabled || phoneOpenRef.current) && !current.current.story?.ending, renderPacer)) return;
         const frameInterval = last ? time - last : 0;
         const dt = last ? Math.min(frameInterval / 1000, 0.1) : 1 / 60;
         last = time;
@@ -1561,10 +1588,10 @@ function MarsWorld(props: Props) {
           const selectionChanged = lastSelection !== cameraSettings.current.quality;
           lastSelection = cameraSettings.current.quality;
           const name = effectiveQuality();
-          const cap = Math.min(displayRatio, graphicsTier(name).resolutionCap);
+          const cap = qualityCap(name);
           // A live Auto tier change also eases toward its new pixel cap; manual choices apply immediately.
           applyQuality(name, cameraSettings.current.quality === 'auto' && !selectionChanged ? resolutionScale : cap);
-          if (effectsSupported && lastQuality !== "performance" && !composer && (!backgroundProbe || backgroundPrepared)) {
+          if (effectsSupported && wantsEffects() && lastQuality !== "performance" && !composer && (!backgroundProbe || backgroundPrepared)) {
             void prepareEffects().then(() => {
               if (!cancelled) {
                 configureEffects();
@@ -1582,7 +1609,7 @@ function MarsWorld(props: Props) {
           lastResolutionChange = time;
         }
         const activeHeightAt = model.heightAt;
-        const activeTier = graphicsTier(lastQuality);
+        const activeTier = tierFor(lastQuality);
         outpost.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, lastQuality === "performance", worldActive);
         greenhouses.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, worldActive);
         model.updateTracks?.(renderer, walker.x, walker.z, mobileMars || lastQuality === "performance");
@@ -1601,17 +1628,16 @@ function MarsWorld(props: Props) {
           const step = dt / steps;
           {
             nearbyObstacles(model.obstacles,rover.x,rover.z,40,sevObstacles);
-            if(curiosity)sevObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
+            if(curiosity)sevObstacles.push(scoutFootprint());
+            garagePlayerObstacle.x=walker.x;garagePlayerObstacle.z=walker.z;
             stepGarage(garageState, rover, dt, !isDeadRef.current,
-              {x:walker.x,z:walker.z,radius:WALKER_RADIUS+.1,id:"walker"},
+              garagePlayerObstacle,
               sevObstacles, model.roverHeightAt, 1-nightAmount(daylightElapsed), reduced.matches, p.story?.command.chargingAllowed ?? true);
             if (rover.driving) {
               const prevRoverYaw = rover.yaw;
+              physicsOptions.daylightElapsed = daylightElapsed;
               for (let i = 0; i < steps; i++) {
-                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, {
-                  ...(streaming ? streamOptions : undefined),
-                  daylightElapsed,
-                });
+                rover = stepRoverVehicle(rover, keys, step, sevObstacles, model.roverHeightAt, model.mudAt, analogDrive.current, physicsOptions);
               }
               walker.x = rover.x;
               walker.z = rover.z;
@@ -1636,8 +1662,8 @@ function MarsWorld(props: Props) {
                 });
               }
               nearbyObstacles(model.obstacles,walker.x,walker.z,3,dynamicObstacles);
-              if(bigRover)dynamicObstacles.push(roverFootprint(rover.x,rover.z,rover.yaw));
-              if(curiosity)dynamicObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
+              if(bigRover)dynamicObstacles.push(crewFootprint());
+              if(curiosity)dynamicObstacles.push(scoutFootprint());
               walker.yaw = cameraYaw;
               const speedMultiplier = radiationExposureRef.current >= 70 ? 0.70 : 1.0;
               for (let i = 0; i < steps; i++) {
@@ -1660,8 +1686,9 @@ function MarsWorld(props: Props) {
           if (curiosity && true) {
             curiosityObstacles.length=0;
             for(const obstacle of model.obstacles)curiosityObstacles.push(obstacle);
-            if(bigRover)curiosityObstacles.push(roverFootprint(rover.x,rover.z,rover.yaw));
-            curiosityObstacles.push({x:walker.x,z:walker.z,radius:WALKER_RADIUS,id:'walker'});
+            if(bigRover)curiosityObstacles.push(crewFootprint());
+            playerObstacle.x=walker.x;playerObstacle.z=walker.z;
+            curiosityObstacles.push(playerObstacle);
             curiosity = stepCuriosityRover(curiosity, dt, curiosityObstacles, model.roverHeightAt);
           }
           if (keys.has("look-left")) {
@@ -1675,7 +1702,7 @@ function MarsWorld(props: Props) {
         }
         if (rover.driving && true && time - lastLidarScan >= 125) {
           nearbyObstacles(model.obstacles,rover.x,rover.z,35,lidarObstacles);
-          if(curiosity)lidarObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
+          if(curiosity)lidarObstacles.push(scoutFootprint());
           lidar = scanRoverLidar(rover, lidarObstacles);
           lastLidarScan = time;
         }
@@ -1690,8 +1717,9 @@ function MarsWorld(props: Props) {
         {
           model.root.visible = true;
           if (bigRover) {
-            bigRover.root.visible = true;
-            bigRover.dust.visible = true;
+            const hidden = roverHiddenByGarage(garageState.phase, garageState.doorAmount, garageIndoors(walker.x,walker.z), rover.driving);
+            bigRover.root.visible = !hidden;
+            bigRover.dust.visible = !hidden;
           }
           if (curiosityRover)
             curiosityRover.root.visible = true;
@@ -2114,7 +2142,7 @@ function MarsWorld(props: Props) {
         } else {endingElapsed=0;endingFinished=false;}
         outpost.updateVisibility(camera);
         greenhouses.updateVisibility(camera, p.story?.ending?camera.position.x:walker.x, p.story?.ending?camera.position.z:walker.z, lastQuality === "performance");
-        garage.update(walker.x, walker.z, lastQuality === "performance");
+        garage.update(walker.x, walker.z, lightRendering());
         windDust?.update(dt, walker.x, walker.z, model.heightAt, reduced.matches, activeTier.particles);
         if (dust) dust.visible = !insideFacility && !garageIndoors(walker.x, walker.z);
         if (aim.current) {
@@ -2405,6 +2433,10 @@ function MarsWorld(props: Props) {
           element.dataset.visibleTerrainChunks = String(streaming?.visibleCount() ?? 0);
           element.dataset.viewDistance = String(activeTier.viewDistance);
           if (debug) {
+            element.dataset.textureCount = String(renderer.info.memory.textures);
+            element.dataset.geometryCount = String(renderer.info.memory.geometries);
+            element.dataset.triangles = String(renderer.info.render.triangles);
+            element.dataset.renderedFrames = String(viewFrame);
             element.dataset.horizonDistance = String(camera.far);
             element.dataset.visibleHorizonPatches = String(regionalLandscape.visibleCount());
             element.dataset.horizonPatches = String(regionalLandscape.count);
@@ -2433,7 +2465,7 @@ function MarsWorld(props: Props) {
             });
           element.dataset.graphicsProfile = lastQuality;
           if (cameraSettings.current.quality === 'auto' && true && (!backgroundProbe || backgroundProbe.done())) {
-            autoState = adaptAutoGraphics(autoState, fps, activeSample, time, name => Math.min(displayRatio, graphicsTier(name).resolutionCap));
+            autoState = adaptAutoGraphics(autoState, fps, activeSample, time, qualityCap, mobileMars ? 60 : AUTO_TARGET_FPS);
             if (autoProfile !== autoState.profile) {
               autoProfile = autoState.profile;
               setAutoLabel(profileLabel());
@@ -2515,11 +2547,11 @@ function MarsWorld(props: Props) {
         camera.rotation.set(pitch, 0, 0, "YXZ");
         astronaut.position.set(0, 0, 12);
         try {
-          const preset = graphicsTier(effectiveQuality());
+          const preset = tierFor(effectiveQuality());
           lastQuality = effectiveQuality();
-          garage.setPerformance(lastQuality === "performance");
-          model.setLightSurfaces?.(lastQuality === "performance");
-          resolutionScale = Math.min(displayRatio, preset.resolutionCap);
+          garage.setPerformance(lightRendering());
+          model.setLightSurfaces?.(lightRendering());
+          resolutionScale = qualityCap(effectiveQuality());
           renderer.setPixelRatio(resolutionScale);
           resize();
           renderer.shadowMap.enabled = preset.shadows;
@@ -2604,7 +2636,7 @@ function MarsWorld(props: Props) {
         }
         const coverage = streaming.coverage();
         regionalLandscape?.setCoverage(coverage.x, coverage.y, coverage.z, coverage.w);
-        (scene.fog as import("three").FogExp2).density = graphicsTier(lastQuality).fogDensity;
+        (scene.fog as import("three").FogExp2).density = tierFor(lastQuality).fogDensity;
       }
       if (cancelled)
         return;
@@ -2613,7 +2645,7 @@ function MarsWorld(props: Props) {
         setLoadingProgress(96);
         try {
           // Prepare post-processing effects during loading so no compilation stalls touchdown
-          if (effectsSupported && lastQuality !== "performance") {
+          if (effectsSupported && wantsEffects() && lastQuality !== "performance") {
             await prepareEffects();
             if (cancelled)
               return;
@@ -2626,12 +2658,12 @@ function MarsWorld(props: Props) {
           camera.rotation.set(pitch, 0, 0, "YXZ");
           // Auto starts in Performance but may upgrade later. Prepare the
           // shadowed output path the device will use before exposing the world.
-          if (cameraSettings.current.quality !== "performance") {
+          if (cameraSettings.current.quality !== "performance" && (!mobileMars || cameraSettings.current.quality !== "auto")) {
             garage.setPerformance(false);
             model.setLightSurfaces?.(false);
             renderer.shadowMap.enabled = true;
             helmetLamp.castShadow = true;
-            if (effectsSupported) {
+            if (effectsSupported && wantsEffects()) {
               await prepareEffects();
               if (cancelled) return;
             }
@@ -2662,10 +2694,10 @@ function MarsWorld(props: Props) {
               if (cancelled) return;
             }
           }
-          garage.setPerformance(lastQuality === "performance");
-          model.setLightSurfaces?.(lastQuality === "performance");
-          renderer.shadowMap.enabled = graphicsTier(lastQuality).shadows;
-          helmetLamp.castShadow = graphicsTier(lastQuality).shadows;
+          garage.setPerformance(lightRendering());
+          model.setLightSurfaces?.(lightRendering());
+          renderer.shadowMap.enabled = tierFor(lastQuality).shadows;
+          helmetLamp.castShadow = tierFor(lastQuality).shadows;
           await prepareWorldMaterials(renderer,scene,camera);
           if (cancelled) return;
           resize();
@@ -2677,10 +2709,10 @@ function MarsWorld(props: Props) {
           if (!cancelled) {
             scene.overrideMaterial = null;
             renderer.setRenderTarget(null);
-            garage.setPerformance(effectiveQuality() === 'performance');
-            model.setLightSurfaces?.(effectiveQuality() === 'performance');
-            renderer.shadowMap.enabled = graphicsTier(effectiveQuality()).shadows;
-            helmetLamp.castShadow = graphicsTier(effectiveQuality()).shadows;
+            garage.setPerformance(lightRendering());
+            model.setLightSurfaces?.(lightRendering());
+            renderer.shadowMap.enabled = tierFor(effectiveQuality()).shadows;
+            helmetLamp.castShadow = tierFor(effectiveQuality()).shadows;
             resize();
             configureEffects();
             backgroundPrepared = true;
@@ -2701,7 +2733,7 @@ function MarsWorld(props: Props) {
         // The renderer has updated world matrices; reuse these results for AO passes.
         culledFrame = viewFrame;
         regionalLandscape.updateVisibility(camera);
-        detailCulling?.update(camera, graphicsTier(lastQuality).viewDistance);
+        detailCulling?.update(camera, tierFor(lastQuality).viewDistance);
       };
       if (backgroundProbe) {
         backgroundStarted = performance.now();
@@ -2709,7 +2741,7 @@ function MarsWorld(props: Props) {
         setAutoReport(report);
         current.current.onGraphicsCalibration?.(report);
         element.dataset.calibrationState = 'checking';
-        element.dataset.calibrationTarget = String(AUTO_TARGET_FPS);
+        element.dataset.calibrationTarget = String(mobileMars ? 60 : AUTO_TARGET_FPS);
       }
       current.current.onTerrainMode?.(!!streaming);
       catchSite.settle();
@@ -2723,6 +2755,9 @@ function MarsWorld(props: Props) {
       element.dataset.loadMs = (performance.now() - loadStarted).toFixed(0);
     }
     mount().catch((error) => {
+      if (cancelled) return;
+      dispose();
+      dispose = () => {};
       if (debug)
         console.error('Mars scene initialization failed', error);
       setMessage("3D is unavailable. Retry with Performance graphics.");
@@ -2806,13 +2841,13 @@ function MarsWorld(props: Props) {
      </div>
      <div className="sv-loading-hints" aria-label="Rover controls">
        <span className="sv-loading-hints-title">ROVER CONTROLS</span>
-       <div className="sv-loading-hints-list">
+       {touchControlsActive ? <div className="sv-loading-hints-list"><span>Left stick moves</span><span>Swipe to look</span><span>Tap the action buttons</span></div> : <div className="sv-loading-hints-list">
          <span><b>Shift</b> Boost (High Torque)</span>
          <span><b>W / S</b> Drive / Rev</span>
          <span><b>A / D</b> Steer</span>
          <span><b>Space</b> Handbrake</span>
          <span><b>V</b> Camera</span>
-       </div>
+       </div>}
      </div>
     </div>)}
    {props.enabled && (<>
@@ -2820,8 +2855,8 @@ function MarsWorld(props: Props) {
       <i />
       <i />
      </div>
-     <div className="sv-look-controls">
-      <details open={undefined}>
+     <div className="sv-look-controls" data-ui-zone="settings">
+      <details open={undefined} onToggle={event => { if (event.currentTarget.open && phoneOpenRef.current) closePhone(); }}>
       <summary aria-label="Camera and graphics">{touchControlsActive && true ? <Settings2 size={19}/> : "Camera & graphics"}</summary>
       {!touchControlsActive && (<>
         <button onClick={() => lockAction.current()}>
@@ -2836,13 +2871,10 @@ function MarsWorld(props: Props) {
       <button onClick={() => setThirdPerson((v) => !v)}>
        {thirdPerson ? (touchControlsActive ? "Third person view" : "Third person · V") : (touchControlsActive ? "First person view" : "First person · V")}
       </button>
-      <button type="button" aria-pressed={touchControlsActive} onClick={() => setTouchOverride(!touchControlsActive)}>
-       Touch controls · {touchControlsActive ? "On" : "Off"}
-      </button>
       {<label>Graphics <select aria-label="Graphics quality" value={quality} onChange={e => { setQuality(e.target.value); e.currentTarget.blur(); host.current?.focus({ preventScroll: true }); }}>
        <option value="auto">Auto · {autoLabel}</option><option value="performance">Performance</option><option value="high">High</option><option value="ultra">Ultra</option>
       </select></label>}
-      {autoReport && <p className="sv-auto-result">Auto check: {autoReport} Auto targets {AUTO_TARGET_FPS}+ FPS during play.</p>}
+      {autoReport && <p className="sv-auto-result">Auto check: {autoReport} Auto targets {touchControlsActive ? 60 : AUTO_TARGET_FPS} FPS during play; lighter graphics help slower devices.</p>}
       {<label>FPS meter <select aria-label="FPS meter" value={performanceMeter} onChange={e => setPerformanceMeter(e.target.value as PerformanceMeterMode)}>
        <option value="off">Off</option><option value="fps">FPS only</option><option value="detailed">Detailed</option>
       </select></label>}
@@ -3124,13 +3156,13 @@ function MarsWorld(props: Props) {
             <div className="mars-shield-popup-body">
               <strong>SHIELD ACTIVE: 50% (ROVER)</strong>
               <span>Pressurized chassis deflection engaged · Minimizing to cockpit HUD</span>
-              <span className="rover-camera-hint">{touchControlsActive ? "Tap the camera button or press V to switch camera view." : "Press V to switch camera view."}</span>
+              <span className="rover-camera-hint">{touchControlsActive ? "Tap the camera button to switch camera view." : "Press V to switch camera view."}</span>
             </div>
           </div>
         </aside>
       )}
 
-      {!phoneOpen && <button type="button" className="mars-phone-launcher" aria-label="Open radiation phone" onClick={openPhone}>
+      {!phoneOpen && <button type="button" className="mars-phone-launcher" data-ui-zone="phone" aria-label="Open radiation phone" onClick={openPhone}>
         <Smartphone size={19} aria-hidden="true"/> <span>Field phone</span> <kbd>P / ↑</kbd>
       </button>}
     </>)}
@@ -3143,7 +3175,7 @@ function MarsWorld(props: Props) {
         <div className="mars-phone-top-bar">
           {/* Pages and Sites serve this local asset directly, without a Next image optimizer. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="mars-phone-brand-logo" src={assetUrl('/branding/tarukh-phone-logo.png')} alt="TARUKH" width="90" height="46" loading="lazy" decoding="async" />
+          <img className="mars-phone-brand-logo" src={assetUrl('/branding/tarukh-phone-logo.webp')} alt="TARUKH" width="90" height="46" loading="lazy" decoding="async" />
           <div className="handset-hardware" aria-hidden="true"><i className="handset-camera"/><i className="handset-speaker"/></div>
           <button type="button" className="mars-bezel-btn" onClick={closePhone} aria-label="Minimize phone" title="Put phone away · P / Esc">
             <ChevronDown size={20} aria-hidden="true"/>
@@ -3504,7 +3536,7 @@ function MarsWorld(props: Props) {
           )}
 
           {activePhoneTab === "home" && <RadiationPhoneHome
-            logoSrc={assetUrl('/branding/tarukh-phone-logo.png')}
+            logoSrc={assetUrl('/branding/tarukh-phone-logo.webp')}
             onOpenApp={setActivePhoneTab}
             onOpenMap={props.onOpenMap ? () => { closePhone(); props.onOpenMap?.(); } : undefined}
             onOpenGuide={() => setSepInfoOpen(true)}
@@ -3664,7 +3696,7 @@ function MarsWorld(props: Props) {
        </div>
      </dialog>
    )}
-   {loaded && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" aria-live="polite">
+   {loaded && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" data-ui-zone="interaction" aria-live="polite">
      <button disabled={outpostPromptDisabled} onClick={() => { handleInspectNearby(); host.current?.focus({ preventScroll: true }); }} aria-label={outpostPrompt}>{!outpostPromptDisabled && <kbd>E</kbd>} {outpostPrompt}</button>
    </div>}
    {message && <p className="sv-world-message" role="status">{message}</p>}

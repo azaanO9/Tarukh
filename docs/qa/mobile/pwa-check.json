@@ -1,0 +1,65 @@
+{
+  "checks": [
+    {
+      "name": "Manifest, standalone metadata and all three icon dimensions valid",
+      "details": {
+        "meta": {
+          "manifest": "http://127.0.0.1:4208/Tarukh/manifest.webmanifest",
+          "theme": "#0a1420",
+          "capable": "yes",
+          "appleIcon": "http://127.0.0.1:4208/Tarukh/pwa/icon-180.png",
+          "viewport": "width=device-width, initial-scale=1.0, viewport-fit=cover"
+        },
+        "manifest": {
+          "id": "./",
+          "name": "TARUKH — Mars Exploration",
+          "short_name": "TARUKH",
+          "description": "Explore the Mars outpost, grow food and drive across Martian terrain.",
+          "start_url": "./",
+          "scope": "./",
+          "display": "standalone",
+          "orientation": "landscape",
+          "background_color": "#0a1420",
+          "theme_color": "#0a1420",
+          "icons": [
+            {
+              "src": "pwa/icon-192.png",
+              "sizes": "192x192",
+              "type": "image/png",
+              "purpose": "any"
+            },
+            {
+              "src": "pwa/icon-512.png",
+              "sizes": "512x512",
+              "type": "image/png",
+              "purpose": "any maskable"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Versioned service worker activates at repository scope without skipWaiting",
+      "details": {
+        "scope": "http://127.0.0.1:4208/Tarukh/",
+        "active": "activated",
+        "script": "http://127.0.0.1:4208/Tarukh/sw.js",
+        "cacheNames": [
+          "tarukh-e03ebeab3dc5596e"
+        ],
+        "version": "tarukh-e03ebeab3dc5596e",
+        "skipWaiting": false
+      }
+    },
+    {
+      "name": "Checking unchanged worker update does not reload running page"
+    },
+    {
+      "name": "Offline reload restores launch screen with HTTP cache disabled"
+    }
+  ],
+  "errors": [],
+  "limits": [
+    "No game assets loaded: this validates offline launch, not a complete offline 3D expedition. A changed-version waiting worker was not simulated; unchanged update and absence of skipWaiting were verified."
+  ]
+}

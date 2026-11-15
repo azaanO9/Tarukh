@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Exploration: uncached offline chunk shows reconnect screen",
+    "Exploration: mission save retained and scene released",
+    "Exploration: explicit retry returns to launcher with saved mission intact",
+    "Story: uncached offline chunk shows reconnect screen",
+    "Story: mission save retained and scene released",
+    "Story: explicit retry returns to launcher with saved mission intact"
+  ],
+  "expectedNetworkFailures": [],
+  "errors": []
+}

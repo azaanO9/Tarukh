@@ -1,70 +1,32 @@
 "use client";
+import {useEffect,useRef} from 'react';
+import {tryEnterLandscape} from './mobileDevice';
 
-import { useEffect, useState } from "react";
-import { isCoarsePointerDevice, isMobilePortraitPhone, tryEnterLandscape } from "./mobileDevice";
-
-/**
- * Blocks 3D mobile phone gameplay in portrait until the user rotates sideways
- * to landscape, keeping controls and wide HUD unobstructed.
- */
-export function RotateToLandscapeGate({
-  onBlockedChange,
-}: {
-  onBlockedChange?: (blocked: boolean) => void;
-}) {
-  const [blocked, setBlocked] = useState(false);
-
-  useEffect(() => {
-    const evaluate = () => {
-      const next = isMobilePortraitPhone(
-        window.innerWidth,
-        window.innerHeight,
-        isCoarsePointerDevice(),
-      );
-      setBlocked(next);
-      onBlockedChange?.(next);
+/** The parent pauses the world and cinematic before presenting this screen. */
+export function RotateToLandscapeGate({blocked}:{blocked:boolean}) {
+  const button=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{
+    if(!blocked)return;
+    const previous=document.activeElement as HTMLElement|null;
+    document.exitPointerLock?.();
+    button.current?.focus();
+    const keys=(event:KeyboardEvent)=>{
+      if(event.key==='Tab'){event.preventDefault();button.current?.focus();}
     };
-    evaluate();
-    const media = window.matchMedia?.("(pointer: coarse)");
-    window.addEventListener("resize", evaluate);
-    window.addEventListener("orientationchange", evaluate);
-    media?.addEventListener?.("change", evaluate);
-    return () => {
-      window.removeEventListener("resize", evaluate);
-      window.removeEventListener("orientationchange", evaluate);
-      media?.removeEventListener?.("change", evaluate);
-      onBlockedChange?.(false);
+    document.addEventListener('keydown',keys);
+    return ()=>{
+      document.removeEventListener('keydown',keys);
+      if(previous?.isConnected)previous.focus();
     };
-  }, [onBlockedChange]);
-
-  if (!blocked) return null;
-
-  return (
-    <div
-      className="sv-rotate-gate"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Rotate your phone to landscape to play"
-    >
-      <div className="sv-rotate-card">
-        <div className="sv-rotate-icon" aria-hidden="true">
-          <span className="sv-phone-outline" />
-        </div>
-        <p className="sv-rotate-kicker">MOBILE LANDSCAPE MODE</p>
-        <h2>Rotate your phone to landscape</h2>
-        <p>
-          Turn your device sideways to unlock the virtual joystick, rover pedals,
-          and full landscape view.
-        </p>
-        <button
-          type="button"
-          className="sv-rotate-btn"
-          onClick={() => void tryEnterLandscape()}
-        >
-          Try landscape fullscreen ↻
-        </button>
-      </div>
+  },[blocked]);
+  if(!blocked)return null;
+  return <div className="sv-rotate-gate" role="dialog" aria-modal="true" aria-labelledby="rotate-title" data-ui-zone="rotation">
+    <div className="sv-rotate-card">
+      <div className="sv-rotate-icon" aria-hidden="true"><span className="sv-phone-outline"/></div>
+      <p className="sv-rotate-kicker">YOUR ADVENTURE IS PAUSED</p>
+      <h2 id="rotate-title">Turn your device sideways</h2>
+      <p>Give Mars a little more room! Your adventure continues when you rotate to landscape.</p>
+      <button ref={button} type="button" className="sv-rotate-btn" onClick={()=>void tryEnterLandscape()}>Try fullscreen ↻</button>
     </div>
-  );
+  </div>;
 }
-

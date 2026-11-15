@@ -11,7 +11,7 @@ import {createStarshipVisual} from './starshipVisual.ts';
 type ArrivalOptions={
   ready:()=>boolean;onComplete:()=>void;onFrame:(frame:ReturnType<typeof createArrivalFrame>,elapsed:number,paused:boolean,dust:number)=>void;
   onFailure:()=>void;performance:boolean;reduced:boolean;previewTime?:number;
-  playback:ArrivalPlayback;
+  playback:ArrivalPlayback;suspended?:()=>boolean;
 };
 
 /** Earth and orbit use this renderer; descent uses the prepared game world behind the overlay. */
@@ -80,13 +80,14 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
     if(disposed)return;frameId=requestAnimationFrame(animate);
     const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;
     if(document.hidden)return;
-    elapsed=advanceArrivalWithReadiness(elapsed,dt,paused,options.ready());
+    const held=paused||Boolean(options.suspended?.());
+    elapsed=advanceArrivalWithReadiness(elapsed,dt,held,options.ready());
     const preview=options.previewTime;
     const time=preview??(options.reduced||skipped?(options.ready()?STARSHIP_ARRIVAL_DURATION:ARRIVAL_READY_HOLD):elapsed);
-    if(!paused&&preview===undefined&&canEnterMars(options.ready(),elapsed,skipped,options.reduced)){finish();return;}
-    if((paused||elapsed>=36)&&now-lastDraw<100)return;
-    pose(time,paused?0:dt);if(!frameData.returning)renderer.render(scene,camera);lastDraw=now;
-    if(now-lastUi>100){lastUi=now;options.onFrame(frameData,elapsed,paused,dust.active);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);}
+    if(!held&&preview===undefined&&canEnterMars(options.ready(),elapsed,skipped,options.reduced)){finish();return;}
+    if((held||elapsed>=36)&&now-lastDraw<100)return;
+    pose(time,held?0:dt);if(!frameData.returning)renderer.render(scene,camera);lastDraw=now;
+    if(now-lastUi>100){lastUi=now;options.onFrame(frameData,elapsed,held,dust.active);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);}
   }
   const lost=(event:Event)=>{event.preventDefault();dispose();options.onFailure();};renderer.domElement.addEventListener('webglcontextlost',lost);
   cleanups.push(()=>renderer.domElement.removeEventListener('webglcontextlost',lost));
@@ -100,6 +101,6 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
     if(disposed)return;started=true;host.dataset.ready='true';frameId=requestAnimationFrame(animate);
   }
   void start().catch(()=>{if(!disposed){dispose();options.onFailure();}});
-  return {dispose,skip(){skipped=true;paused=false;if(options.ready())finish();},togglePause(){paused=!paused;return paused;},get started(){return started;},get pins(){return REUSABLE_ROCKET.pinHeight;}};
+  return {dispose,skip(){skipped=true;paused=false;if(options.ready()&&!options.suspended?.())finish();},togglePause(){paused=!paused;return paused;},get started(){return started;},get pins(){return REUSABLE_ROCKET.pinHeight;}};
   }catch(error){dispose();throw error;}
 }

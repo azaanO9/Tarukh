@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "name": "Two-finger pinch zooms the actual atlas",
+      "before": [
+        -942.1451843475053,
+        -733.0077988267901,
+        1884.2903686950108,
+        1466.0155976535802
+      ],
+      "after": [
+        -314.04839478250176,
+        -244.33593294226336,
+        628.0967895650036,
+        488.6718658845267
+      ]
+    },
+    {
+      "name": "Small finger movement stays below drag threshold"
+    },
+    {
+      "name": "One-finger drag pans without changing zoom",
+      "before": [
+        -314.04839478250176,
+        -244.33593294226336,
+        628.0967895650036,
+        488.6718658845267
+      ],
+      "after": [
+        -374.3798744192029,
+        -264.44674835998296,
+        628.0967895650036,
+        488.6718658845267
+      ]
+    },
+    {
+      "name": "Touching the western landmark selects its matching list entry"
+    },
+    {
+      "name": "Holding a marker opens its secondary details"
+    }
+  ],
+  "errors": []
+}

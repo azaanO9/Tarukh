@@ -100,4 +100,4 @@ The coastal Earth surface, ocean colours, cloud banks, orbital atmosphere and st
 
 ## Field phone
 
-`public/branding/tarukh-phone-logo.png` is the TARUKH logo supplied by the project owner on November 16, 2026, used unchanged. The compact handset shell, flight-computer grid and app icons are original CSS/React styling inspired by in-game smartphones and spaceflight interfaces. Agency and company logos are not used. App symbols use the existing Lucide library. No GTA V artwork, logos, fonts or audio are included.
+`public/branding/tarukh-phone-logo.webp` is a resized, compressed derivative of the TARUKH logo supplied by the project owner on November 16, 2026. The install icons in `public/pwa/` use the same logo on the game's dark background. The compact handset shell, flight-computer grid and app icons are original CSS/React styling inspired by in-game smartphones and spaceflight interfaces. Agency and company logos are not used. App symbols use the existing Lucide library. No GTA V artwork, logos, fonts or audio are included.
