@@ -5,7 +5,7 @@ import {STARBASE as D,type RigPose,type VehicleView} from '../../game/starbaseRi
 const UP=new T.Vector3(0,1,0),DEG=Math.PI/180;
 
 /** Original procedural geometry; no downloaded models, maps, or scene dependencies. */
-export function createStarbase(scene:T.Scene) {
+export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}) {
   const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();
   const own=<G extends T.BufferGeometry>(g:G)=>{geometries.add(g);return g;};
   const material=(color:string,metalness:number,roughness:number,extra:T.MeshStandardMaterialParameters={})=>{
@@ -344,6 +344,14 @@ export function createStarbase(scene:T.Scene) {
   const tiles=new T.InstancedMesh(own(new T.CylinderGeometry(.248,.248,.045,6)),tile,tileMatrices.length);
   tiles.name='windwardHexagonalTPS';for(let i=0;i<tileMatrices.length;i++)tiles.setMatrixAt(i,tileMatrices[i]);tiles.castShadow=false;tiles.receiveShadow=true;starshipHullMesh.add(tiles);
   batch(starshipHullMesh);
+  if(options.shipCatchPins){
+    const pins=group(starshipUpperStage,'shipCatchPins');
+    for(const side of [-1,1]){
+      box(pins,edge,0,D.shipPinHeight,side*4.52,1.5,1.5,.65);
+      const pin=cylinder(pins,bright,0,D.shipPinHeight,side*D.pinZ,D.pinRadius,1.65);pin.rotation.x=Math.PI/2;
+    }
+    batch(pins);
+  }
   const forwardFlaps:T.Group[]=[],aftFlaps:T.Group[]=[];
   for(const forward of [true,false])for(const side of [-1,1]){
     const mount=group(starshipUpperStage,`${forward?'forward':'aft'}FlapMount${side}`);
@@ -358,12 +366,32 @@ export function createStarbase(scene:T.Scene) {
 
   const bell=own(new T.LatheGeometry([new T.Vector2(.76,0),new T.Vector2(.72,.18),new T.Vector2(.57,.8),new T.Vector2(.36,1.6),new T.Vector2(.29,2.25),new T.Vector2(.39,2.6)],24));
   const jacket=own(new T.CylinderGeometry(.42,.39,.65,16));
-  const exhaustMaterial=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,
-    uniforms:{time:{value:0},motion:{value:1},thrust:{value:0}},
-    vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}',
-    fragmentShader:'varying vec2 vUv;uniform float time,motion,thrust;void main(){float axial=1.0-vUv.y;float wave=.88+.12*sin(axial*42.0-time*2.0*motion);float edge=pow(max(0.0,sin(vUv.x*3.14159)),.5);vec3 c=mix(vec3(.28,.43,1.0),vec3(1.0,.65,.28),axial);c=mix(c,vec3(.8,.92,1.0),pow(1.0-axial,3.0));float alpha=edge*(1.0-smoothstep(.6,1.0,axial))*.62*wave*min(1.0,thrust*4.0);gl_FragColor=vec4(c*1.7,alpha);}',
+  const exhaustMaterial=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,
+    uniforms:{time:{value:0},motion:{value:1},thrust:{value:0},core:{value:0}},
+    vertexShader:`varying vec2 vUv;varying vec3 plumeNormal,plumeView;uniform float time,motion;
+      void main(){vUv=uv;vec3 point=position;float axial=1.0-uv.y;
+      point.xz*=1.0+axial*axial*(1.1+.26*sin(axial*28.0-time*motion*5.0+position.x*3.0));
+      mat3 instanceNormal=mat3(instanceMatrix);vec3 n=normal/vec3(dot(instanceNormal[0],instanceNormal[0]),dot(instanceNormal[1],instanceNormal[1]),dot(instanceNormal[2],instanceNormal[2]));
+      plumeNormal=normalMatrix*instanceNormal*n;vec4 mv=modelViewMatrix*instanceMatrix*vec4(point,1.0);plumeView=-mv.xyz;gl_Position=projectionMatrix*mv;}`,
+    fragmentShader:`varying vec2 vUv;varying vec3 plumeNormal,plumeView;uniform float time,motion,thrust,core;
+      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y);}
+      void main(){float axial=1.0-vUv.y;float flow=time*motion;
+      float turbulence=noise(vec2(vUv.x*10.0,axial*18.0-flow*4.0))*.7+noise(vec2(vUv.x*23.0,axial*37.0-flow*7.0))*.3;
+      float diamonds=pow(max(0.0,cos(axial*53.0-axial*axial*14.0)),10.0);
+      vec3 color=mix(vec3(.12,.31,.92),vec3(1.0,.29,.035),smoothstep(.06,.62,axial));
+      vec3 hot=mix(vec3(.8,.92,1.0),vec3(1.0,.74,.35),smoothstep(.15,.7,axial));
+      color=mix(color,hot,clamp(core*.8+diamonds*.48,0.0,1.0));
+      float edge=pow(abs(dot(normalize(plumeNormal),normalize(plumeView))),1.4);
+      float tail=1.0-smoothstep(.2+turbulence*.28,.82+turbulence*.18,axial);
+      float breakup=mix(.9,smoothstep(.18,.72,turbulence),smoothstep(.05,.85,axial));
+      float alpha=edge*tail*(.5+core*.27)*min(1.0,thrust*5.0)*breakup;
+      gl_FragColor=vec4(color*(1.3+core*.6+diamonds*.7),alpha);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      }`,
   });materials.add(exhaustMaterial);
-  type EngineRig={root:T.Group;gimbals:T.Group[];flame:T.InstancedMesh;centres:T.Vector3[];active:T.Group[]};
+  type EngineRig={root:T.Group;gimbals:T.Group[];flame:T.InstancedMesh;core:T.InstancedMesh;plumeMaterials:T.ShaderMaterial[];centres:T.Vector3[];active:T.Group[]};
   function engineCluster(parent:T.Object3D,isBooster:boolean):EngineRig{
     const root=group(parent,isBooster?'raptorCluster33':'raptorCluster6');
     const fixed=group(root,'fixedEngines'),gimbals:T.Group[]=[],centres:T.Vector3[]=[],active:T.Group[]=[];
@@ -385,10 +413,14 @@ export function createStarbase(scene:T.Scene) {
       if(!outer)gimbals.push(engine);active.push(engine);
     }
     batch(fixed);
-    const flame=new T.InstancedMesh(own(new T.ConeGeometry(1,1,16,1,true)),exhaustMaterial,count);
+    const plumeMaterial=exhaustMaterial.clone(),coreMaterial=exhaustMaterial.clone();coreMaterial.uniforms.core.value=1;
+    materials.add(plumeMaterial);materials.add(coreMaterial);
+    const plumeGeometry=own(new T.CylinderGeometry(.52,1,1,20,8,true));
+    const flame=new T.InstancedMesh(plumeGeometry,plumeMaterial,count),core=new T.InstancedMesh(plumeGeometry,coreMaterial,count);
     flame.name='exhaustPlumes';flame.frustumCulled=false;flame.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(flame);
+    core.name='exhaustCores';core.frustumCulled=false;core.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(core);
     root.userData.engineCount=count;root.userData.fixedEngines=isBooster?20:3;root.userData.gimbalingEngines=gimbals.length;
-    return {root,gimbals,flame,centres,active};
+    return {root,gimbals,flame,core,plumeMaterials:[plumeMaterial,coreMaterial],centres,active};
   }
   const boosterEngines=engineCluster(superHeavyBooster,true),shipEngines=engineCluster(starshipUpperStage,false);
   const exhaustLight=new T.PointLight('#b6c9ff',0,100,2);exhaustLight.position.y=-2;rocketEntity.add(exhaustLight);
@@ -396,15 +428,22 @@ export function createStarbase(scene:T.Scene) {
   let detached=false,disposed=false;
   const pinLeft=new T.Vector3(),pinRight=new T.Vector3(),position=new T.Vector3(),direction=new T.Vector3();
 
-  function updatePlumes(rig:EngineRig,thrust:number,landing:boolean){
-    const count=landing?3:rig.centres.length;rig.flame.count=count;rig.flame.visible=thrust>.001;
+  function updatePlumes(rig:EngineRig,thrust:number,landing:boolean,time:number,reduced:boolean,landingCount=3){
+    const count=landing?landingCount:rig.centres.length;rig.flame.count=rig.core.count=count;rig.flame.visible=rig.core.visible=thrust>.001;
+    for(const material of rig.plumeMaterials){material.uniforms.thrust.value=thrust;material.uniforms.time.value=time;material.uniforms.motion.value=reduced?0:1;}
     if(!rig.flame.visible)return;
     for(let i=0;i<count;i++){
-      const index=landing?30+i:i,engine=rig.active[index],length=(landing?18:26)*Math.sqrt(thrust);
+      const index=landing?rig.centres.length-3+i:i,engine=rig.active[index],length=(landing?48:36)*Math.sqrt(thrust);
       position.set(0,-3.65-length/2,0).applyQuaternion(engine.quaternion).add(engine.position);
-      scale.set(landing?.7:.8,length,landing?.7:.8);matrix.compose(position,engine.quaternion,scale);rig.flame.setMatrixAt(i,matrix);
+      scale.set(landing?1.65:1.1,length,landing?1.65:1.1);matrix.compose(position,engine.quaternion,scale);rig.flame.setMatrixAt(i,matrix);
+      scale.x*=.32;scale.z*=.32;matrix.compose(position,engine.quaternion,scale);rig.core.setMatrixAt(i,matrix);
     }
-    rig.flame.instanceMatrix.needsUpdate=true;
+    rig.flame.instanceMatrix.needsUpdate=rig.core.instanceMatrix.needsUpdate=true;
+  }
+  function setPropulsion(boosterThrust:number,shipThrust:number,time:number,reduced=false,boosterLanding=false,shipLandingEngines=0){
+    updatePlumes(boosterEngines,boosterThrust,boosterLanding,time,reduced);
+    updatePlumes(shipEngines,shipThrust,shipLandingEngines>0,time,reduced,shipLandingEngines);
+    exhaustLight.intensity=Math.max(boosterThrust,shipThrust)*1300;
   }
   function applyPose(p:RigPose,view:VehicleView,time:number,reducedMotion=false){
     chopstickCarriage.position.y=p.carriageHeight;
@@ -426,9 +465,7 @@ export function createStarbase(scene:T.Scene) {
     for(let i=0;i<2;i++){forwardFlaps[i].rotation.x=p.flaps[i]*DEG;aftFlaps[i].rotation.x=p.flaps[i+2]*DEG;}
     for(const engine of boosterEngines.gimbals){engine.rotation.x=-p.rocketPitch*.4*DEG;engine.rotation.z=-p.rocketRoll*.4*DEG;}
     for(const engine of shipEngines.gimbals){engine.rotation.x=-p.rocketPitch*.25*DEG;engine.rotation.z=-p.rocketRoll*.25*DEG;}
-    exhaustMaterial.uniforms.time.value=time;exhaustMaterial.uniforms.motion.value=reducedMotion?0:1;exhaustMaterial.uniforms.thrust.value=p.engineThrust;
-    updatePlumes(boosterEngines,p.engineThrust,view==='booster');updatePlumes(shipEngines,view==='ship'?p.engineThrust:0,false);
-    exhaustLight.intensity=p.engineThrust*1300;
+    setPropulsion(view==='ship'?0:p.engineThrust,view==='ship'?p.engineThrust:0,time,reducedMotion,view==='booster');
   }
   function separateStages(){
     if(detached)return;scene.updateMatrixWorld(true);scene.attach(starshipUpperStage);detached=true;
@@ -454,6 +491,6 @@ export function createStarbase(scene:T.Scene) {
   }
   return {groundPad,orbitalLaunchMount,mechazillaTower,towerTrussMesh,topCraneAssembly,quickDisconnectArm,chopstickCarriage,
     leftArmPivot,rightArmPivot,hydraulicPistons,rocketEntity,superHeavyBooster,starshipUpperStage,
-    gridFins,forwardFlaps,aftFlaps,boosterEngines,shipEngines,pistons,applyPose,separateStages,joinStages,pins,dispose,
+    gridFins,forwardFlaps,aftFlaps,boosterEngines,shipEngines,pistons,applyPose,setPropulsion,exhaustLight,separateStages,joinStages,pins,dispose,
     get stagesSeparated(){return detached;}};
 }

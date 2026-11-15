@@ -126,6 +126,7 @@ type Props = {
   initialQuality?: "auto" | "performance";
   onTouchControlsChange?: (active: boolean) => void;
   playLandingIntro?: boolean;
+  coveredByArrival?: boolean;
   onRestart?: () => void;
 };
 export default function MarsWorld(props: Props) {
@@ -505,6 +506,8 @@ export default function MarsWorld(props: Props) {
         scene.add(landingIntro.root);
         if (current.current.playLandingIntro) {
           landingIntro.start();
+        } else {
+          landingIntro.skip();
         }
         if (previewPerseverance || previewOutpost || previewGreenhouse || previewGarage) {
           landingIntro.skip();
@@ -738,7 +741,7 @@ export default function MarsWorld(props: Props) {
       let lastRoverNear = false;
       let wasCockpit = false;
       let lastRoverSpeed = 0;
-      let cameraYaw = previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : 0;
+      let cameraYaw = previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : !current.current.playLandingIntro && !previewPerseverance && !previewOutpost ? ARRIVAL_YAW : 0;
       let characterYaw = cameraYaw;
       let lastRoverGear: RoverGear = "N";
       let lastRoverBoost = false;
@@ -838,7 +841,7 @@ export default function MarsWorld(props: Props) {
       let resolutionScale = Math.min(devicePixelRatio, 1.25);
       let gaitPhase = 0;
       let gaitBlend = 0;
-      let cameraGround = 0;
+      let cameraGround = current.current.playLandingIntro ? 0 : model.heightAt(walker.x, walker.z);
       const center = new T.Vector2(0, 0);
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
       const resize = () => {
@@ -1298,6 +1301,13 @@ export default function MarsWorld(props: Props) {
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
+        if (current.current.coveredByArrival) {
+          last = time;
+          metricStart = 0;
+          metricFrames = 0;
+          keys.clear();
+          return;
+        }
         if (document.hidden) {
           last = time;
           metricStart = 0;
@@ -2391,7 +2401,7 @@ export default function MarsWorld(props: Props) {
     ? `radial-gradient(circle at center, rgba(220, 38, 38, ${centerRedAlpha}) 0%, rgba(185, 28, 28, ${midRedAlpha}) ${midRadius}%, rgba(127, 29, 29, ${edgeRedAlpha}) 100%)`
     : undefined;
 
-  return (<div ref={host} className="sv-world" data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<div ref={host} className="sv-world" data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}

@@ -24,7 +24,7 @@ The crew rover's 50 km/h forward and 10 km/h reverse limits, acceleration, braki
 
 LiDAR is a 2D collision scan: 180 horizontal beams over 30 metres, at up to 8 scans per second, with 0.25-metre sampling steps. It uses the driving collision boundaries, excludes traversable stones and does not apply automatic brakes. Finite angular resolution and the 2D approximation limit detection. It is not a reproduction or certification of NASA sensing hardware.
 
-The fictional shuttle's 24-second descent, hatch opening and astronaut exit are presentation. A complete visual day/night cycle takes ten active minutes; pause and landing stop that cycle. This is not a real Martian sol, a survival deadline or a resource simulation.
+The opening is a 32-second, SpaceX-inspired Earth recovery montage before Mars exploration. A covered cut omits orbital coast; hot-staging, Starship's landing flip, sequential engine shutdown and a tower catch are time-compressed presentation. Dimensions, lift-pin locations, contact altitude, exhaust and dust are authored approximations, not flight telemetry or fluid dynamics. The existing shuttle remains parked as the Mars shelter. A complete visual day/night cycle takes ten active minutes; pause and the opening stop that cycle. This is not a real Martian sol, a survival deadline or a resource simulation.
 
 ## Space weather and radiation exposure
 

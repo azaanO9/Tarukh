@@ -5,6 +5,7 @@ export const STARBASE = Object.freeze({
   carriageMin: 25, carriageMax: 120, catchHeight: 96,
   boosterHeight: 71, shipHeight: 50, radius: 4.5, mountHeight: 20,
   pinHeight: 64.8, pinRadius: .28, pinZ: 5.15,
+  shipPinHeight: 32, shipCatchHeight: 52,
   catchSeconds: 32,
 });
 

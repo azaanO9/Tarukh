@@ -2,6 +2,10 @@
 
 These references support terrain provenance and educational concepts. They do not validate the game as an operational simulator. Asset attribution is maintained separately in [ASSET_CREDITS.md](../ASSET_CREDITS.md).
 
+## Starship opening reference
+
+- [SpaceX, Starship Flight 15](https://www.spacex.com/launches/starship-flight-15), November 13–14, 2026; accessed November 15, 2026. The postflight account identifies hot-staging, an extended orbital coast, Starship's return, a three-engine landing flip and its first upper-stage tower catch. The published timeline lists the reduction from three landing engines to two, then one, before cutoff. The game's opening compresses this sequence and uses its existing artistic rig; the report does not validate the model geometry, dust, contact mechanics or timings. The booster recovery is omitted from this montage.
+
 ## Mars terrain and landmarks
 
 - Perseverance touchdown: Bell et al., *Science Advances* 8, eabo4856 (2022), [NASA NTRS copy, page 1](https://ntrs.nasa.gov/api/citations/20230016428/downloads/Bell%20et%20al%202022sciadv.pdf), reports 18.4446° N, 77.4509° E on 18 February 2021. [NASA's landing-site article](https://science.nasa.gov/resource/welcome-to-octavia-e-butler-landing/) identifies Octavia E. Butler Landing. These support the historical marker, not a live rover location, the artistic model, local rock placement or the crew rover's 50 km/h gameplay speed.

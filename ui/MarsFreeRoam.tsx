@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ExplorationMinimap from "./ExplorationMinimap";
 import MarsAtlas from "./MarsAtlas";
 import {PERSEVERANCE_LANDING} from '../content/marsLandingSites';
-import ShuttleArrival from "./ShuttleArrival";
+import StarshipArrival from "./StarshipArrival";
 import MarsWorld, { type View } from "./MarsWorld";
 import { isCoarsePointerDevice, tryEnterLandscape } from "./mobileDevice";
 import { RotateToLandscapeGate } from "./RotateToLandscapeGate";
@@ -17,7 +17,6 @@ export default function MarsFreeRoam() {
   const [streamed, setStreamed] = useState(false);
   const [mode, setMode] = useState<"pc" | "mobile">("pc");
   const [sceneReady, setSceneReady] = useState(false);
-  const [graphicsStatus,setGraphicsStatus]=useState('');
   const [arrived, setArrived] = useState(false);
   const ready = useCallback(() => setSceneReady(true), []);
   const finishArrival = useCallback(() => setArrived(true), []);
@@ -75,17 +74,17 @@ export default function MarsFreeRoam() {
         <button aria-pressed={mode === "mobile"} onClick={() => setMode("mobile")}>Mobile · Touch controls</button>
       </fieldset>
       <p>{mode === "pc" ? "WASD move · Space jump · V camera · F enter/exit rover · E inspect science rovers · Caps Lock map" : "Use the movement stick, swipe to look and use the rover buttons when nearby. Tap Atlas below the minimap for the full region."}</p>
-      <button className="roam-primary" onClick={() => { if (mode === "mobile") void tryEnterLandscape(); setGraphicsStatus(''); setView(null); setSceneReady(false); setArrived(false); setStarted(true); }}>Explore Mars</button>
+      <button className="roam-primary" onClick={() => { if (mode === "mobile") void tryEnterLandscape(); setView(null); setSceneReady(false); setArrived(false); setStarted(true); }}>Explore Mars</button>
     </section>
   </main>;
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase="explore">
-    <MarsWorld key={attempt} playLandingIntro enabled={arrived && !modal && !blocked} onReady={ready} onTerrainMode={setStreamed} onGraphicsCalibration={setGraphicsStatus}
+    <MarsWorld key={attempt} coveredByArrival={!arrived} enabled={arrived && !modal && !blocked} onReady={ready} onTerrainMode={setStreamed}
       showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={active => setMode(active ? "mobile" : "pc")}
       initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={setView} onUnavailable={unavailable}
       onRestart={handleRestart} />
-    {!arrived && !failed && <ShuttleArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} graphicsStatus={graphicsStatus} />}
+    {!arrived && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} />}
     {!modal && arrived && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
     <header className="roam-header"><b>TARUKH <span>· FREE EXPLORATION</span></b>{view?.cockpitView&&<button aria-keyshortcuts="CapsLock" onClick={openAtlas}>Atlas</button>}<button disabled={!arrived} onClick={() => setMenu(true)}>Pause</button></header>
     {!modal && <aside className="roam-info">{streamed ? "Expanding Mars terrain" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}

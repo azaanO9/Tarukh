@@ -41,7 +41,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 ## Original work
 
 - `createPerseveranceRover.ts`: original simplified rover geometry, thermal deck, wheel rig, mast, antenna and generated labels. It marks the historical landing position, not the rover's current location.
-- `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch, stairs, generated glow/dust textures and 24-second landing/exit animation. It is not a NASA vehicle or validated descent simulation.
+- `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch and stairs, now used as the settled Mars shelter. The active opening is the Starship cinematic described below. Neither spacecraft presentation is a NASA vehicle certification or validated descent simulation.
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
 
@@ -70,7 +70,9 @@ The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-spa
 
 `public/starbase.html` uses original procedural geometry, generated surface/label textures and a generated reflection environment. No SpaceX photographs, logos, CAD, third-party models or external texture assets are included. The 145-metre tower, 71-metre booster, 50-metre upper stage and 33/6-engine layout follow the user-supplied concept brief, with [SpaceX's Starship reference](https://www.spacex.com/vehicles/starship/) as context. This is an independent artistic study, not an exact survey of current Starbase hardware or an endorsed simulation.
 
-Three.js 0.180, OrbitControls, RoomEnvironment and geometry utilities are bundled into the standalone HTML. Its embedded MIT notice is retained by `scripts/build-starbase.mjs`. The separate preview does not add downloads to the Mars game's entry.
+The game opening reuses this original rig with an authored upper-stage catch trajectory and lift-pin geometry, plus original procedural exhaust cores, shock-diamond/turbulence shading and a pooled ground-dust effect. It takes motion reference from [SpaceX's Flight 15 report](https://www.spacex.com/launches/starship-flight-15), accessed November 15, 2026. The report describes the upper-stage return and catch on November 14. No video frames, logos or third-party effects were copied. Geometry retains the earlier concept dimensions; this is not an exact Flight 15 vehicle reconstruction.
+
+Three.js 0.180, OrbitControls, RoomEnvironment and geometry utilities are bundled into the standalone HTML. Its embedded MIT notice is retained by `scripts/build-starbase.mjs`. The game imports the shared procedural source rather than downloading another copy of this HTML or its bundled renderer.
 
 ## Software notices
 
