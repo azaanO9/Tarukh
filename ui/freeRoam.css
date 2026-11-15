@@ -744,8 +744,8 @@
 }
 
 .atlas-expedition-wrap .brand svg {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 24px;
 }
 
 .atlas-expedition-wrap .program {
@@ -1059,6 +1059,7 @@
 }
 
 .atlas-expedition-wrap .pin span {
+  display: none;
   position: absolute;
   bottom: 27px;
   left: 50%;
@@ -1071,6 +1072,12 @@
   border-radius: 2px;
   border: 1px solid rgba(175, 226, 214, 0.25);
   pointer-events: none;
+  z-index: 10;
+}
+
+.atlas-expedition-wrap .pin:hover span,
+.atlas-expedition-wrap .pin.chosen span {
+  display: block;
 }
 
 .atlas-expedition-wrap .pin.chosen i {

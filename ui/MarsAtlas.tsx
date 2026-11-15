@@ -34,7 +34,7 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     id: "shuttle",
     name: "Landing Shuttle Base",
     kind: "base",
-    typeLabel: "Shelter Base",
+    typeLabel: "Base",
     glyph: "🚀",
     x: 0,
     z: 12,
@@ -44,18 +44,18 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     id: "outpost",
     name: "Habitat Campus Outpost",
     kind: "base",
-    typeLabel: "Habitat Base",
+    typeLabel: "Base",
     glyph: "🏛️",
     x: OUTPOST_SITE.x,
     z: OUTPOST_SITE.z,
-    description: "Main surface habitat modules, automated airlocks, and life support atmospheric scrubbers.",
+    description: "Main surface habitat modules, airlocks, and life support control systems.",
   },
   {
     id: "garage",
     name: "Rover Garage & Charger",
     kind: "infrastructure",
-    typeLabel: "Maintenance Bay",
-    glyph: "⚡",
+    typeLabel: "Infrastructure",
+    glyph: "🚙",
     x: GARAGE_SITE.x,
     z: GARAGE_SITE.z,
     description: "MMSEV maintenance bay, 1,200W solar inverter array, and automated battery dock.",
@@ -64,7 +64,7 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     id: "greenhouses",
     name: "Hydroponic Greenhouse Farm",
     kind: "infrastructure",
-    typeLabel: "Life Support",
+    typeLabel: "Infrastructure",
     glyph: "🌿",
     x: GREENHOUSE_SITES[0].x,
     z: GREENHOUSE_SITES[0].z,
@@ -77,6 +77,13 @@ interface Waypoint {
   z: number;
   label: string;
 }
+
+interface Point2D {
+  x: number;
+  z: number;
+}
+
+type RouteState = "preview" | "armed" | "driving" | "paused" | "arrived";
 
 export default function MarsAtlas({
   x,
@@ -108,10 +115,19 @@ export default function MarsAtlas({
     width: 800,
     height: 600,
   });
+
+  // Traverse simulation and route state
+  const [routeState, setRouteState] = useState<RouteState>("preview");
+  const [traverseProgress, setTraverseProgress] = useState(0);
+  const [simulatedRover, setSimulatedRover] = useState<Point2D | null>(null);
+  const [pulseRing, setPulseRing] = useState(1);
+  const [animTime, setAnimTime] = useState(0);
+
   const [traverseLogs, setTraverseLogs] = useState<string[]>([
     "Rover online at landing site.",
     "MOLA elevation survey loaded · Elysium Quadrangle.",
     "Telemetry link active with orbital constellation.",
+    "Surface survey started.",
   ]);
 
   const mapViewportRef = useRef<HTMLDivElement>(null);
@@ -146,14 +162,14 @@ export default function MarsAtlas({
   const centerZ = (B.north + B.south) / 2;
 
   // Active rover / astronaut position
-  const roverX = view?.roverX ?? x;
-  const roverZ = view?.roverZ ?? z;
+  const rawRoverX = view?.roverX ?? x;
+  const rawRoverZ = view?.roverZ ?? z;
   const isDriving = Boolean(view?.roverDriving);
   const roverYaw = view?.yaw ?? 0;
 
-  // Real world coordinates of the explorer
-  const playerCoords = worldToMars(x, z);
-  const playerElevation = Math.round(sampleMarsElevation(playerCoords.longitude, playerCoords.latitude));
+  // In simulated traverse mode, rover position follows route progress
+  const roverX = simulatedRover ? simulatedRover.x : rawRoverX;
+  const roverZ = simulatedRover ? simulatedRover.z : rawRoverZ;
 
   // Combine real landmarks with expedition bases
   const allSites: AtlasSite[] = useMemo(() => {
@@ -165,13 +181,13 @@ export default function MarsAtlas({
         lm.kind === "volcano"
           ? "Volcano"
           : lm.kind === "crater"
-            ? "Impact Crater"
+            ? "Crater"
             : lm.kind === "valley"
               ? "Valley"
               : lm.kind === "landing site"
-                ? "Landing Site"
-                : "Planitia",
-      glyph: lm.kind === "volcano" ? "◇" : lm.kind === "crater" ? "◉" : lm.kind === "valley" ? "⌁" : lm.kind === "landing site" ? "🚀" : "▱",
+                ? "Landing site"
+                : "Plain",
+      glyph: lm.kind === "volcano" ? "⌁" : lm.kind === "crater" ? "◇" : lm.kind === "valley" ? "◉" : lm.kind === "landing site" ? "◆" : "◉",
       x: lm.x,
       z: lm.z,
       latitude: lm.latitude,
@@ -180,117 +196,104 @@ export default function MarsAtlas({
       source: lm.source,
       sourceLabel: lm.sourceLabel,
     }));
-    return [...landmarks, ...EXPEDITION_BASES];
+
+    return [...EXPEDITION_BASES, ...landmarks];
   }, []);
 
-  // Filtered sites
+  // Filtered sites according to category chips
   const filteredSites = useMemo(() => {
     if (categoryFilter === "all") return allSites;
-    if (categoryFilter === "volcano") return allSites.filter((s) => s.kind === "volcano");
     if (categoryFilter === "base") return allSites.filter((s) => s.kind === "base" || s.kind === "infrastructure");
-    if (categoryFilter === "crater") return allSites.filter((s) => s.kind === "crater" || s.kind === "valley" || s.kind === "plain");
+    if (categoryFilter === "volcano") return allSites.filter((s) => s.kind === "volcano");
+    if (categoryFilter === "crater") return allSites.filter((s) => s.kind === "crater");
     return allSites;
   }, [allSites, categoryFilter]);
 
-  // Currently selected site
+  // Active site selection
   const activeSite = useMemo(() => {
-    return allSites.find((s) => s.id === selectedSiteId) ?? allSites[0];
+    return allSites.find((s) => s.id === selectedSiteId) || allSites[0];
   }, [allSites, selectedSiteId]);
 
-  // Route calculation
+  // Route target coordinates: either custom waypoint or active site
   const routeTargetX = waypoint ? waypoint.x : activeSite.x;
   const routeTargetZ = waypoint ? waypoint.z : activeSite.z;
-  const routeDistanceMeters = Math.round(Math.hypot(routeTargetX - roverX, routeTargetZ - roverZ));
-  const routeDistanceStr = routeDistanceMeters >= 1000 ? `${(routeDistanceMeters / 1000).toFixed(2)} km` : `${routeDistanceMeters} m`;
-  const routeElevationGain = Math.max(0, Math.round(sampleMarsElevation(worldToMars(routeTargetX, routeTargetZ).longitude, worldToMars(routeTargetX, routeTargetZ).latitude) - playerElevation));
 
-  // Show a brief message toast
-  const showToast = useCallback((msg: string) => {
-    setMessage(msg);
-    if (messageTimeoutRef.current) window.clearTimeout(messageTimeoutRef.current);
-    messageTimeoutRef.current = window.setTimeout(() => setMessage(null), 2200);
+  // Compute terrain-adaptive route path, total distance, and elevation gain
+  const routeData = useMemo(() => {
+    const startX = rawRoverX;
+    const startZ = rawRoverZ;
+    const targetX = routeTargetX;
+    const targetZ = routeTargetZ;
+    const dist = Math.hypot(targetX - startX, targetZ - startZ);
+
+    if (dist < 1) {
+      return {
+        points: [{ x: startX, z: startZ }, { x: targetX, z: targetZ }],
+        distance: dist,
+        elevationGain: 0,
+      };
+    }
+
+    const steps = Math.min(28, Math.max(10, Math.round(dist / 120)));
+    const points: Point2D[] = [];
+    let prevElev = sampleMarsElevation(worldToMars(startX, startZ).longitude, worldToMars(startX, startZ).latitude);
+    let totalGain = 0;
+    let totalDist = 0;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      let px = startX + (targetX - startX) * t;
+      let pz = startZ + (targetZ - startZ) * t;
+
+      // Gentle terrain-following lateral nudge along normal
+      if (i > 0 && i < steps) {
+        const normalX = -(targetZ - startZ) / dist;
+        const normalZ = (targetX - startX) / dist;
+        const sinWave = Math.sin(t * Math.PI);
+        const elevLeft = sampleMarsElevation(
+          worldToMars(px + normalX * 60, pz + normalZ * 60).longitude,
+          worldToMars(px + normalX * 60, pz + normalZ * 60).latitude
+        );
+        const elevRight = sampleMarsElevation(
+          worldToMars(px - normalX * 60, pz - normalZ * 60).longitude,
+          worldToMars(px - normalX * 60, pz - normalZ * 60).latitude
+        );
+        const nudge = (elevLeft - elevRight) / 220;
+        px += normalX * Math.max(-50, Math.min(50, nudge * sinWave * 35));
+        pz += normalZ * Math.max(-50, Math.min(50, nudge * sinWave * 35));
+      }
+
+      const elev = sampleMarsElevation(worldToMars(px, pz).longitude, worldToMars(px, pz).latitude);
+      if (i > 0) {
+        const prev = points[i - 1];
+        totalDist += Math.hypot(px - prev.x, pz - prev.z);
+        if (elev > prevElev) totalGain += elev - prevElev;
+      }
+      prevElev = elev;
+      points.push({ x: px, z: pz });
+    }
+
+    return { points, distance: totalDist, elevationGain: Math.round(totalGain) };
+  }, [rawRoverX, rawRoverZ, routeTargetX, routeTargetZ]);
+
+  const routeDistanceStr = routeData.distance >= 1000
+    ? `${(routeData.distance / 1000).toFixed(1)} km`
+    : `${Math.round(routeData.distance)} m`;
+  const routeElevationGain = routeData.elevationGain;
+
+  // Add entry to traverse log journal
+  const addLog = useCallback((entry: string) => {
+    setTraverseLogs((prev) => [entry, ...prev.slice(0, 59)]);
   }, []);
 
-  // Select a site
-  const handleSelectSite = useCallback(
-    (siteId: string) => {
-      setSelectedSiteId(siteId);
-      onSelect(siteId);
-      const target = allSites.find((s) => s.id === siteId);
-      if (target) {
-        showToast(`Selected · ${target.name}`);
-      }
-    },
-    [allSites, onSelect, showToast]
-  );
+  // Display ephemeral notification toast
+  const showToast = useCallback((text: string) => {
+    setMessage(text);
+    if (messageTimeoutRef.current) window.clearTimeout(messageTimeoutRef.current);
+    messageTimeoutRef.current = window.setTimeout(() => setMessage(null), 2100);
+  }, []);
 
-  // Set waypoint action
-  const handleSetWaypointAction = useCallback(() => {
-    if (waypoint) {
-      setTraverseLogs((prev) => [`Waypoint locked · GPS (${Math.round(waypoint.x)}, ${Math.round(waypoint.z)})`, ...prev.slice(0, 50)]);
-      showToast("Custom waypoint locked in rover nav");
-    } else {
-      setTraverseLogs((prev) => [`Route plotted to ${activeSite.name} · ${routeDistanceStr}`, ...prev.slice(0, 50)]);
-      showToast(`Waypoint set · ${activeSite.name}`);
-      onSelect(activeSite.id);
-    }
-  }, [waypoint, activeSite, routeDistanceStr, showToast, onSelect]);
-
-  // Center on rover / player
-  const handleCenterOnPlayer = useCallback(() => {
-    setPan({ x: roverX - centerX, z: roverZ - centerZ });
-    setZoom((zCur) => Math.max(1.8, zCur));
-    showToast("Centered on rover");
-  }, [roverX, roverZ, centerX, centerZ, showToast]);
-
-  // Center on a specific position
-  const handleCenterOnPosition = useCallback(
-    (targetX: number, targetZ: number) => {
-      setPan({ x: targetX - centerX, z: targetZ - centerZ });
-      setZoom((zCur) => Math.max(1.6, zCur));
-    },
-    [centerX, centerZ]
-  );
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "KeyM" || e.key.toLowerCase() === "m" || e.key === "Escape" || e.code === "CapsLock") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-        return;
-      }
-      if (e.code === "KeyR" || e.key.toLowerCase() === "r" || e.code === "Space") {
-        e.preventDefault();
-        handleCenterOnPlayer();
-        return;
-      }
-      if (e.code === "KeyC" || e.key.toLowerCase() === "c") {
-        e.preventDefault();
-        setShowContours((prev) => {
-          showToast(!prev ? "Contours · 500m interval" : "Contours hidden");
-          return !prev;
-        });
-        return;
-      }
-      if (e.key === "+" || e.key === "=") {
-        e.preventDefault();
-        setZoom((zVal) => Math.min(4.0, zVal * 1.25));
-        return;
-      }
-      if (e.key === "-" || e.key === "_") {
-        e.preventDefault();
-        setZoom((zVal) => Math.max(0.6, zVal / 1.25));
-        return;
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, handleCenterOnPlayer, showToast]);
-
-  // Coordinate projections
-  // World units (meters) to screen pixels inside map viewport
+  // World to screen projection
   const projectWorldToScreen = useCallback(
     (wx: number, wz: number, width: number, height: number): [number, number] => {
       const viewW = regionWidth / zoom;
@@ -305,7 +308,6 @@ export default function MarsAtlas({
       let sy = normZ * height;
 
       if (perspective === "relief") {
-        // Isometric 3D relief projection tilt
         const elev = sampleMarsElevation(worldToMars(wx, wz).longitude, worldToMars(wx, wz).latitude);
         const elevOffset = (elev / 15000) * (height * 0.14) * zoom;
         const tiltFactor = 0.38;
@@ -318,7 +320,7 @@ export default function MarsAtlas({
     [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective]
   );
 
-  // Screen pixels to world coordinates
+  // Screen to world projection
   const projectScreenToWorld = useCallback(
     (sx: number, sy: number, width: number, height: number): [number, number] => {
       const viewW = regionWidth / zoom;
@@ -327,18 +329,59 @@ export default function MarsAtlas({
       const viewCZ = centerZ + pan.z;
 
       const normX = sx / width;
-      const normZ = sy / height;
+      let normZ = sy / height;
+
+      if (perspective === "relief") {
+        const tiltFactor = 0.38;
+        const centerYScreen = height / 2;
+        const unTiltedY = centerYScreen + (sy - centerYScreen) / Math.cos(tiltFactor);
+        normZ = unTiltedY / height;
+      }
 
       const wx = viewCX - viewW / 2 + normX * viewW;
       const wz = viewCZ - viewH / 2 + normZ * viewH;
       return [wx, wz];
     },
-    [regionWidth, regionHeight, zoom, centerX, centerZ, pan]
+    [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective]
   );
 
-  // Pointer dragging and pan
+  // Selection handlers
+  const handleSelectSite = useCallback(
+    (siteId: string) => {
+      if (siteId !== selectedSiteId) {
+        if (routeState === "driving" || routeState === "paused") {
+          addLog(`Traverse diverted from ${activeSite.name}.`);
+        }
+        setSelectedSiteId(siteId);
+        setWaypoint(null);
+        setRouteState("preview");
+        setTraverseProgress(0);
+        setSimulatedRover(null);
+        setPulseRing(1);
+        onSelect(siteId);
+      }
+    },
+    [selectedSiteId, routeState, activeSite.name, addLog, onSelect]
+  );
+
+  const handleCenterOnPosition = useCallback(
+    (targetX: number, targetZ: number) => {
+      const targetPanX = targetX - centerX;
+      const targetPanZ = targetZ - centerZ;
+      const maxPanX = regionWidth * 0.45;
+      const maxPanZ = regionHeight * 0.45;
+      setPan({
+        x: Math.max(-maxPanX, Math.min(maxPanX, targetPanX)),
+        z: Math.max(-maxPanZ, Math.min(maxPanZ, targetPanZ)),
+      });
+      showToast("Centered on target");
+    },
+    [centerX, centerZ, regionWidth, regionHeight, showToast]
+  );
+
+  // Pan interaction
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 && e.button !== 1) return;
+    if ((e.target as HTMLElement).closest("button")) return;
     isDraggingRef.current = true;
     dragDistanceRef.current = 0;
     dragStartRef.current = {
@@ -354,17 +397,16 @@ export default function MarsAtlas({
     if (!isDraggingRef.current) return;
     const vp = mapViewportRef.current;
     if (!vp) return;
-    const rect = vp.getBoundingClientRect();
 
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
     dragDistanceRef.current = Math.hypot(dx, dy);
 
-    const metersPerPixelX = regionWidth / (zoom * rect.width);
-    const metersPerPixelZ = regionHeight / (zoom * rect.height);
+    const metersPerPixelX = regionWidth / (vp.clientWidth * zoom);
+    const metersPerPixelZ = regionHeight / (vp.clientHeight * zoom);
 
-    const maxPanX = regionWidth * 0.7;
-    const maxPanZ = regionHeight * 0.7;
+    const maxPanX = regionWidth * 0.45;
+    const maxPanZ = regionHeight * 0.45;
 
     setPan({
       x: Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.panX - dx * metersPerPixelX)),
@@ -387,14 +429,18 @@ export default function MarsAtlas({
       const [wx, wz] = projectScreenToWorld(sx, sy, rect.width, rect.height);
       const m = worldToMars(wx, wz);
       setWaypoint({ x: wx, z: wz, label: `GPS: ${m.latitude.toFixed(2)}°N, ${m.longitude.toFixed(2)}°E` });
+      setRouteState("preview");
+      setTraverseProgress(0);
+      setSimulatedRover(null);
+      setPulseRing(1);
       showToast(`Waypoint set: ${m.latitude.toFixed(2)}°N, ${m.longitude.toFixed(2)}°E`);
     }
   };
 
   // Zoom handlers
-  const handleZoom = (factor: number) => {
+  const handleZoom = useCallback((factor: number) => {
     setZoom((cur) => Math.max(0.6, Math.min(4.0, cur * factor)));
-  };
+  }, []);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -402,7 +448,100 @@ export default function MarsAtlas({
     handleZoom(factor);
   };
 
-  // Render Map Canvas (MOLA Elevation, Contours, Route line)
+  // Traverse route state machine action button
+  const handleActionClick = () => {
+    if (routeState === "preview") {
+      setRouteState("armed");
+      setPulseRing(1);
+      addLog(`Waypoint set · ${waypoint ? "Custom GPS Waypoint" : activeSite.name}`);
+      onSelect(activeSite.id);
+      showToast("Waypoint locked");
+    } else if (routeState === "armed" || routeState === "paused") {
+      const actionName = routeState === "paused" ? "Resumed" : "Departed for";
+      addLog(`${actionName} · ${waypoint ? "Custom GPS Waypoint" : activeSite.name}`);
+      setRouteState("driving");
+      onSelect(activeSite.id);
+    } else if (routeState === "driving") {
+      setRouteState("paused");
+      addLog("Rover paused on route.");
+      showToast("Traverse paused");
+    }
+  };
+
+  // Route status text and button labels
+  const statusText = useMemo(() => {
+    if (routeState === "preview") return "Preview route";
+    if (routeState === "armed") return "Waypoint locked";
+    if (routeState === "driving") return `Traversing · ${Math.round(traverseProgress * 100)}%`;
+    if (routeState === "paused") return "Traverse paused";
+    return "Survey site reached";
+  }, [routeState, traverseProgress]);
+
+  const actionLabel = useMemo(() => {
+    if (routeState === "preview") return "Set waypoint";
+    if (routeState === "armed") return "Begin traverse";
+    if (routeState === "driving") return "Pause traverse";
+    if (routeState === "paused") return "Resume traverse";
+    return "Site reached";
+  }, [routeState]);
+
+  const actionIcon = useMemo(() => {
+    if (routeState === "driving") return "⏸";
+    if (routeState === "arrived") return "✓";
+    return "↗";
+  }, [routeState]);
+
+  // Continuous animation loop for animated dash offset, pulse ring, and rover traversal
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+
+    const loop = (now: number) => {
+      const dt = Math.min(0.1, (now - lastTime) / 1000);
+      lastTime = now;
+      setAnimTime((t) => t + dt);
+
+      // Decaying pulse ring
+      setPulseRing((cur) => Math.max(0, cur - dt * 1.2));
+
+      // Driving simulation
+      if (routeState === "driving") {
+        setTraverseProgress((cur) => {
+          const totalMeters = routeData.distance || 1000;
+          const speedMps = Math.max(25, totalMeters / 15);
+          const nextProgress = Math.min(1, cur + (dt * speedMps) / totalMeters);
+
+          // Interpolate simulated rover coordinates along routePoints
+          const pts = routeData.points;
+          if (pts.length >= 2) {
+            const indexFloat = nextProgress * (pts.length - 1);
+            const idx = Math.floor(indexFloat);
+            const frac = indexFloat - idx;
+            const p1 = pts[idx];
+            const p2 = pts[Math.min(pts.length - 1, idx + 1)];
+            setSimulatedRover({
+              x: p1.x + (p2.x - p1.x) * frac,
+              z: p1.z + (p2.z - p1.z) * frac,
+            });
+          }
+
+          if (nextProgress >= 1) {
+            setRouteState("arrived");
+            addLog(`Arrived · ${waypoint ? "Custom GPS Waypoint" : activeSite.name}`);
+            showToast("Survey site reached");
+          }
+          return nextProgress;
+        });
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [routeState, routeData, activeSite.name, waypoint, addLog, showToast]);
+
+  // Render Map Canvas (MOLA Elevation, Shaded Relief, Contours, Route line)
   useEffect(() => {
     const canvas = terrainCanvasRef.current;
     const vp = mapViewportRef.current;
@@ -427,9 +566,8 @@ export default function MarsAtlas({
     ctx.fillStyle = "#563b2d";
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Render Elevation Heatmap & Shading
-    // Sample a 64x64 resolution grid across the visible screen
-    const gridRes = 54;
+    // 2. Render Elevation Heatmap & Shaded Relief
+    const gridRes = 56;
     const stepX = width / gridRes;
     const stepY = height / gridRes;
 
@@ -441,14 +579,25 @@ export default function MarsAtlas({
         const m = worldToMars(wx, wz);
         const elev = sampleMarsElevation(m.longitude, m.latitude);
 
+        // Directional relief shading
+        const [wxR, wzR] = projectScreenToWorld(sx + stepX * 1.5, sy + stepY / 2, width, height);
+        const [wxD, wzD] = projectScreenToWorld(sx + stepX / 2, sy + stepY * 1.5, width, height);
+        const elevR = sampleMarsElevation(worldToMars(wxR, wzR).longitude, worldToMars(wxR, wzR).latitude);
+        const elevD = sampleMarsElevation(worldToMars(wxD, wzD).longitude, worldToMars(wxD, wzD).latitude);
+        const slopeX = (elevR - elev) / 100;
+        const slopeZ = (elevD - elev) / 100;
+
+        // Light direction: (-0.42, 0.82, 0.36)
+        const light = Math.max(0.7, Math.min(1.25, 0.7 + 0.5 * (slopeX * -0.42 + 0.82 + slopeZ * 0.36)));
+
         // Normalized elevation: -4000m to 14000m
         const normElev = Math.max(0, Math.min(1, (elev + 4000) / 18000));
 
         // Color ramp: deep rust -> ochre -> dusty terracotta -> pale summit
-        const r = Math.round(75 + normElev * 140);
-        const g = Math.round(45 + normElev * 110);
-        const b = Math.round(35 + normElev * 85);
-        const alpha = 0.42 + normElev * 0.38;
+        const r = Math.round(Math.min(255, (75 + normElev * 140) * light));
+        const g = Math.round(Math.min(255, (45 + normElev * 110) * light));
+        const b = Math.round(Math.min(255, (35 + normElev * 85) * light));
+        const alpha = 0.44 + normElev * 0.36;
 
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`;
         ctx.fillRect(sx, sy, stepX + 0.6, stepY + 0.6);
@@ -485,7 +634,7 @@ export default function MarsAtlas({
     if (showContours) {
       ctx.strokeStyle = "rgba(214, 232, 191, 0.38)";
       ctx.lineWidth = 0.8;
-      const contourRes = 36;
+      const contourRes = 38;
       const cStepX = width / contourRes;
       const cStepY = height / contourRes;
       const contourInterval = zoom > 2.0 ? 500 : 1000;
@@ -507,32 +656,38 @@ export default function MarsAtlas({
       }
     }
 
-    // 6. Route Line between Rover/Player and Selected Target
-    const [rRoverX, rRoverY] = projectWorldToScreen(roverX, roverZ, width, height);
-    const [rTargetX, rTargetY] = projectWorldToScreen(routeTargetX, routeTargetZ, width, height);
+    // 6. Plotted Traverse Route Line with Animated Marching Dash
+    const routeScreenPts = routeData.points.map((pt) => projectWorldToScreen(pt.x, pt.z, width, height));
 
-    ctx.beginPath();
-    ctx.moveTo(rRoverX, rRoverY);
-    ctx.lineTo(rTargetX, rTargetY);
-    ctx.strokeStyle = "rgba(20, 14, 10, 0.75)";
-    ctx.lineWidth = 4.5;
-    ctx.stroke();
+    if (routeScreenPts.length >= 2) {
+      // Wide dark shadow under the route
+      ctx.beginPath();
+      routeScreenPts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1])));
+      ctx.strokeStyle = "#382411c0";
+      ctx.lineWidth = 4.1;
+      ctx.stroke();
 
-    ctx.beginPath();
-    ctx.moveTo(rRoverX, rRoverY);
-    ctx.lineTo(rTargetX, rTargetY);
-    ctx.strokeStyle = "#ffcd79";
-    ctx.lineWidth = 2.2;
-    ctx.setLineDash([6, 4]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+      // Dashed animated route on top
+      ctx.beginPath();
+      routeScreenPts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1])));
+      ctx.strokeStyle = routeState === "arrived" ? "#cbe6c8" : "#ffcd79";
+      ctx.lineWidth = 2.0;
+      ctx.setLineDash(routeState === "preview" ? [2, 6] : [6, 4]);
+      ctx.lineDashOffset = -animTime * 24;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
 
-    // Expanding Waypoint Pulse
-    ctx.beginPath();
-    ctx.arc(rTargetX, rTargetY, 18, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255, 191, 118, 0.55)";
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    // 7. Expanding Waypoint Pulse Animation
+    if (pulseRing > 0 && routeScreenPts.length > 0) {
+      const targetPt = routeScreenPts[routeScreenPts.length - 1];
+      const radius = 5 + (1 - pulseRing) * 72;
+      ctx.beginPath();
+      ctx.arc(targetPt[0], targetPt[1], radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 204, 131, ${(pulseRing * 0.8).toFixed(2)})`;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
 
     ctx.restore();
   }, [
@@ -540,10 +695,10 @@ export default function MarsAtlas({
     pan,
     perspective,
     showContours,
-    roverX,
-    roverZ,
-    routeTargetX,
-    routeTargetZ,
+    routeData,
+    routeState,
+    animTime,
+    pulseRing,
     projectWorldToScreen,
     projectScreenToWorld,
   ]);
@@ -569,63 +724,98 @@ export default function MarsAtlas({
     const r = 800; // 800m sample radius
     const cols = 35;
     const rows = 23;
-    const grid: [number, number][][] = [];
+    const mesh: [number, number][][] = [];
 
-    for (let p = 0; p < rows; p++) {
-      grid[p] = [];
-      for (let q = 0; q < cols; q++) {
-        const u = ((q / (cols - 1)) - 0.5) * 2;
-        const v = ((p / (rows - 1)) - 0.5) * 2;
+    for (let l = 0; l < rows; l++) {
+      mesh[l] = [];
+      for (let g = 0; g < cols; g++) {
+        const u = (g / (cols - 1) - 0.5) * 2;
+        const v = (l / (rows - 1) - 0.5) * 2;
         const wx = site.x + u * r;
         const wz = site.z + v * r;
         const elev = sampleMarsElevation(worldToMars(wx, wz).longitude, worldToMars(wx, wz).latitude);
 
-        // Isometric projection math matching reference
-        const sx = w * (0.5 + 0.35 * u + 0.12 * v);
-        const sy = h * (0.52 + 0.14 * u - 0.24 * v) - (elev / 8000) * (h * 0.42);
-        grid[p].push([sx, sy]);
+        // Isometric projection math from reference
+        mesh[l].push([
+          w * (0.51 + 0.32 * u + 0.13 * v),
+          h * (0.52 + 0.12 * u - 0.22 * v) - (elev / 5000) * h * 1.14,
+        ]);
       }
     }
 
-    // Normalize vertical bounds within canvas
-    const allY = grid.flat().map((pt) => pt[1]);
+    // Normalize mesh height to cleanly fit inside canvas
+    const allY = mesh.flat().map((p) => p[1]);
     const minY = Math.min(...allY);
     const maxY = Math.max(...allY);
-    const rangeY = maxY - minY || 1;
+    const diffY = maxY - minY || 1;
 
-    for (const row of grid) {
+    for (const row of mesh) {
       for (const pt of row) {
-        pt[1] = 8 + ((h - 16) * (pt[1] - minY)) / rangeY;
+        pt[1] = 9 + ((h - 18) * (pt[1] - minY)) / diffY;
       }
     }
 
-    // Draw grid lines
-    const strokeLine = (pts: [number, number][], strokeColor: string) => {
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 0.75;
+    // Draw rows with `#afc6b497`
+    ctx.lineWidth = 0.75;
+    for (const row of mesh) {
+      ctx.strokeStyle = "#afc6b497";
       ctx.beginPath();
-      pts.forEach((pt, idx) => {
-        if (idx === 0) ctx.moveTo(pt[0], pt[1]);
-        else ctx.lineTo(pt[0], pt[1]);
-      });
+      row.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1])));
       ctx.stroke();
-    };
-
-    // Horizontal curves
-    for (const row of grid) {
-      strokeLine(row, "rgba(175, 198, 180, 0.65)");
     }
-    // Vertical curves
-    for (let c = 0; c < cols; c++) {
-      strokeLine(grid.map((rPts) => rPts[c]), "rgba(137, 180, 170, 0.45)");
+
+    // Draw columns with `#89b4aa64`
+    for (let col = 0; col < cols; col++) {
+      ctx.strokeStyle = "#89b4aa64";
+      ctx.beginPath();
+      mesh.forEach((row, idx) => (idx === 0 ? ctx.moveTo(row[col][0], row[col][1]) : ctx.lineTo(row[col][0], row[col][1])));
+      ctx.stroke();
     }
 
     ctx.restore();
   }, [activeSite]);
 
+  // Keyboard navigation shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (guideOpen) {
+        if (e.key === "Escape") setGuideOpen(false);
+        return;
+      }
+
+      if (e.key.toLowerCase() === "m" || e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (e.key.toLowerCase() === "r" || e.key === " ") {
+        e.preventDefault();
+        handleCenterOnPosition(roverX, roverZ);
+      } else if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        setShowContours((prev) => !prev);
+      } else if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        handleZoom(1.2);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        handleZoom(1 / 1.2);
+      } else if (e.key.toLowerCase() === "h" || e.key === "?") {
+        e.preventDefault();
+        setGuideOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [guideOpen, onClose, roverX, roverZ, handleCenterOnPosition, handleZoom]);
+
+  const [roverScreenX, roverScreenY] = projectWorldToScreen(roverX, roverZ, viewportSize.width, viewportSize.height);
+
   return (
-    <div className="atlas-expedition-wrap" role="dialog" aria-modal="true" aria-label="Mars Expedition Atlas">
-      {/* 1. Mast Header Bar */}
+    <div className="atlas-expedition-wrap">
+      {/* 1. Header Masthead */}
       <header className="mast">
         <div className="brand">
           <svg viewBox="0 0 48 32" fill="none" aria-hidden="true">
@@ -636,31 +826,32 @@ export default function MarsAtlas({
         </div>
         <span className="program mono meta">Surface operations</span>
         <span className="live meta">
-          <i className="dot" /> {isDriving ? "Rover online" : "Astronaut EVA"}
+          <i className="dot" /> Rover online
         </span>
         <button
           type="button"
           className="helpBtn"
-          onClick={() => setGuideOpen(true)}
-          title="Map Controls Guide"
+          id="help"
+          title="Map controls (?)"
           aria-label="Map controls"
+          onClick={() => setGuideOpen(true)}
         >
           ?
         </button>
         <button
           type="button"
           className="closeBtn"
+          id="close"
+          title="Return to Mars (M / Esc)"
+          aria-label="Close Atlas"
           onClick={onClose}
-          title="Exit Atlas [M / ESC]"
-          aria-label="Close expedition atlas"
         >
           ✕
         </button>
       </header>
 
-      {/* 2. Main Wrap Container */}
+      {/* 2. Main Titlebar & Sector */}
       <main className="wrap">
-        {/* Titlebar with Sector Telemetry */}
         <div className="titlebar">
           <div>
             <div className="kicker">Mars / Navigation</div>
@@ -669,13 +860,13 @@ export default function MarsAtlas({
           <div className="sector meta">
             <b>SOL 018</b>
             <br />
-            {view?.lightPhase ?? "Day"} · Survey simulation
+            Survey simulation · Elysium Planitia
           </div>
         </div>
 
-        {/* 3. Main Split Grid: Map Viewport (Left) + Expedition Panel (Right) */}
+        {/* 3. Main Grid Layout */}
         <div className="grid">
-          {/* Left Column: Interactive Map */}
+          {/* Left Column: Interactive Map Viewport */}
           <section
             id="map"
             ref={mapViewportRef}
@@ -687,30 +878,27 @@ export default function MarsAtlas({
             onPointerCancel={handlePointerUp}
             onWheel={handleWheel}
           >
-            {/* Terrain Render Canvas */}
+            {/* Terrain Canvas */}
             <div id="terrain">
               <canvas ref={terrainCanvasRef} />
             </div>
 
-            {/* Atmosphere Vignette Overlay */}
-            <div className="vignette" aria-hidden="true" />
+            {/* Vignette Shadow Overlay */}
+            <div className="vignette" />
 
-            {/* Sector Header on Map */}
-            <div className="maphead" aria-hidden="true">
-              <small>Local survey sector</small>
+            {/* Map Header Overlay */}
+            <div className="maphead">
+              <small>Regional elevation map · NASA MOLA</small>
               <strong>Elysium Planitia</strong>
             </div>
 
-            {/* Map Perspective Switcher (Plan 2D vs 3D relief) */}
+            {/* Perspective Switcher */}
             <div className="maptools" aria-label="Map perspective">
               <button
                 type="button"
                 id="plan"
                 className={perspective === "plan" ? "on" : ""}
-                onClick={() => {
-                  setPerspective("plan");
-                  showToast("Plan perspective: Top-down 2D");
-                }}
+                onClick={() => setPerspective("plan")}
               >
                 Plan
               </button>
@@ -718,10 +906,7 @@ export default function MarsAtlas({
                 type="button"
                 id="relief"
                 className={perspective === "relief" ? "on" : ""}
-                onClick={() => {
-                  setPerspective("relief");
-                  showToast("3D Relief perspective: Isometric elevation");
-                }}
+                onClick={() => setPerspective("relief")}
               >
                 3D relief
               </button>
@@ -781,26 +966,20 @@ export default function MarsAtlas({
               })()}
 
               {/* Rover / Player Marker Pin */}
-              {(() => {
-                const { width, height } = viewportSize;
-                const [sx, sy] = projectWorldToScreen(roverX, roverZ, width, height);
-                return (
-                  <div
-                    className="roverPin"
-                    style={{
-                      left: `${sx}px`,
-                      top: `${sy}px`,
-                      transform: `translate(-50%, -50%) rotate(${Math.round((roverYaw * 180) / Math.PI)}deg)`,
-                    }}
-                    title={`${isDriving ? "MMSEV Crew Rover" : "Astronaut EVA"} at (${Math.round(roverX)}, ${Math.round(roverZ)})`}
-                  >
-                    ▲
-                    <span style={{ transform: `translateX(-50%) rotate(${-Math.round((roverYaw * 180) / Math.PI)}deg)` }}>
-                      {isDriving ? "ROVER 01" : "EVA-01"}
-                    </span>
-                  </div>
-                );
-              })()}
+              <div
+                className="roverPin"
+                style={{
+                  left: `${roverScreenX}px`,
+                  top: `${roverScreenY}px`,
+                  transform: `translate(-50%, -50%) rotate(${Math.round((roverYaw * 180) / Math.PI)}deg)`,
+                }}
+                title={`${isDriving ? "MMSEV Crew Rover" : "Astronaut EVA"} at (${Math.round(roverX)}, ${Math.round(roverZ)})`}
+              >
+                ▲
+                <span style={{ transform: `translateX(-50%) rotate(${-Math.round((roverYaw * 180) / Math.PI)}deg)` }}>
+                  {isDriving ? "ROVER 01" : "EVA-01"}
+                </span>
+              </div>
             </div>
 
             {/* Floating Map Tools (Bottom-Right: Zoom, Center, Contours) */}
@@ -808,27 +987,27 @@ export default function MarsAtlas({
               <button
                 type="button"
                 id="zin"
-                onClick={() => handleZoom(1.25)}
+                title="Zoom in (+)"
                 aria-label="Zoom in"
-                title="Zoom in [+]"
+                onClick={() => handleZoom(1.25)}
               >
                 +
               </button>
               <button
                 type="button"
                 id="zout"
-                onClick={() => handleZoom(0.8)}
+                title="Zoom out (−)"
                 aria-label="Zoom out"
-                title="Zoom out [−]"
+                onClick={() => handleZoom(0.8)}
               >
                 −
               </button>
               <button
                 type="button"
                 id="center"
-                onClick={handleCenterOnPlayer}
-                title="Center on rover [R]"
+                title="Center on rover (R)"
                 aria-label="Center on rover"
+                onClick={() => handleCenterOnPosition(roverX, roverZ)}
               >
                 ◎
               </button>
@@ -836,12 +1015,13 @@ export default function MarsAtlas({
                 type="button"
                 id="contour"
                 className={showContours ? "on" : ""}
-                onClick={() => {
-                  setShowContours((prev) => !prev);
-                  showToast(!showContours ? "Contours · 500m interval" : "Contours hidden");
-                }}
-                title="Toggle contour lines [C]"
+                title="Contour lines (C)"
                 aria-label="Toggle contour lines"
+                aria-pressed={showContours}
+                onClick={() => {
+                  setShowContours((cur) => !cur);
+                  showToast(!showContours ? "Contours · 500m interval" : "Contours off");
+                }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="m2 15 10-8 10 8-10 6z M2 10l10-8 10 8" />
@@ -849,19 +1029,27 @@ export default function MarsAtlas({
               </button>
             </div>
 
-            {/* Map Footer (Scale bar & North Indicator) */}
-            <div className="mapfoot" aria-hidden="true">
+            {/* Map Footer (Scale Bar & North Indicator) */}
+            <div className="mapfoot">
               <div>
-                <span id="scaleN">{zoom >= 2.0 ? "500 m" : "1 km"}</span>
-                <i className="scale" style={{ width: `${Math.round(44 * zoom)}px` }} />
+                <span id="scaleN">{zoom > 2.0 ? "500 m" : "1 km"}</span>
+                <i
+                  className="scale"
+                  id="scale"
+                  style={{ width: `${Math.round(Math.min(120, Math.max(45, 65 * zoom)))}px` }}
+                />
               </div>
               <span className="legend" id="north">
                 ↑ N
               </span>
             </div>
 
-            {/* Notification Toast Message */}
-            {message && <div className="message">{message}</div>}
+            {/* Ephemeral Toast Message */}
+            {message && (
+              <div className="message" id="msg">
+                {message}
+              </div>
+            )}
           </section>
 
           {/* Right Column: Expedition Side Panel */}
@@ -925,9 +1113,9 @@ export default function MarsAtlas({
                   {/* List of Sites */}
                   <div className="list" id="list">
                     {filteredSites.map((site) => {
-                      const isChosen = site.id === activeSite.id;
+                      const isChosen = site.id === activeSite.id && !waypoint;
                       const distMeters = Math.round(Math.hypot(site.x - roverX, site.z - roverZ));
-                      const distLabel = distMeters >= 1000 ? `${(distMeters / 1000).toFixed(1)}km` : `${distMeters}m`;
+                      const distLabel = distMeters >= 1000 ? `${(distMeters / 1000).toFixed(1)} km` : `${distMeters} m`;
 
                       return (
                         <button
@@ -935,7 +1123,6 @@ export default function MarsAtlas({
                           type="button"
                           className={`site ${isChosen ? "on" : ""}`}
                           onClick={() => {
-                            setWaypoint(null);
                             handleSelectSite(site.id);
                             handleCenterOnPosition(site.x, site.z);
                           }}
@@ -959,12 +1146,13 @@ export default function MarsAtlas({
                       </span>
                     </div>
 
-                    <h2 id="name">{activeSite.name}</h2>
-                    <p id="desc">{activeSite.description}</p>
+                    <h2 id="name">{waypoint ? "Custom GPS Waypoint" : activeSite.name}</h2>
+                    <p id="desc">{waypoint ? waypoint.label : activeSite.description}</p>
 
                     {/* Real 3D Terrain Wireframe Mesh Canvas */}
                     <canvas
                       className="wire"
+                      id="wire"
                       ref={wireCanvasRef}
                       aria-label="Local terrain elevation mesh"
                     />
@@ -1014,11 +1202,16 @@ export default function MarsAtlas({
             {/* Bottom Command Action Bar */}
             <div className="command">
               <div className="routeState" id="status" aria-live="polite">
-                {waypoint ? "Custom GPS Waypoint Active" : `Target locked · ${activeSite.name}`}
+                {statusText}
               </div>
-              <button type="button" id="action" onClick={handleSetWaypointAction}>
-                <span>{waypoint ? "Lock GPS Waypoint" : "Set Waypoint / Drive"}</span>
-                <b>↗</b>
+              <button
+                type="button"
+                id="action"
+                disabled={routeState === "arrived"}
+                onClick={handleActionClick}
+              >
+                <span>{actionLabel}</span>
+                <b>{actionIcon}</b>
               </button>
             </div>
           </aside>
@@ -1030,7 +1223,7 @@ export default function MarsAtlas({
             <kbd>Drag</kbd> pan &nbsp; <kbd>Scroll</kbd> zoom &nbsp; <kbd>R</kbd> rover &nbsp; <kbd>C</kbd> contours &nbsp; <kbd>M / ESC</kbd> return to Mars
           </span>
           <span className="demo">
-            Elysium Quadrangle · 12 × 12 km MOLA Survey ·{" "}
+            TARUKH MOLA terrain · 1:4,940 ·{" "}
             <a
               href={MARS_TREK_URL}
               target="_blank"
@@ -1052,20 +1245,20 @@ export default function MarsAtlas({
             onClick={(e) => e.stopPropagation()}
             aria-labelledby="guide-title"
           >
-            <h2 id="guide-title">Map controls & Navigation Guide</h2>
+            <h2 id="guide-title">Map controls</h2>
             <p>
-              Select any site on the terrain or in the survey list. Set its waypoint to guide rover navigation across Martian terrain.
+              Select a site on the terrain or in the list. Set its waypoint, then begin the traverse to guide the rover along the plotted route.
             </p>
             <p>
-              • <b>Drag</b> or use arrow keys to pan across Elysium Planitia.<br />
-              • <b>Scroll / Pinch</b> or use <b>+ / −</b> to zoom.<br />
-              • <b>R / Space</b> centers instantly on your rover or astronaut.<br />
-              • <b>C</b> toggles 500m MOLA elevation contour lines.<br />
-              • Choose <b>3D relief</b> at the top right to tilt into an isometric terrain perspective.<br />
-              • Tap anywhere on the terrain to place a custom GPS beacon.
+              • <b>Drag</b> or use the arrow keys to pan across Elysium Planitia.<br />
+              • Use <b>+</b> and <b>−</b> or scroll to zoom.<br />
+              • <b>R</b> centers on the crew rover.<br />
+              • <b>C</b> toggles 500 m MOLA elevation contours.<br />
+              • Choose <b>3D relief</b> to tilt the terrain into an isometric relief perspective.<br />
+              • Click anywhere on the map to place a custom GPS beacon.
             </p>
             <button type="button" id="dismiss" onClick={() => setGuideOpen(false)}>
-              Close Guide
+              Close
             </button>
           </dialog>
         </div>
