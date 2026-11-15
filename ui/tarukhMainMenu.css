@@ -3,6 +3,8 @@
   --home-muted: #b2b0a6;
   --home-copper: #ef9d68;
   --home-teal: #84d8cc;
+  --menu-rotate-x: 0deg;
+  --menu-rotate-y: 0deg;
   position: fixed;
   z-index: 1000;
   inset: 0;
@@ -36,6 +38,29 @@
   background-size: cover;
   background-repeat: no-repeat;
 }
+
+.tarukh-home-living-worlds,
+.tarukh-home-field-expedition {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 0;
+  background: #071c31;
+  animation: tarukh-home-scene-arrive .72s ease-out both;
+}
+
+.tarukh-home-living-worlds .depth-viewport {
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+.tarukh-home[data-playing="false"] .tarukh-home-living-worlds,
+.tarukh-home[data-playing="false"] .tarukh-home-field-expedition { animation-play-state: paused; }
 
 .tarukh-valley-world {
   position: absolute;
@@ -217,7 +242,7 @@
   position: absolute;
   z-index: 4;
   right: 5.4vw;
-  bottom: 174px;
+  bottom: 198px;
   color: #efe2cf;
   text-align: right;
   text-shadow: 0 2px 12px #000;
@@ -253,7 +278,7 @@
   position: absolute;
   z-index: 5;
   right: 5.2vw;
-  bottom: 137px;
+  bottom: 165px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -313,100 +338,189 @@
 .tarukh-home-menu {
   position: absolute;
   z-index: 5;
-  left: 4.1vw;
-  right: 4.1vw;
-  bottom: 53px;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  border-top: 1px solid rgba(233,223,204,.35);
-  border-bottom: 1px solid rgba(233,223,204,.25);
-  background: linear-gradient(90deg, rgba(8,11,13,.76), rgba(8,11,13,.35));
-  backdrop-filter: blur(12px);
+  left: 0;
+  right: 0;
+  bottom: 58px;
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 5px 3.2vw;
+  border-top: 1px solid rgba(228,242,249,.36);
+  border-bottom: 1px solid rgba(228,242,249,.16);
+  background:
+    radial-gradient(ellipse at var(--dock-glow-x, 50%) 0%, rgba(208,234,248,.15), transparent 43%),
+    linear-gradient(180deg, rgba(231,244,250,.13), rgba(162,192,207,.035) 34%, rgba(9,18,25,.28));
+  box-shadow: 0 -14px 54px rgba(1,8,14,.2),
+    inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(218,240,249,.08);
+  -webkit-backdrop-filter: blur(32px) saturate(175%);
+  backdrop-filter: blur(32px) saturate(175%);
+  transform: perspective(1200px) rotateX(var(--menu-rotate-x)) rotateY(var(--menu-rotate-y));
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(.2,.72,.25,1), box-shadow 320ms ease, background 320ms ease;
+  isolation: isolate;
+}
+
+.tarukh-home-menu::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(105deg, rgba(255,255,255,.08), transparent 23% 72%, rgba(199,230,243,.07)),
+    radial-gradient(ellipse at var(--dock-glow-x, 50%) 0%, rgba(224,242,250,.09), transparent 48%);
+  filter: blur(7px);
+  pointer-events: none;
 }
 
 .tarukh-home-option {
+  --dock-grow: 1;
+  --dock-rise: 0px;
+  --dock-depth: 0px;
+  --dock-scale: 1;
+  --dock-icon-depth: 0px;
+  --dock-icon-scale: 1;
+  --dock-arrow-depth: 0px;
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   min-height: 76px;
-  display: grid;
-  grid-template-columns: 25px minmax(0,1fr) 14px;
-  grid-template-rows: 1fr 1fr;
+  flex: var(--dock-grow) 1 0;
+  display: flex;
   align-items: center;
-  gap: 0 8px;
-  padding: 0 15px;
+  gap: 12px;
+  padding: 9px 18px;
   border: 0;
-  border-right: 1px solid rgba(233,223,204,.17);
+  border-radius: 0;
   background: transparent;
   text-align: left;
+  transform: translate3d(0, var(--dock-rise), var(--dock-depth)) scale(var(--dock-scale));
+  transform-origin: center bottom;
+  box-shadow: none;
   cursor: pointer;
-  transition: background .2s, padding .2s, color .2s;
+  transition: flex-grow 460ms cubic-bezier(.2,.78,.2,1), transform 340ms cubic-bezier(.17,.72,.22,1),
+    background 320ms ease, box-shadow 320ms ease, opacity 180ms ease;
 }
 
-.tarukh-home-option:last-child { border-right: 0; }
+.tarukh-home-option:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 18%;
+  right: 0;
+  width: 1px;
+  height: 64%;
+  background: linear-gradient(180deg, transparent, rgba(224,240,248,.23) 28% 72%, transparent);
+  pointer-events: none;
+}
 
-.tarukh-home-option:hover,
+.tarukh-home-option:not(:disabled):hover,
 .tarukh-home-option:focus-visible {
-  outline: 0;
-  padding-left: 19px;
-  background: linear-gradient(180deg, rgba(226,125,73,.16), rgba(8,11,13,.08));
+  outline: 2px solid rgba(223,243,252,.52);
+  outline-offset: -3px;
+  background: radial-gradient(ellipse at 50% 10%, rgba(223,242,250,.14), transparent 74%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 0 28px rgba(173,220,240,.075);
 }
+
+.tarukh-home-option:not(:disabled):hover,
+.tarukh-home-option:focus-visible { flex-grow: 3.45; }
 
 .tarukh-home-option.is-primary {
-  background: linear-gradient(180deg, rgba(209,105,59,.27), rgba(8,11,13,.16));
+  background: radial-gradient(ellipse at 50% 0%, rgba(217,239,249,.09), transparent 74%);
 }
 
 .tarukh-home-option-number {
-  grid-column: 1;
-  grid-row: 1 / 3;
-  color: #e69d6f;
-  font: 9px/1 Consolas, "Courier New", monospace;
-  letter-spacing: .08em;
+  position: absolute;
+  top: 9px;
+  left: 18px;
+  color: rgba(202,225,237,.76);
+  font: 8px/1 Consolas, "Courier New", monospace;
+  letter-spacing: .1em;
+  opacity: .7;
+}
+
+.tarukh-home-option-icon {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #c5dae5;
+  background: transparent;
+  box-shadow: none;
+  transform: translateZ(var(--dock-icon-depth)) scale(var(--dock-icon-scale));
+  transition: transform 280ms cubic-bezier(.17,.72,.22,1), color 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.tarukh-home-option-icon svg { width: 17px; height: 17px; stroke-width: 1.6; }
+.tarukh-home-option:hover .tarukh-home-option-icon,
+.tarukh-home-option:focus-visible .tarukh-home-option-icon {
+  color: #f0faff;
+  background: radial-gradient(circle, rgba(222,242,251,.13), transparent 72%);
+  filter: drop-shadow(0 0 10px rgba(187,228,245,.24));
 }
 
 .tarukh-home-option-copy {
-  grid-column: 2;
-  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
   gap: 5px;
+  padding-top: 5px;
 }
 
 .tarukh-home-option-copy strong {
   overflow: hidden;
-  color: #eee5d8;
-  font: 500 15px/1.05 "Bahnschrift Condensed", "Arial Narrow", Impact, sans-serif;
-  letter-spacing: .045em;
+  color: rgba(241,245,246,.86);
+  font: 650 15px/1.08 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
+  letter-spacing: .09em;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+  transition: color 260ms ease, font-size 300ms ease, letter-spacing 300ms ease, text-shadow 300ms ease;
 }
 
-.tarukh-home-option.is-primary .tarukh-home-option-copy strong { color: #ffc28e; }
+.tarukh-home-option.is-primary .tarukh-home-option-copy strong { white-space: normal; }
+
+.tarukh-home-option:not(:disabled):hover .tarukh-home-option-copy strong,
+.tarukh-home-option:focus-visible .tarukh-home-option-copy strong {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-shadow: 0 0 18px rgba(215,239,249,.32);
+}
+
+.tarukh-home-option.is-primary .tarukh-home-option-copy strong { color: #eef7fa; }
 
 .tarukh-home-option-copy small {
   overflow: hidden;
-  color: #aaa69d;
-  font: 7px/1.2 Consolas, "Courier New", monospace;
-  letter-spacing: .11em;
+  color: rgba(211,222,227,.68);
+  font: 8px/1.2 Consolas, "Courier New", monospace;
+  letter-spacing: .1em;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .tarukh-home-option-arrow {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  justify-self: end;
-  color: rgba(238,220,198,.72);
-  font: 13px/1 Consolas, "Courier New", monospace;
-  transition: transform .2s, color .2s;
+  display: grid;
+  place-items: center;
+  flex: 0 0 13px;
+  margin-left: auto;
+  color: rgba(212,229,237,.54);
+  transform: translate3d(0,0,var(--dock-arrow-depth));
+  transition: transform 240ms ease, color 220ms ease;
 }
 
-.tarukh-home-option:hover .tarukh-home-option-arrow,
+.tarukh-home-option-arrow svg { width: 13px; height: 13px; }
+.tarukh-home-option-arrow { opacity: .48; transition: transform 240ms ease, color 220ms ease, opacity 220ms ease; }
+.tarukh-home-option:not(:disabled):hover .tarukh-home-option-arrow,
 .tarukh-home-option:focus-visible .tarukh-home-option-arrow {
   transform: translate(2px,-2px);
-  color: #ffb17e;
+  color: #f2fbff;
+  opacity: 1;
 }
 
 .tarukh-home-option:disabled {
@@ -414,7 +528,13 @@
   opacity: .58;
 }
 
-.tarukh-home-option:disabled:hover { padding-left: 15px; background: transparent; }
+.tarukh-home-option:disabled:hover {
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.tarukh-home-option:disabled .tarukh-home-option-icon { transform: none; }
 
 .tarukh-home-footer {
   position: absolute;
@@ -435,6 +555,34 @@
   text-shadow: 0 1px 7px #000;
 }
 
+.tarukh-home-footer-meta {
+  display: flex;
+  min-width: 0;
+  max-width: min(78%, 920px);
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.tarukh-home-footer-credit {
+  max-width: 100%;
+  color: #e6f2f6 !important;
+  font: 650 10px/1.15 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
+  letter-spacing: .1em;
+  text-align: right;
+  text-shadow: 0 1px 8px #000;
+  white-space: nowrap;
+}
+
+.tarukh-home-footer-build {
+  color: #c9d9df !important;
+  font: 7px/1.2 Consolas, "Courier New", monospace;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
 .tarukh-home-footer b {
   margin-right: 5px;
   padding: 3px 5px;
@@ -443,85 +591,319 @@
   font-weight: 400;
 }
 
-.tarukh-home-footer span { color: #d4c5af; white-space: nowrap; }
 .tarukh-home-footer i { color: #d88b57; font-style: normal; }
 
 .tarukh-home-dialog {
-  width: min(470px, calc(100vw - 30px));
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(550px, calc(100vw - 30px));
+  max-height: calc(100svh - 32px);
   padding: 0;
-  border: 1px solid rgba(112,209,208,.38);
-  background: #101719;
+  overflow: auto;
+  border: 1px solid rgba(208,232,243,.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(185,224,241,.17), transparent 45%),
+    linear-gradient(145deg, rgba(32,48,57,.91), rgba(10,19,25,.91));
   color: var(--home-ink);
-  box-shadow: 0 30px 110px #000c;
+  box-shadow: 0 30px 110px #000c, inset 0 1px 0 rgba(255,255,255,.22), 0 0 36px rgba(157,209,231,.07);
+  -webkit-backdrop-filter: blur(30px) saturate(175%);
+  backdrop-filter: blur(30px) saturate(175%);
+  transform: translate(-50%, -50%);
 }
+
+.tarukh-home-dialog[data-panel="settings"] { width: min(720px, calc(100vw - 28px)); }
+.tarukh-home-dialog[data-panel="about"] { width: min(670px, calc(100vw - 28px)); }
 
 .tarukh-home-dialog::backdrop {
-  background: rgba(3,7,9,.76);
-  backdrop-filter: blur(7px);
+  background: rgba(3,8,13,.65);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
-.tarukh-home-dialog-inner { padding: 28px; }
+.tarukh-home-dialog-inner { padding: 25px 27px 23px; }
+
+.tarukh-home-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0,.92fr) minmax(0,1.08fr);
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.tarukh-home-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: -25px -27px 22px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(215,237,247,.16);
+  background: linear-gradient(180deg, rgba(231,245,251,.1), rgba(255,255,255,.018));
+}
+
+.tarukh-home-dialog-mark {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 35px;
+  place-items: center;
+  border: 1px solid rgba(196,225,239,.34);
+  border-radius: 11px;
+  color: #c7e8f6;
+  background: linear-gradient(145deg, rgba(224,243,251,.14), rgba(147,197,218,.045));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.tarukh-home-dialog-mark svg { width: 17px; height: 17px; }
+.tarukh-home-dialog-ident { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.tarukh-home-dialog-ident > span:first-child {
+  color: #d6cdc0;
+  font: 8px/1.2 Consolas, "Courier New", monospace;
+  letter-spacing: .14em;
+}
+.tarukh-home-dialog-ident i { color: #9bdcf2; font-style: normal; }
+.tarukh-home-dialog-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9cb8a9;
+  font: 7px/1.2 Consolas, "Courier New", monospace;
+  letter-spacing: .1em;
+}
+.tarukh-home-dialog-live i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9bd4b4;
+  box-shadow: 0 0 8px #9bd4b4a0;
+}
+.tarukh-home-dialog-close {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  place-items: center;
+  border: 1px solid rgba(214,236,246,.2);
+  border-radius: 8px;
+  background: rgba(222,242,250,.045);
+  color: #dcebf1;
+  font: 22px/1 system-ui, sans-serif;
+}
+.tarukh-home-dialog-close:hover { background: rgba(222,242,250,.13); }
 
 .tarukh-home-dialog-kicker {
   margin: 0;
-  color: #8bc7c0;
+  color: #a8dff1;
   font: 9px/1.3 Consolas, "Courier New", monospace;
   letter-spacing: .17em;
   text-transform: uppercase;
 }
 
 .tarukh-home-dialog h2 {
-  margin: 13px 0;
-  color: #efe7da;
-  font: 500 40px/.95 "Bahnschrift Condensed", "Arial Narrow", Impact, sans-serif;
+  margin: 11px 0;
+  color: #f0f7fa;
+  font: 650 clamp(35px, 7vw, 43px)/.98 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
+  letter-spacing: .075em;
   text-transform: uppercase;
+  text-shadow: 0 3px 20px #0007;
 }
 
 .tarukh-home-dialog-text,
 .tarukh-home-dialog-note {
-  color: #a6ada6;
+  color: #c3d0d6;
   font-size: 12px;
-  line-height: 1.75;
+  line-height: 1.7;
 }
+
+.tarukh-home-dialog-intro {
+  margin: 0 0 8px;
+  color: #c0e5f3;
+  font: 650 18px/1.25 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.tarukh-home-dialog-text { margin-bottom: 16px; }
 
 .tarukh-home-dialog-note {
-  color: #818d89;
-  font: 9px/1.7 Consolas, "Courier New", monospace;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 13px;
+  color: #a9bac2;
+  font: 9px/1.65 Consolas, "Courier New", monospace;
 }
 
+.tarukh-home-dialog-note svg { width: 14px; height: 14px; flex: 0 0 14px; color: #9edcf1; }
+
 .tarukh-home-setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 0;
-  border-top: 1px solid rgba(219,226,214,.16);
-  color: #c4c9c1;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 13px;
+  border: 1px solid rgba(207,231,241,.2);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(220,241,249,.075), rgba(5,14,20,.25));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+  color: #c4d2d8;
   font-size: 12px;
 }
+
+.tarukh-home-setting-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tarukh-home-setting-heading > span { color: #a8dff1; font: 8px/1.3 Consolas, "Courier New", monospace; letter-spacing: .1em; }
+.tarukh-home-setting-heading > small { color: #9aadb5; font: 7px/1.3 Consolas, "Courier New", monospace; letter-spacing: .08em; }
+.tarukh-home-layouts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.tarukh-home-layout {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 29px minmax(0,1fr) 9px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid rgba(207,231,241,.16);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(220,241,249,.035), rgba(5,14,20,.2));
+  transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+  text-align: left;
+}
+.tarukh-home-layout:hover { border-color: rgba(203,235,248,.44); background: rgba(214,239,248,.09); transform: translateY(-1px); }
+.tarukh-home-layout[aria-pressed="true"] {
+  border-color: rgba(157,221,242,.66);
+  background: linear-gradient(145deg, rgba(120,194,222,.17), rgba(220,242,250,.055));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 0 22px rgba(111,190,218,.12);
+}
+.tarukh-home-layout > svg { width: 20px; height: 20px; color: #a8dff1; }
+.tarukh-home-layout > span { display: flex; flex-direction: column; gap: 4px; }
+.tarukh-home-layout strong { color: #e9f3f7; font: 650 12px/1 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif; letter-spacing: .045em; text-transform: uppercase; }
+.tarukh-home-layout small { color: #aebfc6; font-size: 9px; }
+.tarukh-home-layout > i { width: 8px; height: 8px; border: 1px solid #8ba6b1; border-radius: 50%; }
+.tarukh-home-layout[aria-pressed="true"] > i { border: 2px solid #a8e5f7; background: #a8e5f7; box-shadow: 0 0 10px #8bdef5a0; }
+.tarukh-home-control-guide {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 0 20px;
+  align-content: start;
+  margin-top: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(207,231,241,.18);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(220,241,249,.055), rgba(5,14,20,.28));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+.tarukh-home-control-guide > span {
+  grid-column: 1 / -1;
+  margin-bottom: 5px;
+  color: #9fb5bf;
+  font: 7px/1.5 Consolas, "Courier New", monospace;
+  letter-spacing: .13em;
+}
+.tarukh-home-control-guide p { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 0; }
+.tarukh-home-control-guide p b {
+  min-width: 55px;
+  padding: 4px 5px;
+  border: 1px solid rgba(200,230,241,.2);
+  border-radius: 5px;
+  color: #bce7f4;
+  font: 7px/1.1 Consolas, "Courier New", monospace;
+  text-align: center;
+}
+.tarukh-home-control-guide p > span { overflow: hidden; color: #c1d0d6; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+
+.tarukh-home-about-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 17px;
+  padding: 17px;
+  overflow: hidden;
+  border: 1px solid rgba(207,231,241,.2);
+  border-radius: 15px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(174,220,239,.16), transparent 55%),
+    linear-gradient(135deg, rgba(220,241,249,.075), rgba(4,13,19,.26));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 12px 32px rgba(1,8,14,.12);
+}
+.tarukh-home-about-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(190,226,241,.35);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(224,243,251,.15), rgba(147,197,218,.055));
+  color: #c6eaf7;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+.tarukh-home-about-mark svg { width: 20px; height: 20px; }
+.tarukh-home-about-hero .tarukh-home-dialog-text { margin: 0; max-width: 490px; }
+.tarukh-home-about-stamp {
+  padding: 7px 8px;
+  border: 1px solid rgba(190,226,241,.3);
+  border-radius: 7px;
+  color: #b9deec;
+  font: 7px/1.5 Consolas, "Courier New", monospace;
+  letter-spacing: .13em;
+  text-align: center;
+}
+
+.tarukh-home-about-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+  margin: 20px 0 13px;
+}
+.tarukh-home-about-grid article {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 104px;
+  padding: 12px 10px 11px;
+  border: 1px solid rgba(207,231,241,.16);
+  border-radius: 12px;
+  background: linear-gradient(150deg, rgba(220,241,249,.075), rgba(5,14,20,.24));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.085);
+  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease;
+}
+.tarukh-home-about-grid article:hover { transform: translateY(-2px); border-color: rgba(190,226,241,.38); background: linear-gradient(150deg, rgba(174,220,239,.11), rgba(5,14,20,.25)); }
+.tarukh-home-about-grid article > svg { width: 19px; height: 19px; margin-bottom: 2px; color: #b6e1ef; }
+.tarukh-home-about-grid article > span { color: #9fb5bf; font: 8px/1.3 Consolas, "Courier New", monospace; letter-spacing: .11em; }
+.tarukh-home-about-grid article > strong { color: #e7f1f5; font: 700 14px/1.2 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif; letter-spacing: .07em; }
+.tarukh-home-about-grid article > small { color: #adbdc4; font-size: 9px; line-height: 1.5; }
 
 .tarukh-home-segmented { display: flex; gap: 4px; }
 
 .tarukh-home-segmented button,
 .tarukh-home-return {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
   min-height: 36px;
   padding: 8px 12px;
-  border: 1px solid rgba(112,209,208,.38);
-  background: rgba(112,209,208,.07);
-  color: #c5e4db;
+  border: 1px solid rgba(193,226,240,.32);
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(185,224,240,.11), rgba(255,255,255,.035));
+  color: #d7edf5;
   cursor: pointer;
-  font: 9px/1 Consolas, "Courier New", monospace;
-  letter-spacing: .1em;
+  font: 650 10px/1 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
+  letter-spacing: .12em;
   text-transform: uppercase;
 }
 
 .tarukh-home-segmented button[aria-pressed="true"] {
-  border-color: #94d8cc;
-  background: #1d3c3b;
-  color: #e4fff4;
+  border-color: #9bdcf2;
+  background: rgba(103,176,204,.19);
+  color: #effbff;
 }
 
-.tarukh-home-return { margin-top: 12px; }
+.tarukh-home-return svg { width: 15px; height: 15px; }
+.tarukh-home-return:hover { background: linear-gradient(135deg, rgba(185,224,240,.19), rgba(255,255,255,.085)); }
 
 .tarukh-home-dialog button:focus-visible {
   outline: 2px solid #ffc28e;
@@ -542,11 +924,22 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes tarukh-home-scene-arrive {
+  from { opacity: 0; transform: scale(1.012); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @media (max-width: 900px) {
   .tarukh-home-copy { left: 6vw; width: min(540px, 65vw); }
-  .tarukh-home-option { grid-template-columns: 19px minmax(0,1fr) 10px; gap: 0 5px; padding: 0 10px; }
-  .tarukh-home-option-copy strong { font-size: 13px; }
-  .tarukh-home-option-copy small { font-size: 6px; }
+  .tarukh-home-menu { left: 0; right: 0; width: 100%; padding-inline: 2.4vw; }
+  .tarukh-home-option { gap: 8px; padding-inline: 9px; }
+  .tarukh-home-option-icon { flex-basis: 31px; width: 31px; height: 31px; }
+  .tarukh-home-option-copy strong { font-size: 14px; }
+  .tarukh-home-option-copy small { font-size: 7px; }
+}
+
+@media (max-width: 760px) {
+  .tarukh-home-settings-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {
@@ -562,27 +955,57 @@
   .tarukh-home-kicker { font-size: 8px; }
   .tarukh-home-copy h1 { margin: 18px 0 13px; font-size: clamp(66px, 17vw, 100px); }
   .tarukh-home-description { max-width: 360px; margin-top: 17px; font-size: 12px; }
-  .tarukh-home-scene-label { right: 18px; bottom: 250px; }
+  .tarukh-home-scene-label { right: 18px; bottom: 300px; }
   .tarukh-home-scene-label strong { font-size: 13px; }
   .tarukh-home-scene-label small { font-size: 7px; }
-  .tarukh-home-slideshow { right: 16px; bottom: 214px; gap: 6px; }
+  .tarukh-home-slideshow { right: 16px; bottom: 264px; gap: 6px; }
   .tarukh-home-slideshow button { width: 24px; height: 24px; }
   .tarukh-home-menu {
-    left: 16px;
-    right: 16px;
-    bottom: 49px;
-    grid-template-columns: repeat(2, minmax(0,1fr));
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(6,minmax(0,1fr));
+    gap: 0 3px;
+    padding: 6px 10px;
+    border-radius: 0;
+    transform: none;
   }
-  .tarukh-home-option { min-height: 52px; grid-template-columns: 16px minmax(0,1fr) 9px; padding: 0 8px; border-bottom: 1px solid rgba(233,223,204,.14); }
-  .tarukh-home-option:first-child { grid-column: 1 / -1; }
-  .tarukh-home-option:nth-child(2n+3) { border-right: 0; }
-  .tarukh-home-option:nth-last-child(-n+2) { border-bottom: 0; }
+  .tarukh-home-option {
+    min-height: 54px;
+    flex: initial;
+    grid-column: span 3;
+    gap: 7px;
+    padding: 8px 10px 7px;
+    border-radius: 0;
+    transform: none;
+    box-shadow: none;
+  }
+  .tarukh-home-option.is-primary { grid-column: 1 / -1; }
+  .tarukh-home-option.is-primary::after { display: none; }
+  .tarukh-home-option-number { top: 4px; left: 10px; font-size: 7px; }
+  .tarukh-home-option-icon { flex-basis: 29px; width: 29px; height: 29px; border-radius: 50%; transform: none; }
+  .tarukh-home-option-icon svg { width: 15px; height: 15px; }
+  .tarukh-home-option-copy { gap: 3px; padding-top: 2px; }
   .tarukh-home-option-copy strong { font-size: 12px; }
-  .tarukh-home-option-copy small { font-size: 6px; }
-  .tarukh-home-footer { left: 16px; right: 16px; min-height: 41px; flex-direction: row; padding: 0; gap: 7px; font-size: 7px; }
-  .tarukh-home-footer div { display: flex; align-items: center; gap: 4px; }
+  .tarukh-home-option-copy small { font-size: 6.5px; }
+  .tarukh-home-option-arrow { flex-basis: 11px; }
+  .tarukh-home-option-arrow svg { width: 11px; }
+  .tarukh-home-option:disabled:hover { transform: none; }
+  .tarukh-home-footer { left: 12px; right: 12px; min-height: 42px; flex-direction: row; justify-content: flex-end; padding: 0; gap: 0; font-size: 7px; }
+  .tarukh-home-footer .tarukh-home-footer-controls { display: none; }
+  .tarukh-home-footer .tarukh-home-footer-meta { width: 100%; max-width: 100%; flex: 1; align-items: flex-end; gap: 2px; margin-left: 0; }
+  .tarukh-home-footer-credit { font-size: clamp(6px, 1.8vw, 7.5px); letter-spacing: .035em; white-space: nowrap; }
+  .tarukh-home-footer-build { font-size: clamp(5.5px, 1.55vw, 6.5px); }
   .tarukh-home-footer b { margin: 0; padding: 3px 4px; }
-  .tarukh-home-footer span { max-width: 45%; white-space: normal; text-align: right; }
+  .tarukh-home-dialog-inner { padding: 20px 18px 17px; }
+  .tarukh-home-dialog-head { margin: -20px -18px 19px; }
+  .tarukh-home-about-grid { grid-template-columns: 1fr; }
+  .tarukh-home-about-hero { grid-template-columns: 36px minmax(0,1fr); gap: 11px; padding: 13px; }
+  .tarukh-home-about-mark { width: 36px; height: 36px; }
+  .tarukh-home-about-stamp { display: none; }
+  .tarukh-home-layouts { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 380px) {
@@ -598,8 +1021,8 @@
   .tarukh-home-copy h1 { margin: 15px 0; font-size: 76px; }
   .tarukh-home-description { margin-top: 12px; }
   .tarukh-home-option { min-height: 62px; }
-  .tarukh-home-scene-label { bottom: 153px; }
-  .tarukh-home-slideshow { bottom: 117px; }
+  .tarukh-home-scene-label { bottom: 176px; }
+  .tarukh-home-slideshow { bottom: 139px; }
 }
 
 @media (max-height: 520px) and (max-width: 650px) {
@@ -615,10 +1038,22 @@
   .tarukh-home-copy { top: 22%; }
   .tarukh-home-copy h1 { margin: 9px 0; font-size: clamp(49px, 15vh, 67px); }
   .tarukh-home-description { margin-top: 8px; font-size: 12px; }
+  .tarukh-home-menu { bottom: 42px; }
   .tarukh-home-option-copy strong { white-space: normal; }
+}
+
+@media (max-width: 390px) {
+  .tarukh-home-menu { gap: 0 2px; padding: 5px; }
+  .tarukh-home-option { gap: 6px; padding-inline: 7px; }
+  .tarukh-home-option-copy strong { font-size: 11px; }
+  .tarukh-home-option-copy small { letter-spacing: .02em; }
+  .tarukh-home-about-grid { gap: 5px; }
+  .tarukh-home-about-grid article { padding-inline: 7px; }
+  .tarukh-home-about-grid article > small { font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tarukh-home-dust,.tarukh-home-status i { animation: none !important; }
-  .tarukh-home-option,.tarukh-home-option-arrow { transition-duration: .01ms !important; }
+  .tarukh-home-living-worlds,.tarukh-home-field-expedition { animation: none !important; }
+  .tarukh-home-menu,.tarukh-home-option,.tarukh-home-option-icon,.tarukh-home-option-arrow,.tarukh-home-layout,.tarukh-home-about-grid article { transition-duration: .01ms !important; }
 }

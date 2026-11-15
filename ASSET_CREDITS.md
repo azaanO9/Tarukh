@@ -51,6 +51,8 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - The bounded exploration area's perimeter mountains are original procedural geometry. They are artistic barriers added to the MOLA crop, not NASA elevation measurements; no new external assets are used.
 - `public/team/tarukh-logo.png` and its WebP derivative: original team-supplied TARUKH identity marks. `public/team/tarukh-logo-menu.png` is the user-supplied blue illuminated logo used on the main menu. No logo files are loaded by the 3D exploration renderer.
 - `public/art/main-menu/red-valley/`: the supplied Red Valley illustration, separated for Parallax Atlas into sky, moons, clouds, basin, ridge and explorers. The main menu uses those six WebP plates and a still of the illustration. The landscape is fictional.
+- `ui/depth-scenes/living-worlds/` and `public/art/main-menu/living-worlds/`: the user-supplied layered alien landscape and its inpainted clean plate, copied from `tarukh-depth-scene`. The original illustration remains the owner's work; no additional license is asserted. It is fantasy artwork, not Mars imagery or scientific terrain.
+- `public/art/main-menu/field-expedition/`: the user-supplied illustrated field scene and transparent depth cutouts, copied from `Tarukh_Depth_Scene_2`. Rights to the supplied artwork remain with its owner; no additional license is asserted. It is concept artwork, not official NASA imagery or endorsement.
 
 ## Outpost, greenhouses and garage
 

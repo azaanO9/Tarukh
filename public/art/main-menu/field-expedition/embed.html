@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TARUKH · Field expedition background</title>
+  <style>
+    html, body, #scene { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #070a0f; }
+    #scene { position: fixed; inset: 0; display: block; border: 0; }
+  </style>
+</head>
+<body>
+  <iframe id="scene" src="./index.html" title="Layered field expedition artwork" tabindex="-1"></iframe>
+  <script>
+    const scene = document.getElementById("scene");
+    let requestedMotion = false;
+
+    function applyMotion() {
+      const document = scene.contentDocument;
+      if (!document) return;
+      if (!document.head.querySelector("style[data-menu-background]")) {
+        const style = document.createElement("style");
+        style.dataset.menuBackground = "true";
+        style.textContent = ".hud,.footerline,.intro{display:none!important}.viewport{cursor:default!important}";
+        document.head.append(style);
+      }
+      const button = document.getElementById("motionButton");
+      if (button && (button.getAttribute("aria-pressed") === "true") !== requestedMotion) button.click();
+    }
+
+    window.tarukhSetMotion = active => { requestedMotion = Boolean(active); applyMotion(); };
+    scene.addEventListener("load", applyMotion);
+  </script>
+</body>
+</html>

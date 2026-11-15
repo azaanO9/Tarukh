@@ -98,8 +98,14 @@ function mountScene(viewport: HTMLDivElement, world: HTMLDivElement) {
     if (!playing || !viewWidth || !viewHeight) return;
     targetX = clamp(2 * event.clientX / viewWidth - 1, -1, 1);
     targetY = clamp(2 * event.clientY / viewHeight - 1, -1, 1);
+    menu?.style.setProperty("--menu-rotate-y", `${targetX * .7}deg`);
+    menu?.style.setProperty("--menu-rotate-x", `${targetY * -.5}deg`);
   }
-  function centre() { targetX = 0; targetY = 0; }
+  function centre() {
+    targetX = 0; targetY = 0;
+    menu?.style.setProperty("--menu-rotate-x", "0deg");
+    menu?.style.setProperty("--menu-rotate-y", "0deg");
+  }
 
   // Observe input on the menu. The decorative planes never receive taps or focus.
   const menu = viewport.closest("main");

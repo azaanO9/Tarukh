@@ -1,0 +1,37 @@
+.depth-viewport {
+  position: relative; width: 100%; height: 100%; overflow: hidden;
+  isolation: isolate; background: #063951;
+  touch-action: pan-y; cursor: crosshair;
+}
+.depth-world {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transform-origin: 50% 50%; will-change: transform;
+}
+.depth-layer {
+  position: absolute; inset: -1px; transform-origin: 50% 50%;
+  transform-style: preserve-3d; will-change: transform, opacity;
+  pointer-events: none; backface-visibility: hidden;
+}
+.depth-layer svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.depth-layer-label {
+  position: absolute; top: 14px; right: 14px; padding: 5px 9px;
+  color: #d9ffec; border: 1px solid #d9ffec50; background: #071e32d9;
+  font: 500 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  opacity: 0; white-space: nowrap;
+}
+.depth-layer-edge { position: absolute; inset: 0; border: 1px solid #9ef9e975; opacity: 0; }
+.depth-motes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.depth-shade {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg,#041b2c14,transparent 25%,transparent 75%,#190d271f);
+  box-shadow: inset 0 0 70px #07162b17;
+}
+.depth-viewport[data-ready="false"] .depth-world { opacity: 0; }
+.depth-loading {
+  position:absolute; inset:0; display:grid; place-content:center; color:#c7e7e9;
+  font:500 14px/1.6 ui-monospace,monospace; letter-spacing:.1em; text-align:center;
+  background:radial-gradient(ellipse at 50% 75%,#14717b,#071c31 75%);
+}
+.depth-viewport[data-ready="true"] .depth-loading { display:none; }
+.depth-viewport[data-error="true"] .depth-loading { padding:30px; line-height:1.8; }
+@media(prefers-reduced-motion:reduce) { .depth-world,.depth-layer { will-change:auto; } }
