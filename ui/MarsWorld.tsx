@@ -1,6 +1,7 @@
 "use client";
 import { createStreamedMars } from "./world/streamedMars";
-import { createMarsRegionalLandscape } from "./world/marsRegionalLandscape";
+import { createMarsRegionalLandscape, MARS_HORIZON_DISTANCE } from "./world/marsRegionalLandscape";
+import { createDetailDistanceCulling } from "./world/detailDistanceCulling";
 import { marsExpeditionHeight, marsOutpostHeight, OUTPOST_GROUND_HEIGHT } from "../game/marsExpeditionTerrain";
 import { OUTPOST_SITE } from "../game/outpostSite";
 import { createMarsOutpost } from "./world/createMarsOutpost";
@@ -39,8 +40,10 @@ import { spawnCuriosityRover, stepCuriosityRover, curiosityFootprint, exportCuri
 import { CURIOSITY_SAVE_KEY, parseCuriositySave } from "../game/curiositySave";
 import { createMarsWindDust } from "./world/marsWindDust";
 import { createSoftContactShadow } from "./world/contactShadow";
-import { graphicsTier } from "./world/graphicsTiers";
+import { graphicsTier, graphicsEffects } from "./world/graphicsTiers";
 import {createOutpostRendering,updateOutpostRendering} from './world/outpostRendering';
+import {createGraphicsSamplingGate,updateGraphicsSamplingGate} from '../game/graphicsSampling';
+import {prepareWorldMaterials} from './world/prepareWorldBuffers';
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
@@ -505,6 +508,9 @@ function MarsWorld(props: Props) {
       }
       let streaming: ReturnType<typeof createStreamedMars> | null = null;
       const regionalLandscape = createMarsRegionalLandscape(model.root);
+      let detailCulling: ReturnType<typeof createDetailDistanceCulling> | null = null;
+      const previousSceneRender = scene.onBeforeRender;
+      let viewFrame = 0, culledFrame = -1;
       const streamOptions = { worldLimit: STREAM_LIMIT };
       const baseHeight = model.heightAt;
       const baseRoverHeight = model.roverHeightAt;
@@ -687,13 +693,22 @@ function MarsWorld(props: Props) {
         earth.material.depthWrite = false;
         starField.material.transparent = true;
         starField.material.depthWrite = false;
+        // Celestial bodies sit behind real ridges, without changing angular size.
+        for (const material of [sun.material, earth.material, starField.material]) {
+          material.onBeforeCompile = shader => {
+            shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>',
+              '#include <project_vertex>\ngl_Position.z = gl_Position.w * (1.0 - 0.0000001);');
+          };
+          material.customProgramCacheKey = () => 'mars-celestial-depth-v1';
+        }
       }
       let composer: import("three/examples/jsm/postprocessing/EffectComposer.js").EffectComposer | null = null;
-      let occlusion: import("three/examples/jsm/postprocessing/GTAOPass.js").GTAOPass | null = null;
+      let occlusion: import("./world/BoundedGTAOPass").BoundedGTAOPass | null = null;
       let bloom: import("three/examples/jsm/postprocessing/UnrealBloomPass.js").UnrealBloomPass | null = null;
       let fxaaPass: import("three/examples/jsm/postprocessing/ShaderPass.js").ShaderPass | null = null;
       let effectsLoading: Promise<void> | null = null;
       const outpostRendering = createOutpostRendering();
+      const graphicsSampling = createGraphicsSamplingGate();
       const effectsSupported = Boolean(gl.getExtension('EXT_color_buffer_float'));
       const desiredCamera = new T.Vector3();
       const orbitCamera = new T.Vector3(), eyeCamera = new T.Vector3();
@@ -718,8 +733,7 @@ function MarsWorld(props: Props) {
         if (!composer || (!outpostRendering.active && !occlusion?.enabled && !bloom?.enabled))
           return false;
         try {
-          // Indoors only the existing scene/output/FXAA passes remain. This
-          // avoids the main framebuffer's multisample cost on detailed rooms.
+          // Ultra keeps its room effects; other tiers retain output/FXAA only.
           composer.render();
           return true;
         }
@@ -732,10 +746,10 @@ function MarsWorld(props: Props) {
         }
       }
       const prepareEffects = () => effectsLoading ??= (async () => {
-        const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { BoundedGTAOPass }, { ResolutionFXAAPass }] = await Promise.all([
+        const [{ EffectComposer }, { RenderPass }, { BoundedBloomPass }, { OutputPass }, { BoundedGTAOPass }, { ResolutionFXAAPass }] = await Promise.all([
           import("three/examples/jsm/postprocessing/EffectComposer.js"),
           import("three/examples/jsm/postprocessing/RenderPass.js"),
-          import("three/examples/jsm/postprocessing/UnrealBloomPass.js"),
+          import("./world/BoundedBloomPass"),
           import("three/examples/jsm/postprocessing/OutputPass.js"),
           import("./world/BoundedGTAOPass"),
           import("./world/ResolutionFXAAPass"),
@@ -744,15 +758,19 @@ function MarsWorld(props: Props) {
           return;
         // HDR resolves with HalfFloatType
         const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: 0 });
+        // Ultra's contact shading reuses the scene depth instead of drawing
+        // the detailed world again. The composer clones this attachment.
+        target.depthTexture = new T.DepthTexture(1, 1, T.UnsignedIntType);
         composer = new EffectComposer(renderer, target);
         composer.addPass(new RenderPass(scene, camera));
         occlusion = new BoundedGTAOPass(scene, camera, 256, 256);
+        occlusion.setDetailDistance(graphicsTier(effectiveQuality()).viewDistance);
         occlusion.updateGtaoMaterial({ radius: .52, thickness: .55, distanceFallOff: 1.2, samples: 10 });
         occlusion.updatePdMaterial({ samples: 8, radius: 4, rings: 2 });
         occlusion.blendIntensity = .52;
         occlusion.enabled = false;
         composer.addPass(occlusion);
-        bloom = new UnrealBloomPass(new T.Vector2(512, 512), .28, .55, .88);
+        bloom = new BoundedBloomPass(new T.Vector2(512, 512), .28, .55, .88);
         composer.addPass(bloom);
         // Detect edges after tone mapping, using display-space contrast.
         composer.addPass(new OutputPass());
@@ -760,11 +778,15 @@ function MarsWorld(props: Props) {
         composer.addPass(fxaaPass);
       })().catch(() => { disposeEffects(); });
       function configureEffects(render = false) {
-        const preset = graphicsTier(effectiveQuality());
-        if (occlusion)
-          occlusion.enabled = preset.ssao && !outpostRendering.active;
+        const effects = graphicsEffects(effectiveQuality(),outpostRendering.active,reduced.matches);
+        outpost.setUltraLighting(effects.roomHighlights);
+        if (occlusion) {
+          occlusion.enabled = effects.occlusion;
+          occlusion.setReuseSceneDepth(effects.reuseSceneDepth);
+          occlusion.setDetailDistance(graphicsTier(effectiveQuality()).viewDistance);
+        }
         if (bloom)
-          bloom.enabled = preset.bloom && !reduced.matches && !outpostRendering.active;
+          bloom.enabled = effects.bloom;
         if (render && effectiveQuality() !== "performance")
           renderEffects();
       }
@@ -862,6 +884,11 @@ function MarsWorld(props: Props) {
         if (!rover.driving) {
           if (canEnterRover(walker, rover)) {
             rover = enterRover(rover);
+            // Boarding takes over from any pending building-camera restoration.
+            interiorCamera.inside = false;
+            interiorCamera.outsideSeconds = 0;
+            cameraSettings.current.thirdPerson = false;
+            setThirdPerson(false);
             keys.clear();
             setRoverDriving(true);
             setRoverNear(false);
@@ -935,10 +962,11 @@ function MarsWorld(props: Props) {
         garage.setPerformance(name === "performance");
         model.setLightSurfaces?.(name === 'performance');
         {
-          camera.far = tier.viewDistance;
+          // Only the low-detail regional surface uses the full horizon range.
+          // Equipment and detailed terrain retain the tier's nearer draw budget.
+          camera.far = MARS_HORIZON_DISTANCE;
           camera.updateProjectionMatrix();
-          // Keep the sky dome inside the shorter frustum without changing its angular appearance.
-          skyMesh?.scale.setScalar(Math.min(1, tier.viewDistance / 1000));
+          skyMesh?.scale.setScalar(1);
           streaming?.setPerformance(name === 'performance');
         }
         resolutionScale = scale;
@@ -1430,7 +1458,7 @@ function MarsWorld(props: Props) {
           metricStart = 0;
           metricFrames = 0;
         }
-        if (cameraSettings.current.quality === 'auto' && time - lastResolutionChange >= 400 && Math.abs(resolutionScale - autoState.scale) > .005) {
+        if (cameraSettings.current.quality === 'auto' && graphicsSampling.eligible && time - lastResolutionChange >= 400 && Math.abs(resolutionScale - autoState.scale) > .005) {
           resolutionScale = approachRenderScale(resolutionScale, autoState.scale);
           renderer.setPixelRatio(resolutionScale);
           resize();
@@ -1769,7 +1797,12 @@ function MarsWorld(props: Props) {
           configureEffects();
           // Retain the cached shadow maps and shader variants while indoors.
           renderer.shadowMap.needsUpdate = !outpostRendering.active;
+          metricStart = 0;
+          metricFrames = 0;
+          autoState.slow = autoState.fast = 0;
+          backgroundProbe?.reset();
         }
+        updateGraphicsSamplingGate(graphicsSampling,outpostRendering.active,time);
         const cameraDt = p.enabled ? dt : 0;
         const third = updateInteriorCamera(interiorCamera,insideFacility,cameraSettings.current.thirdPerson,rover.driving?.25:cameraDt);
         if(third!==cameraSettings.current.thirdPerson){
@@ -1820,7 +1853,10 @@ function MarsWorld(props: Props) {
         }
         else if (rover.driving && true) {
           orbitInitialized = false;
-          astronaut.visible = false;
+          astronaut.visible = true;
+          bigRover?.positionDriver(astronaut);
+          marsAstronaut?.setSeated(true, cockpitView);
+          marsAstronaut?.update(0, 0, false, 0);
           const roverGround = rover.chassisY ?? model.heightAt(rover.x, rover.z);
           cameraGround += (roverGround - cameraGround) * (1 - Math.exp(-14 * dt));
           if (third) {
@@ -1839,6 +1875,9 @@ function MarsWorld(props: Props) {
           }
         }
         else {
+          marsAstronaut?.setSeated(false);
+          astronaut.rotation.x = 0;
+          if (!isDeadRef.current) astronaut.rotation.z = 0;
           if (isDeadRef.current) {
             deathCollapse = Math.min(1, deathCollapse + dt * 1.5);
           }
@@ -2111,6 +2150,7 @@ function MarsWorld(props: Props) {
         renderer.shadowMap.autoUpdate = !outpostRendering.active;
         if(outpostRendering.active)renderer.shadowMap.needsUpdate = false;
         renderer.info.reset();
+        viewFrame++;
         if (lastQuality === "performance" || !renderEffects())
           renderer.render(scene, camera);
         if (cameraChanged) {
@@ -2134,7 +2174,7 @@ function MarsWorld(props: Props) {
           element.dataset.measurementStatus = 'active';
         if (backgroundProbe && !backgroundProbe.done()) {
           const candidate = backgroundProbe.candidate();
-          const eligible = p.enabled && !landingIntro?.isActive() && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
+          const eligible = p.enabled && !landingIntro?.isActive() && graphicsSampling.eligible && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
           const decision = backgroundProbe.frame(frameInterval, performance.now() - frameStarted, eligible);
           if (decision) {
             autoProfile = decision.next.profile;
@@ -2161,7 +2201,7 @@ function MarsWorld(props: Props) {
           }
         }
         // The ongoing governor excludes paused/landing frames after initial profiling.
-        const activeSample = p.enabled && !landingIntro?.isActive();
+        const activeSample = p.enabled && !landingIntro?.isActive() && graphicsSampling.eligible;
         if (metricActive !== activeSample) {
           metricActive = activeSample;
           metricStart = 0;
@@ -2193,6 +2233,8 @@ function MarsWorld(props: Props) {
           element.dataset.garageChargingSource = garageState.chargingSource ?? "none";
           element.dataset.garageDockPopup = (garageState.phase === "parked" && !garageDockDismissedRef.current && (garageDockEnteredAt > 0 && time - garageDockEnteredAt < 5000)) ? "true" : "false";
           element.dataset.crewRoverX = rover.x.toFixed(3);
+          element.dataset.roverCockpitScreens = String(bigRover?.cockpitScreens ?? 0);
+          element.dataset.roverOccupant = rover.driving ? 'seated' : 'on-foot';
           element.dataset.crewRoverZ = rover.z.toFixed(3);
           element.dataset.crewRoverYaw = rover.yaw.toFixed(4);
           element.dataset.crewWheelRoll = rover.wheelRoll.toFixed(3);
@@ -2205,7 +2247,13 @@ function MarsWorld(props: Props) {
           element.dataset.trackTextureSize = String(model.trackTextureSize ?? 0);
           element.dataset.terrainChunks = String(streaming?.count() ?? 0);
           element.dataset.visibleTerrainChunks = String(streaming?.visibleCount() ?? 0);
-          element.dataset.viewDistance = String(camera.far);
+          element.dataset.viewDistance = String(activeTier.viewDistance);
+          if (debug) {
+            element.dataset.horizonDistance = String(camera.far);
+            element.dataset.visibleHorizonPatches = String(regionalLandscape.visibleCount());
+            element.dataset.horizonPatches = String(regionalLandscape.count);
+            element.dataset.culledDetailObjects = String(detailCulling?.culled ?? 0);
+          }
           element.dataset.fps = (metricFrames * 1000 / (time - metricStart)).toFixed(1);
           element.dataset.renderCalls = String(renderer.info.render.calls);
           element.dataset.shaderPrograms = String(renderer.info.programs?.length ?? 0);
@@ -2216,7 +2264,9 @@ function MarsWorld(props: Props) {
           element.dataset.curiosityScans = String(curiosity?.scanCount ?? 0);
           element.dataset.resolutionScale = resolutionScale.toFixed(2);
           element.dataset.contactShading = String(occlusion?.enabled ?? false);
-          element.dataset.indoorRendering = outpostRendering.active ? 'simple' : 'outdoor';
+          element.dataset.bloom = String(bloom?.enabled ?? false);
+          element.dataset.occlusionDepthSource = !occlusion?.enabled ? 'off' : occlusion.reusingSceneDepth ? 'scene' : 'normals';
+          element.dataset.indoorRendering = outpostRendering.active ? (lastQuality === 'ultra' ? 'ultra' : 'simple') : 'outdoor';
           element.dataset.antialiasing = lastQuality !== 'performance' && composer && (outpostRendering.active || occlusion?.enabled || bloom?.enabled) ? "fxaa" : renderer.getContext().getContextAttributes()?.antialias ? "native" : "off";
           element.dataset.aaTexel = fxaaPass ? `${fxaaPass.uniforms.resolution.value.x},${fxaaPass.uniforms.resolution.value.y}` : "";
           const fps = metricFrames * 1000 / (time - metricStart);
@@ -2238,6 +2288,8 @@ function MarsWorld(props: Props) {
         }
       }
       dispose = () => {
+        scene.onBeforeRender = previousSceneRender;
+        detailCulling?.dispose();
         outpost.dispose();
         greenhouses.dispose();
         garage.dispose();
@@ -2433,37 +2485,64 @@ function MarsWorld(props: Props) {
           // Warm up the ground exploration view
           camera.position.set(.22, 2.8, 17.8);
           camera.rotation.set(pitch, 0, 0, "YXZ");
-          await renderer.compileAsync(scene, camera);
-          renderer.render(scene, camera);
-          configureEffects(true);
-
-          // Warm up composer offscreen so all effect passes and buffers are primed
-          const warmComposer = composer as import("three/examples/jsm/postprocessing/EffectComposer.js").EffectComposer | null;
-          if (warmComposer) {
-            resize();
-            const renderToScreen = warmComposer.renderToScreen;
-            warmComposer.renderToScreen = false;
-            const warmOcclusion = occlusion as import("three/examples/jsm/postprocessing/GTAOPass.js").GTAOPass | null;
-            if (warmOcclusion)
-              warmOcclusion.enabled = graphicsTier(lastQuality).ssao;
-            const warmBloom = bloom as import("three/examples/jsm/postprocessing/UnrealBloomPass.js").UnrealBloomPass | null;
-            if (warmBloom)
-              warmBloom.enabled = graphicsTier(lastQuality).bloom && !reduced.matches;
-            try {
-              renderEffects();
+          // Auto starts in Performance but may upgrade later. Prepare the
+          // shadowed output path the device will use before exposing the world.
+          if (cameraSettings.current.quality !== "performance") {
+            garage.setPerformance(false);
+            model.setLightSurfaces?.(false);
+            renderer.shadowMap.enabled = true;
+            helmetLamp.castShadow = true;
+            if (effectsSupported) {
+              await prepareEffects();
+              if (cancelled) return;
             }
-            finally {
-              warmComposer.renderToScreen = renderToScreen;
+            const warmComposer = composer as import("three/examples/jsm/postprocessing/EffectComposer.js").EffectComposer | null;
+            if (warmComposer) {
+              await prepareWorldMaterials(renderer,scene,camera,warmComposer.readBuffer,true);
+              if (cancelled) return;
+              const renderToScreen = warmComposer.renderToScreen;
+              const warmOcclusion = occlusion as import("./world/BoundedGTAOPass").BoundedGTAOPass | null;
+              const warmBloom = bloom as import("three/examples/jsm/postprocessing/UnrealBloomPass.js").UnrealBloomPass | null;
+              warmComposer.renderToScreen = false;
+              if (warmOcclusion) warmOcclusion.enabled = true;
+              if (warmBloom) warmBloom.enabled = !reduced.matches;
+              try {
+                warmComposer.render();
+                // Both depth sources are prepared before a later Auto upgrade
+                // or manual tier change can expose a new fullscreen shader.
+                if (warmOcclusion) {
+                  warmOcclusion.setReuseSceneDepth(true);
+                  warmComposer.render();
+                  warmOcclusion.setReuseSceneDepth(false);
+                }
+              } finally {
+                warmComposer.renderToScreen = renderToScreen;
+              }
+            } else {
+              await prepareWorldMaterials(renderer,scene,camera,null,true);
+              if (cancelled) return;
             }
           }
+          garage.setPerformance(lastQuality === "performance");
+          model.setLightSurfaces?.(lastQuality === "performance");
+          renderer.shadowMap.enabled = graphicsTier(lastQuality).shadows;
+          helmetLamp.castShadow = graphicsTier(lastQuality).shadows;
+          await prepareWorldMaterials(renderer,scene,camera);
+          if (cancelled) return;
+          resize();
+          renderer.render(scene, camera);
+          configureEffects(true);
         }
         catch { /* Keep direct renderer if optional effects are unavailable */ }
         finally {
           if (!cancelled) {
             scene.overrideMaterial = null;
             renderer.setRenderTarget(null);
+            garage.setPerformance(effectiveQuality() === 'performance');
             model.setLightSurfaces?.(effectiveQuality() === 'performance');
             renderer.shadowMap.enabled = graphicsTier(effectiveQuality()).shadows;
+            helmetLamp.castShadow = graphicsTier(effectiveQuality()).shadows;
+            resize();
             configureEffects();
             backgroundPrepared = true;
             backgroundProbe?.reset();
@@ -2475,6 +2554,16 @@ function MarsWorld(props: Props) {
       if (cancelled)
         return;
       applyQuality(effectiveQuality(), resolutionScale);
+      detailCulling = createDetailDistanceCulling(scene, object =>
+        !object.frustumCulled || object.userData.marsHorizon === true || object === skyMesh || object === sun || object === earth || object === starField);
+      scene.onBeforeRender = function (render, renderScene, viewCamera, geometry, material, group) {
+        previousSceneRender.call(this, render, renderScene, viewCamera, geometry, material, group);
+        if (viewCamera !== camera || culledFrame === viewFrame) return;
+        // The renderer has updated world matrices; reuse these results for AO passes.
+        culledFrame = viewFrame;
+        regionalLandscape.updateVisibility(camera);
+        detailCulling?.update(camera, graphicsTier(lastQuality).viewDistance);
+      };
       if (backgroundProbe) {
         backgroundStarted = performance.now();
         const report = 'Checking FPS in the background…';
@@ -2916,6 +3005,7 @@ function MarsWorld(props: Props) {
             <div className="mars-shield-popup-body">
               <strong>SHIELD ACTIVE: 50% (ROVER)</strong>
               <span>Pressurized chassis deflection engaged · Minimizing to cockpit HUD</span>
+              <span className="rover-camera-hint">{touchControlsActive ? "Tap the camera button or press V to switch camera view." : "Press V to switch camera view."}</span>
             </div>
           </div>
           <button

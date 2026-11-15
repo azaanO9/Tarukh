@@ -1,0 +1,16 @@
+{
+  "sourceFile": "Kepler_Rover_Cockpit.glb",
+  "sourceSha256": "7e5affb09536e6be26083f7ccb2b416db8f32b5c99de6b55e1e5126d8591be4b",
+  "sourceBytes": 55933528,
+  "bytes": 13851204,
+  "sourceTriangles": 570547,
+  "removedWheelTriangles": 137880,
+  "driverEye": [
+    -0.007538045556529488,
+    1.918122696708302,
+    0.22205407088300883
+  ],
+  "drawGroups": 31,
+  "sha256": "6841a3c43b2ebda9d63371bbe89c7803d2b301a80c827ee421a4750845bc07a1",
+  "adaptation": "Normalized to existing 4.95m vehicle; supplied body and complete cabin retained. Existing wheel/steering/suspension meshes and pivots reused. Static fittings batched by material, embedded lights omitted, textures capped at 1024px WebP, five LCD textures replaced at runtime. No simulation changes."
+}

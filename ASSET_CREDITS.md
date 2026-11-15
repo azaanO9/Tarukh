@@ -10,7 +10,9 @@ The project combines original geometry and artwork with the attributed models, m
 | `public/models/nasa-curiosity-clean.glb` | [NASA Curiosity (Clean)](https://sketchfab.com/3d-models/nasa-curiosity-clean-0696a383f3e841d2b5c7636ee8a58aba), **Thomas Flynn**, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), recorded in the GLB metadata. | Original file retained; runtime assembly, suspension, scanning arm and educational effects are implemented in `createCuriosityRover.ts`. |
 | `public/models/space-exploration-vehicle-ready.glb` | Derivative of NASA's [Multi-Mission Space Exploration Vehicle](https://science.nasa.gov/3d-resources/space-exploration-vehicle/). See [NASA media guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/). | `prepare-rover.mjs` bakes the transform and wheel/upright partitions, removes unused PNG fallback copies and writes Draco geometry with the source WebP textures. All 413,198 source triangles are retained. The original is kept as `space-exploration-vehicle.glb`. |
 
-The cockpit, seven measured glazing contours, vehicle lighting, dust and simulation are game adaptations. They are not presented as an authentic reconstruction of NASA instruments or validated vehicle behavior. `roverWindowContours.ts` is derived from the credited MMSEV asset; `roverCockpit.ts` adds original interior geometry. No supplied cockpit-reference pixels are distributed.
+The active crew rover uses the user-supplied Kepler body and furnished cabin in `public/models/kepler-rover/rover.glb`, fitted to the unchanged original wheel and suspension rig. Its [attribution](public/models/kepler-rover/ATTRIBUTION.md) records provenance and preparation; a license for the supplied cabin was not included. The original NASA derivative above remains an offline preparation/test source. Five original runtime screens show current game vehicle readings, including navigation, speed, power, charging and wheel diagnostics.
+
+The cockpit, seven measured glazing contours, vehicle lighting, dust and simulation are game adaptations. They are not presented as authentic NASA instruments or validated vehicle behavior. `roverWindowContours.ts` is derived from the credited MMSEV asset; the original procedural interior in `roverCockpit.ts` remains the load-failure fallback.
 
 ## Terrain data and map
 
@@ -55,6 +57,8 @@ The cultivation district uses the user-supplied **Arcadia greenhouse** model, pl
 The game uses a derivative of the later v9 white modular campus in `public/models/outpost/`. Its [attribution](public/models/outpost/ATTRIBUTION.md) and [source manifest](public/models/outpost/sources.json) identify all furnishings and the supplied CC BY computer and lift door. Preparation removes the review landscape and basalt, simplifies surfaces conservatively, instances shared geometry, batches static parts and converts textures to WebP at a maximum 1024 pixels. All eleven gate animation clips are retained. The reviewed source exports are unchanged. The three prepared game GLBs ship with the repository and their attribution records.
 
 The game derivative also removes obstructing observatory doorway trim and adds original fitted pressure collars around the ten internal airlock gates. Existing materials and supplied door geometry are retained; no additional external assets are used. These corrections are reproduced by `scripts/outpost-repairs.mjs` during asset preparation.
+
+Ultra's interior highlights use the existing Three.js GGX lighting functions on scoped material clones. Contact shading and bloom use Three.js effects with bounded buffers and scene-depth reuse. This lighting update adds no external models or textures.
 
 ## Separate outpost review models
 
