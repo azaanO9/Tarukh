@@ -35,6 +35,7 @@ import { MarsTouchDeck } from "./world/MarsTouchDeck";
 import { RoverTouchDeck } from "./world/RoverTouchDeck";
 import { ChevronDown, ChevronLeft, House, Power, Smartphone, Settings2 } from "lucide-react";
 import RadiationPhoneHome from "./RadiationPhoneHome";
+import FlightMenu from "./FlightMenu";
 import { createMarsSky, createMarsFootprints } from "./world/marsTerrain";
 import { loadMarsSurfaceTextures, disposeMarsSurfaceTextures } from "./world/marsSurfaceTextures";
 import { createRiggedAstronaut } from "./world/createRiggedAstronaut";
@@ -154,6 +155,11 @@ type Props = {
   coveredByArrival?: boolean;
   arrivalPlayback?: ArrivalPlayback;
   onRestart?: () => void;
+  menuOpen?: boolean;
+  onOpenMenu?: () => void;
+  onCloseMenu?: () => void;
+  onMainMenu?: () => void;
+  onMenuFullscreen?: () => void;
 };
 function MarsWorld(props: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -224,8 +230,6 @@ function MarsWorld(props: Props) {
   const releasePhoneInput = useRef<() => void>(() => {});
   const openPhone = useCallback(() => {
     if (!current.current.enabled || current.current.coveredByArrival) return;
-    const graphicsPanel = host.current?.querySelector<HTMLDetailsElement>(".sv-look-controls details");
-    if (graphicsPanel) graphicsPanel.open = false;
     phoneReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     phoneOpenRef.current = true;
     controls.current.clear();
@@ -479,7 +483,6 @@ function MarsWorld(props: Props) {
   const [loadingProgress, setLoadingProgress] = useState(10);
   useEffect(() => { current.current.onLoadingProgress?.(loadingProgress, loadingStage); }, [loadingProgress, loadingStage]);
   const [loaded, setLoaded] = useState(false);
-  const [locked, setLocked] = useState(false);
   const [cursorFree, setCursorFree] = useState(false);
   const [message, setMessage] = useState("");
   const [outpostPrompt, setOutpostPrompt] = useState("");
@@ -1430,7 +1433,6 @@ function MarsWorld(props: Props) {
         const releasedFromLock = wasCaptured && !captured;
         wasCaptured = captured;
         discardCapturedMove = captured;
-        setLocked(captured);
         if (captured) {
           captureFailureCount = 0;
           setCursorMode(false);
@@ -2856,29 +2858,9 @@ function MarsWorld(props: Props) {
       <i />
      </div>
      <div className="sv-look-controls" data-ui-zone="settings">
-      <details open={undefined} onToggle={event => { if (event.currentTarget.open && phoneOpenRef.current) closePhone(); }}>
-      <summary aria-label="Camera and graphics">{touchControlsActive && true ? <Settings2 size={19}/> : "Camera & graphics"}</summary>
-      {!touchControlsActive && (<>
-        <button onClick={() => lockAction.current()}>
-         {locked ? "Release mouse · Esc" : cursorFree ? "Resume mouse look" : "Capture mouse for 360° look"}
-        </button>
-        <span>{cursorFree ? "Cursor free for UI · click the 3D view to resume look" : "Drag to look, or click view for 360° capture · Esc frees cursor · Q/R turn · V changes view"}</span>
-       </>)}
-      <label>
-       {touchControlsActive ? "Look sensitivity" : "Mouse sensitivity"}{" "}
-       <input aria-label="Look sensitivity" type="range" min="0.3" max="2.5" step="0.1" value={sensitivity} onChange={(e) => setSensitivity(Number(e.target.value))}/>
-      </label>
-      <button onClick={() => setThirdPerson((v) => !v)}>
-       {thirdPerson ? (touchControlsActive ? "Third person view" : "Third person · V") : (touchControlsActive ? "First person view" : "First person · V")}
-      </button>
-      {<label>Graphics <select aria-label="Graphics quality" value={quality} onChange={e => { setQuality(e.target.value); e.currentTarget.blur(); host.current?.focus({ preventScroll: true }); }}>
-       <option value="auto">Auto · {autoLabel}</option><option value="performance">Performance</option><option value="high">High</option><option value="ultra">Ultra</option>
-      </select></label>}
-      {autoReport && <p className="sv-auto-result">Auto check: {autoReport} Auto targets {touchControlsActive ? 60 : AUTO_TARGET_FPS} FPS during play; lighter graphics help slower devices.</p>}
-      {<label>FPS meter <select aria-label="FPS meter" value={performanceMeter} onChange={e => setPerformanceMeter(e.target.value as PerformanceMeterMode)}>
-       <option value="off">Off</option><option value="fps">FPS only</option><option value="detailed">Detailed</option>
-      </select></label>}
-      </details>
+       <button className="flight-menu-trigger" type="button" aria-label="Camera and graphics" aria-haspopup="dialog" onClick={props.onOpenMenu}>
+         <Settings2 size={19} aria-hidden="true" />{!touchControlsActive && "Flight console"}
+       </button>
      </div>
      {roverNear && !roverDriving && !touchControlsActive && (<div className="sv-rover-prompt">
        <button type="button" className="sv-rover-prompt-btn" onClick={() => toggleRoverAction.current()}>
@@ -3699,6 +3681,15 @@ function MarsWorld(props: Props) {
    {loaded && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" data-ui-zone="interaction" aria-live="polite">
      <button disabled={outpostPromptDisabled} onClick={() => { handleInspectNearby(); host.current?.focus({ preventScroll: true }); }} aria-label={outpostPrompt}>{!outpostPromptDisabled && <kbd>E</kbd>} {outpostPrompt}</button>
    </div>}
+   {props.menuOpen && props.onCloseMenu && props.onMainMenu && <FlightMenu
+     mobile={touchControlsActive} story={Boolean(props.story)} thirdPerson={thirdPerson}
+     sensitivity={sensitivity} quality={quality} autoLabel={autoLabel} autoReport={autoReport}
+     performanceMeter={performanceMeter} onCamera={setThirdPerson} onSensitivity={setSensitivity}
+     onQuality={setQuality} onPerformanceMeter={setPerformanceMeter}
+     onResume={() => { closePhone(); setSepInfoOpen(false); props.onCloseMenu?.(); }}
+     onCaptureMouse={() => lockAction.current()} onFullscreen={props.onMenuFullscreen}
+     onMainMenu={props.onMainMenu}
+   />}
    {message && <p className="sv-world-message" role="status">{message}</p>}
   </div>);
 }

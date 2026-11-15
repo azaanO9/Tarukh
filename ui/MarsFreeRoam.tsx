@@ -50,6 +50,16 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
   const finishArrival = useCallback(() => {setArrived(true);storyRef.current?.onArrivalComplete?.();},[]);
   const [started, setStarted] = useState(Boolean(story));
   const [menu, setMenu] = useState(false);
+  const openMenu = useCallback(() => setMenu(true), []);
+  const closeMenu = useCallback(() => {
+    setMenu(false);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.sv-world')?.focus({ preventScroll: true }));
+  }, []);
+  const returnToMainMenu = useCallback(() => {
+    setMenu(false);
+    if (storyRef.current) storyRef.current.onExit();
+    else setStarted(false);
+  }, []);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [lowGraphics, setLowGraphics] = useState(false);
@@ -67,7 +77,8 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     setArrived(false);
     setAttempt(value => value + 1);
   }, []);
-  const modal = menu || failed || inspect || atlas;
+  const panel = failed || inspect || atlas;
+  const modal = menu || panel;
   const storyReady = story ? sceneReady && story.arrival !== 'earth' : arrived;
   const showArrival = story ? story.arrival === 'earth' : !arrived;
 
@@ -90,7 +101,7 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
   useEffect(()=>{
     if(!started||modal||story?.modalOpen||!storyReady)return;
     const pause=(event:KeyboardEvent)=>{
-      if(event.key==='Escape'&&!event.defaultPrevented){document.exitPointerLock?.();setMenu(true);}
+      if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();document.exitPointerLock?.();setMenu(true);}
     };
     document.addEventListener('keydown',pause);
     return ()=>document.removeEventListener('keydown',pause);
@@ -115,7 +126,7 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     return ()=>document.removeEventListener('keydown',start);
   },[started,storyRequested,mode]);
   useEffect(() => {
-    if (!modal) return;
+    if (!panel) return;
     const previous = document.activeElement as HTMLElement | null;
     document.exitPointerLock?.();
     const focusFirst=()=>{
@@ -142,7 +153,7 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
       if(previous?.isConnected)previous.focus();
       else document.querySelector<HTMLElement>(atlas?'.roam-atlas-open, .roam-header button':'.sv-world')?.focus();
     }); };
-  }, [modal, failed, atlas]);
+  }, [panel, failed, atlas]);
 
   if(!mode)return <main className="roam-launch" aria-busy="true"><section><h1>TARUKH</h1><p>Getting ready…</p></section></main>;
 
@@ -165,7 +176,9 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     <Suspense fallback={<div className="roam-scene-loading" role="status">Preparing Mars…</div>}><MarsWorld key={attempt} story={story?.world} arrivalPlayback={arrivalPlayback} coveredByArrival={!sceneReady || showArrival} enabled={storyReady && !modal && !story?.modalOpen && !story?.world.ending && !blocked} onReady={ready} onTerrainMode={setStreamed}
       showTouchControls={mode === "mobile"} autoDetectTouch={false} onLoadingProgress={loadingProgress}
       initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={receiveView} onUnavailable={unavailable}
-      onRestart={handleRestart} /></Suspense>
+      onRestart={handleRestart} menuOpen={menu && !panel && !blocked && !story?.modalOpen}
+      onOpenMenu={openMenu} onCloseMenu={closeMenu} onMainMenu={returnToMainMenu}
+      onMenuFullscreen={fullscreenAvailable && !fullscreen ? enterFullscreen : undefined} /></Suspense>
     {showArrival && !failed && <Suspense fallback={<div className="roam-scene-loading" role="status">Preparing the flight…</div>}><StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} playback={arrivalPlayback} suspended={blocked||menu} loading={loading} /></Suspense>}
     <RotateToLandscapeGate blocked={blocked}/>
     <header className="roam-header" data-ui-zone="header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="CapsLock" onClick={openAtlas}>Atlas</button>}<div className="roam-header-actions">{fullscreenAvailable&&!fullscreen&&storyReady&&<button className="roam-fullscreen-return" aria-label="Return to fullscreen" onClick={enterFullscreen}>Fullscreen</button>}<button disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>Pause</button></div></header>
@@ -173,14 +186,13 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     {!modal && storyReady && view && !view.cockpitView && <Suspense fallback={null}><ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} /></Suspense>}
     {!modal && story?.overlay}
     {installHint&&!blocked&&!modal&&storyReady&&<aside className="roam-install-hint" role="status"><p>For a full screen on iPhone, tap Share, then Add to Home Screen.</p><button onClick={dismissInstall}>Got it</button></aside>}
-    {modal && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-labelledby="roam-dialog-title">
+    {panel && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-labelledby="roam-dialog-title">
       {failed ? <><h2 id="roam-dialog-title">The 3D world couldn’t start</h2><p>Retry, or use lighter graphics for this browser.</p>
         <button onClick={() => { setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry</button>
         <button onClick={() => { setLowGraphics(true); setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry with Performance graphics</button></>
       : atlas && view ? <Suspense fallback={<p role="status">Opening your field map…</p>}><MarsAtlas x={view.x} z={view.z} selected={landmark} onSelect={setLandmark} onClose={()=>setAtlas(false)} storyTarget={view.storyTarget} storyRoute={story?.world.routePoints}/></Suspense>
       : inspect === 'perseverance' ? <Suspense fallback={<p role="status">Opening rover details…</p>}><PerseveranceInspection onClose={()=>setInspect(null)}/></Suspense>
-      : inspect ? <><h2 id="roam-dialog-title">Curiosity rover</h2><p>This autonomous rover explores the terrain and pauses to scan rocks. Its movements and measurements are simulated.</p><p>Status: {view?.curiosityPhase ?? "exploring"}</p><button onClick={() => setInspect(null)}>Continue exploring</button></>
-      : <><h2 id="roam-dialog-title">Exploration paused</h2><button onClick={() => setMenu(false)}>Resume exploring</button><p>{mode==='mobile'?'Use the movement stick, swipe to look, and tap an action when it appears. Open Atlas to find your way.':'WASD move · Space jump · V camera · F enter/exit rover · Caps Lock map. Drag to look if mouse capture is unavailable.'}</p>{fullscreenAvailable&&!fullscreen&&<button onClick={()=>{enterFullscreen();setMenu(false);}}>Return to fullscreen</button>}<button onClick={() => { setMenu(false); if(story)story.onExit();else setStarted(false); }}>Back to mission menu</button></>}
+      : <><h2 id="roam-dialog-title">Curiosity rover</h2><p>This autonomous rover explores the terrain and pauses to scan rocks. Its movements and measurements are simulated.</p><p>Status: {view?.curiosityPhase ?? "exploring"}</p><button onClick={() => setInspect(null)}>Continue exploring</button></>}
     </section></div>}
   </main>;
 }

@@ -98,6 +98,10 @@ Three.js modeling, environment and post-processing utilities retain the dependen
 
 The coastal Earth surface, ocean colours, cloud banks, orbital atmosphere and star field are original procedural geometry in ui/starbase/earthDeparture.ts. The Mars catch site combines the credited supplied Starship with the project's existing procedural tower, on the game's graded Mars ground, with the actual campus visible behind it. The model and its textures ship with the app; no external model service is requested. The Mars catch infrastructure and compressed travel are fictional expedition art, not a reconstruction of an existing Mars launch site. See docs/ARRIVAL.md.
 
+## Flight console
+
+The Flight console's segmented dial, instrument rings and hover treatments are original CSS/React artwork using the existing Lucide icon library. The menu references radial game interfaces and aerospace display conventions. No third-party interface art, brand marks or fonts were added.
+
 ## Field phone
 
 `public/branding/tarukh-phone-logo.webp` is a resized, compressed derivative of the TARUKH logo supplied by the project owner on November 16, 2026. The install icons in `public/pwa/` use the same logo on the game's dark background. The compact handset shell, flight-computer grid and app icons are original CSS/React styling inspired by in-game smartphones and spaceflight interfaces. Agency and company logos are not used. App symbols use the existing Lucide library. No GTA V artwork, logos, fonts or audio are included.

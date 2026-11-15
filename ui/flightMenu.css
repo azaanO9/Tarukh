@@ -1,0 +1,133 @@
+.flight-menu {
+  --console-line: #bfd6df2b;
+  --console-ink: #f0f5f7;
+  --console-muted: #a8bac3;
+  --console-accent: #bbebe6;
+  box-sizing: border-box;
+  width: min(960px, calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))));
+  max-width: none;
+  max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));
+  padding: 0;
+  margin: auto;
+  overflow: hidden;
+  color: var(--console-ink);
+  background: radial-gradient(ellipse at 20% 60%, #1d3037a6, transparent 65%), #0c1319;
+  border: 1px solid #8da6b74d;
+  border-radius: 4px;
+  box-shadow: 0 24px 100px #0009;
+  font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+.flight-menu[open] { display: flex; flex-direction: column; }
+.flight-menu::backdrop { background: #02070cb8; backdrop-filter: blur(5px); }
+.flight-menu *, .flight-menu *::before, .flight-menu *::after { box-sizing: border-box; }
+.flight-menu button { cursor: pointer; touch-action: manipulation; font: inherit; color: inherit; }
+.flight-menu button:focus-visible, .flight-menu input:focus-visible { outline: 2px solid var(--console-accent); outline-offset: -4px; }
+.flight-menu-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 32px; border-bottom: 1px solid var(--console-line); flex-shrink: 0; }
+.flight-menu-header p { margin: 0 0 6px; color: var(--console-muted); font-size: 14px; text-transform: uppercase; letter-spacing: .12em; }
+.flight-menu h2 { font-family: inherit; font-size: clamp(24px, 3vw, 32px); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; margin: 0; line-height: 1.15; }
+.flight-menu-close { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border: 1px solid var(--console-line); border-radius: 50%; background: transparent; }
+.flight-menu-body { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(260px, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); padding: 28px 32px; min-height: 0; overflow: auto; overscroll-behavior: contain; touch-action: pan-y; }
+
+/* Each button occupies one quarter of the ring; the centre blocks accidental selection. */
+.flight-menu-dial { position: relative; aspect-ratio: 1; width: 100%; max-width: 390px; justify-self: center; isolation: isolate; }
+.flight-menu-ring { position: absolute; inset: 0; border: 1px solid #88acb84f; border-radius: 50%; pointer-events: none; }
+.flight-menu-ring::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: repeating-conic-gradient(#97c0cb80 0deg 1deg, transparent 1deg 6deg); mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); }
+.flight-menu-sectors { position: absolute; inset: 15px; border-radius: 50%; overflow: hidden; }
+.flight-menu-sector { position: absolute; border: 0; padding: 0; margin: 0; background: #17252f; color: #c1d0d6; transition: background .16s ease, color .16s ease; }
+.flight-menu-sector[data-sector="resume"] { left: 0; top: 0; width: 100%; height: 50%; clip-path: polygon(0 0, 100% 0, 50% 98%); }
+.flight-menu-sector[data-sector="camera"] { right: 0; top: 0; width: 50%; height: 100%; clip-path: polygon(100% 0, 100% 100%, 2% 50%); }
+.flight-menu-sector[data-sector="graphics"] { left: 0; bottom: 0; width: 100%; height: 50%; clip-path: polygon(100% 100%, 0 100%, 50% 2%); }
+.flight-menu-sector[data-sector="exit"] { left: 0; top: 0; width: 50%; height: 100%; clip-path: polygon(0 100%, 0 0, 98% 50%); }
+.flight-menu-sector-label { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; width: 92px; transform: translate(-50%, -50%); font-size: 14px; line-height: 1.15; font-weight: 600; }
+.flight-menu-sector[data-sector="resume"] .flight-menu-sector-label { left: 50%; top: 32%; }
+.flight-menu-sector[data-sector="camera"] .flight-menu-sector-label { left: 68%; top: 50%; }
+.flight-menu-sector[data-sector="graphics"] .flight-menu-sector-label { left: 50%; top: 68%; }
+.flight-menu-sector[data-sector="exit"] .flight-menu-sector-label { left: 32%; top: 50%; }
+.flight-menu-dial[data-highlight="resume"] [data-sector="resume"],
+.flight-menu-dial[data-highlight="camera"] [data-sector="camera"],
+.flight-menu-dial[data-highlight="graphics"] [data-sector="graphics"],
+.flight-menu-dial[data-highlight="exit"] [data-sector="exit"] { background: #d9efef; color: #10222c; }
+.flight-menu-sector:focus-visible { outline: 0; box-shadow: inset 0 0 0 5px #90d9e1; }
+.flight-menu-sector[aria-pressed="true"] .flight-menu-sector-label span { text-decoration: underline; text-underline-offset: 5px; }
+.flight-menu-hub { position: absolute; z-index: 2; inset: 30%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 50%; border: 1px solid #8ab6c14d; background: #0d1a22; box-shadow: 0 0 0 7px #0d1a2299; color: var(--console-accent); font-size: 14px; text-align: center; }
+.flight-menu-hub::before { content: ""; position: absolute; inset: -11px; border: 1px solid #7fa5ad38; border-radius: 50%; pointer-events: none; }
+
+.flight-menu-panel { min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 18px; scrollbar-width: thin; scrollbar-color: #88acb8 #12212b; }
+.flight-menu h3 { margin: 0; font-family: inherit; font-size: 24px; font-weight: 500; line-height: 1.25; }
+.flight-menu-options { border: 0; padding: 0; margin: 0; min-width: 0; }
+.flight-menu-options legend { padding: 0; margin-bottom: 10px; color: var(--console-muted); font-size: 14px; }
+.flight-menu-options kbd { margin-left: 6px; }
+.flight-menu-segments { display: flex; gap: 8px; }
+.flight-menu-segments button { flex: 1; min-width: 48px; min-height: 48px; padding: 8px; background: #12212b; border: 1px solid var(--console-line); font-size: 14px; }
+.flight-menu-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.flight-menu-presets button { min-height: 70px; padding: 12px; border: 1px solid var(--console-line); background: #12212b; text-align: left; }
+.flight-menu-presets strong { display: block; font-size: 16px; font-weight: 600; }
+.flight-menu-presets span { display: block; margin-top: 2px; color: var(--console-muted); font-size: 14px; line-height: 1.3; }
+.flight-menu :is(.flight-menu-segments, .flight-menu-presets) button[aria-pressed="true"] { border-color: var(--console-accent); box-shadow: inset 3px 0 0 var(--console-accent); background: #223a44; }
+.flight-menu-slider { display: grid; gap: 3px; font-size: 14px; }
+.flight-menu-slider > span { display: flex; gap: 8px; justify-content: space-between; align-items: center; color: var(--console-muted); }
+.flight-menu-slider output { color: var(--console-ink); font-variant-numeric: tabular-nums; }
+.flight-menu-slider input { min-width: 0; width: 100%; height: 48px; margin: 0; accent-color: var(--console-accent); cursor: ew-resize; }
+.flight-menu :is(.flight-menu-primary, .flight-menu-action, .flight-menu-depart) { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 12px 16px; width: 100%; border: 1px solid var(--console-line); font-size: 16px; }
+.flight-menu-primary { background: #e3f0ef; color: #101e25 !important; }
+.flight-menu-action { background: transparent; }
+.flight-menu-depart { background: #382e23; border-color: #b39a75 !important; color: #ffdda9 !important; }
+.flight-menu-trailing { margin-left: auto; }
+.flight-menu-readouts { margin: 0 0 8px; }
+.flight-menu-readouts div { padding: 12px 0; border-bottom: 1px solid var(--console-line); display: flex; gap: 12px; justify-content: space-between; }
+.flight-menu-readouts dt { color: var(--console-muted); }
+.flight-menu-readouts dd { margin: 0; text-align: right; }
+.flight-menu-note { margin: 0; color: var(--console-muted); font-size: 14px; line-height: 1.6; }
+.flight-menu-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 20px; padding: 14px 32px; border-top: 1px solid var(--console-line); font-size: 14px; color: var(--console-muted); flex-shrink: 0; }
+.flight-menu kbd { display: inline-block; padding: 0 5px; min-width: 24px; border: 1px solid var(--console-line); border-radius: 2px; color: var(--console-ink); font: inherit; text-align: center; }
+
+.roam-root .sv-look-controls .flight-menu-trigger { width: auto; min-height: 48px; min-width: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 10px 14px; border: 1px solid #92b3c05c; border-radius: 4px; background: #101d27ed; color: #f1f7f8; font: 14px "Segoe UI", system-ui, sans-serif; }
+.roam-root[data-controls="mobile"] .sv-look-controls .flight-menu-trigger { width: 48px; height: 48px; padding: 0; }
+.roam-root:has(.flight-menu[open]) .mars-debug { visibility: hidden; }
+
+@media (hover: hover) and (pointer: fine) {
+  .flight-menu button:not(.flight-menu-sector):hover { border-color: #d1edf0; background-color: #2a414d; }
+  .flight-menu button.flight-menu-primary:hover { background-color: #fff; }
+  .flight-menu button.flight-menu-depart:hover { background-color: #51412c; }
+  .roam-root .flight-menu-trigger:hover { background: #28434f; border-color: #bbebe6; }
+}
+.flight-menu button:active { filter: brightness(1.14); }
+
+@media (max-height: 600px) {
+  .flight-menu-header { padding: 12px 20px; }
+  .flight-menu-header p { margin-bottom: 3px; }
+  .flight-menu h2 { font-size: 24px; }
+  .flight-menu-body { padding: 16px 20px; gap: 24px; }
+  .flight-menu-dial { width: min(100%, calc(100dvh - 160px)); min-width: 200px; }
+  .flight-menu-panel { gap: 12px; justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; max-height: calc(100dvh - 180px); padding: 3px; }
+  .flight-menu h3 { font-size: 21px; }
+  .flight-menu-presets button { min-height: 60px; padding: 8px 10px; }
+  .flight-menu-footer { padding: 8px 20px; }
+}
+@media (pointer: coarse), (max-height: 400px) {
+  .flight-menu::backdrop { backdrop-filter: none; }
+  .flight-menu-footer { display: none; }
+  .flight-menu-body { padding: 12px 16px; gap: 20px; }
+  .flight-menu-dial { width: min(100%, calc(100dvh - 124px)); }
+  .flight-menu-panel { max-height: calc(100dvh - 124px); }
+  .flight-menu-sectors { inset: 8px; }
+  .flight-menu-sector-label { gap: 4px; width: 72px; }
+}
+@media (max-width: 600px) {
+  .flight-menu-body { grid-template-columns: minmax(180px, .85fr) minmax(220px, 1fr); gap: 12px; }
+  .flight-menu-header { padding: 10px 16px; }
+  .flight-menu-dial { min-width: 180px; }
+  .flight-menu-sector-label { width: 65px; }
+  .flight-menu-hub { inset: 32%; gap: 5px; }
+  .flight-menu-hub svg { width: 20px; }
+  .flight-menu-header p { letter-spacing: .04em; }
+}
+@media (max-width: 480px) {
+  .flight-menu-body { grid-template-columns: 1fr; }
+  .flight-menu-dial { width: 220px; }
+  .flight-menu-panel { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flight-menu *, .flight-menu *::before, .flight-menu *::after { transition: none; }
+}

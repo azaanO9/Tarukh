@@ -45,7 +45,7 @@ async function inspectLayout(page,label,{panels=false}={}) {
   const targets=[];
   for(const targetRoot of targetRoots)for(const button of targetRoot.querySelectorAll('button,summary,select')){
    if(!visible(button))continue;
-   const b=rect(button),parent=button.closest('.mars-phone-content,.roam-atlas-list,.mars-dialog,.ely-dialog');
+   const b=rect(button),parent=button.closest('.mars-phone-content,.roam-atlas-list,.mars-dialog,.ely-dialog,.flight-menu-panel');
    // Scrolled content is permitted; its owning panel must fit the safe viewport.
    if(parent){const p=parent.getBoundingClientRect();if(b.bottom<=p.top||b.top>=p.bottom)continue;}
    targets.push({element:button,...b});
@@ -53,6 +53,9 @@ async function inspectLayout(page,label,{panels=false}={}) {
   }
   for(let i=0;i<targets.length;i++)for(let j=i+1;j<targets.length;j++){
    const a=targets[i],b=targets[j];if(a.element===b.element||a.element.contains(b.element)||b.element.contains(a.element))continue;
+   // Radial sectors have overlapping rectangles but distinct clipped hit areas.
+   // flight-menu-check.mjs checks their press centres instead of triangle corners.
+   if(a.element.matches('.flight-menu-sector')&&b.element.matches('.flight-menu-sector'))continue;
    const xGap=Math.max(a.left-b.right,b.left-a.right),yGap=Math.max(a.top-b.bottom,b.top-a.bottom);
    if(xGap<7.5&&yGap<7.5)failures.push(`Touch targets need 8px spacing: ${a.name} / ${b.name}`);
   }
@@ -98,13 +101,17 @@ try {
  assert.notEqual(await plot.locator('svg').getAttribute('viewBox'),initial);check('Atlas zoom changes visible crop');
  await page.getByRole('button',{name:'Continue exploring',exact:true}).first().click();
  await page.getByLabel('Camera and graphics',{exact:true}).click();
+ await page.getByRole('dialog',{name:'Flight console'}).waitFor();
+ await page.getByRole('button',{name:'Graphics',exact:true}).click();
  await inspectLayout(page,'mobile-settings-844x390',{panels:true});
+ await page.getByRole('button',{name:'Close flight console',exact:true}).click();
  await page.locator('.sv-world').focus();await page.keyboard.press('KeyP');
  await page.locator('.mars-phone-modal[open]').waitFor();
- assert.equal(await page.locator('.sv-look-controls details[open]').count(),0);check('Phone closes graphics settings');
+ assert.equal(await page.locator('.flight-menu[open]').count(),0);check('Phone and flight console open separately');
  await page.getByRole('button',{name:'Close phone',exact:true}).click();
  await page.getByRole('button',{name:'Pause',exact:true}).click();
- await page.getByRole('button',{name:'Back to mission menu',exact:true}).click();
+ await page.getByRole('button',{name:'Main menu',exact:true}).click();
+ await page.getByRole('button',{name:'Return to main menu',exact:true}).click();
  await page.getByRole('button',{name:/Elysium Story/}).click();
  await page.locator('[data-ely-panel=prologue]').waitFor();
  await inspectLayout(page,'mobile-story-briefing-844x390',{panels:true});
