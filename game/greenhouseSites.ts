@@ -9,7 +9,9 @@ export const GREENHOUSE_SITES = [
 ] as const;
 
 export type GreenhouseSite = {id: string; label: string; x: number; z: number; yaw: number};
-export const GREENHOUSE_PAD = {halfSize: 7.3, blend: 7, foundationOffset: .30} as const;
+/** Shared by rendering and collision; opens the narrow gaps in the circular crop beds. */
+export const GREENHOUSE_SCALE = 1.6;
+export const GREENHOUSE_PAD = {halfSize: 7.3 * GREENHOUSE_SCALE, blend: 7, foundationOffset: .30 * GREENHOUSE_SCALE} as const;
 
 export function greenhouseGradeWeight(x: number, z: number, site: GreenhouseSite) {
   const dx = Math.max(0, Math.abs(x - site.x) - GREENHOUSE_PAD.halfSize);

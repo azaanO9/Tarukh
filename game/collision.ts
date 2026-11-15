@@ -7,6 +7,8 @@ export type CollisionObstacle = {
   topY?: number;
   /** Convex horizontal rock outline, world-oriented offsets from x/z. */
   hull?: readonly {x:number;z:number}[];
+  /** Opt into the CCW hull for walking too; other obstacles keep their existing footprint. */
+  hullForWalking?: boolean;
   rockSupport?: {yaw:number;halfX:number;halfZ:number;height:number};
   halfX?: number; halfZ?: number; yaw?: number;
 };
@@ -20,9 +22,31 @@ function localPoint(x: number, z: number, o: CollisionObstacle) {
   return { x: (x - o.x) * c - (z - o.z) * s, z: (x - o.x) * s + (z - o.z) * c, c, s };
 }
 
+function overlapWalkingHull(x: number, z: number, radius: number, o: CollisionObstacle): Contact | null {
+  const hull = o.hull!, px = x-o.x, pz = z-o.z;
+  let inside = true, nearest = Infinity, offsetX = 0, offsetZ = 0, normalX = 0, normalZ = 0;
+  for (let i=0; i<hull.length; i++) {
+    const a=hull[i], b=hull[(i+1)%hull.length], ex=b.x-a.x, ez=b.z-a.z, length2=ex*ex+ez*ez;
+    if (length2<1e-12) continue;
+    if (ex*(pz-a.z)-ez*(px-a.x)<0) inside=false;
+    const along=clamp(((px-a.x)*ex+(pz-a.z)*ez)/length2,0,1);
+    const dx=px-a.x-ex*along, dz=pz-a.z-ez*along, distance2=dx*dx+dz*dz;
+    if (distance2<nearest) {
+      nearest=distance2; offsetX=dx; offsetZ=dz;
+      const length=Math.sqrt(length2); normalX=ez/length; normalZ=-ex/length;
+    }
+  }
+  const distance=Math.sqrt(nearest);
+  if (!Number.isFinite(distance) || (!inside && distance>=radius)) return null;
+  const sign=inside?-1:1;
+  return {nx:distance>1e-9?offsetX/distance*sign:normalX,
+    nz:distance>1e-9?offsetZ/distance*sign:normalZ, depth:inside?radius+distance:radius-distance};
+}
+
 export function overlapDisc(x: number, z: number, radius: number, o: CollisionObstacle): Contact | null {
   if (o.disabled) return null;
   if (Math.abs(x-o.x)>radius+o.radius || Math.abs(z-o.z)>radius+o.radius) return null;
+  if (o.hullForWalking && o.hull) return overlapWalkingHull(x,z,radius,o);
   const p = localPoint(x, z, o);
   let nx: number, nz: number, depth: number;
   if (o.halfX !== undefined && o.halfZ !== undefined) {
@@ -47,7 +71,8 @@ export function overlapDisc(x: number, z: number, radius: number, o: CollisionOb
 function sweepDisc(x: number, z: number, dx: number, dz: number, radius: number, o: CollisionObstacle) {
   if (o.disabled) return null;
   if (Math.abs(x-o.x)>radius+o.radius+Math.abs(dx) || Math.abs(z-o.z)>radius+o.radius+Math.abs(dz)) return null;
-  const p = localPoint(x, z, o), vx = dx * p.c - dz * p.s, vz = dx * p.s + dz * p.c;
+  const p = o.hullForWalking && o.hull ? {x:x-o.x,z:z-o.z,c:1,s:0} : localPoint(x, z, o);
+  const vx = dx * p.c - dz * p.s, vz = dx * p.s + dz * p.c;
   let best = 2, nx = 0, nz = 0;
   const accept = (t: number, ax: number, az: number) => {
     if (t >= -1e-8 && t <= 1 && t < best && vx * ax + vz * az < -1e-9) { best = Math.max(0, t); nx = ax; nz = az; }
@@ -60,7 +85,21 @@ function sweepDisc(x: number, z: number, dx: number, dz: number, radius: number,
     const t = (-b - Math.sqrt(disc)) / a;
     accept(t, (ox + vx * t) / r, (oz + vz * t) / r);
   };
-  if (o.halfX !== undefined && o.halfZ !== undefined) {
+  if (o.hullForWalking && o.hull) {
+    // Sweep against offset faces and rounded vertices of the actual convex outline.
+    for (let i=0; i<o.hull.length; i++) {
+      const a=o.hull[i], b=o.hull[(i+1)%o.hull.length], ex=b.x-a.x, ez=b.z-a.z;
+      const length2=ex*ex+ez*ez;
+      if (length2<1e-12) continue;
+      const length=Math.sqrt(length2), ax=ez/length, az=-ex/length, velocity=vx*ax+vz*az;
+      if (velocity < -1e-9) {
+        const t=(radius-(p.x-a.x)*ax-(p.z-a.z)*az)/velocity;
+        const along=((p.x+vx*t-a.x)*ex+(p.z+vz*t-a.z)*ez)/length2;
+        if (along>=0 && along<=1) accept(t,ax,az);
+      }
+      circle(a.x,a.z,radius);
+    }
+  } else if (o.halfX !== undefined && o.halfZ !== undefined) {
     // The Minkowski sum is a rectangle with rounded corners, not an oversized box.
     for (const side of [-1, 1]) {
       if (Math.abs(vx) > 1e-12) {

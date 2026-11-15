@@ -5,7 +5,7 @@ import { marsExpeditionHeight, marsOutpostHeight, OUTPOST_GROUND_HEIGHT } from "
 import { OUTPOST_SITE } from "../game/outpostSite";
 import { createMarsOutpost } from "./world/createMarsOutpost";
 import { createGreenhouseFarm } from "./world/createGreenhouseFarm";
-import { GREENHOUSE_SITES } from "../game/greenhouseSites";
+import { GREENHOUSE_SCALE, GREENHOUSE_SITES } from "../game/greenhouseSites";
 import { greenhousePoint } from "../game/greenhouses";
 import { GARAGE_SITE } from "../game/garageSite";
 import { createGarageState, garageControlsRover, garageIndoors, garagePrompt, requestGarageCycle, stepGarage } from "../game/roverGarage";
@@ -722,7 +722,7 @@ export default function MarsWorld(props: Props) {
       const spawnAtArrival = () => {
         if (previewPerseverance) return {...spawnWalker(), x: PERSEVERANCE_LANDING.x+2, z: PERSEVERANCE_LANDING.z+4};
         if (previewOutpost) return {...spawnWalker(), x: OUTPOST_SITE.x, z: OUTPOST_SITE.z+15};
-        if (previewGreenhouse) return {...spawnWalker(), ...greenhousePoint(GREENHOUSE_SITES[0],0,10)};
+        if (previewGreenhouse) return {...spawnWalker(), ...greenhousePoint(GREENHOUSE_SITES[0],0,10/GREENHOUSE_SCALE)};
         if (previewGarage) return {...spawnWalker(), x:GARAGE_SITE.x-5.5, z:GARAGE_SITE.z+11};
         return {...spawnWalker(), ...ARRIVAL_SPAWN};
       };

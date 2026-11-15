@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {GREENHOUSE_PAD,GREENHOUSE_SITES,greenhouseClearing} from '../game/greenhouseSites.ts';
+import {GREENHOUSE_PAD,GREENHOUSE_SCALE,GREENHOUSE_SITES,greenhouseClearing} from '../game/greenhouseSites.ts';
 import {marsExpeditionHeight,marsOutpostHeight,GREENHOUSE_GROUND_HEIGHTS,OUTPOST_GROUND_HEIGHT} from '../game/marsExpeditionTerrain.ts';
 import {createGreenhouseStates,greenhousePoint} from '../game/greenhouses.ts';
 import {nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor} from '../game/outpost.ts';
-import {moveAndSlide} from '../game/collision.ts';
+import {moveAndSlide,overlapDisc} from '../game/collision.ts';
+import {WALKER_RADIUS} from '../game/navigation.ts';
 
 const layout=JSON.parse(fs.readFileSync(new URL('../public/models/greenhouse/layout.json',import.meta.url),'utf8'));
 const states=()=>createGreenhouseStates(layout,GREENHOUSE_GROUND_HEIGHTS);
@@ -16,7 +17,7 @@ test('six distinct food-production sites have genuinely planar game-ground found
   assert.equal(new Set(GREENHOUSE_SITES.map(s=>s.id)).size,6);
   for(const [i,site] of GREENHOUSE_SITES.entries()) {
     close(GREENHOUSE_GROUND_HEIGHTS[i],OUTPOST_GROUND_HEIGHT,'Cultivation pads should align with the campus, not sit on separate steep terraces');
-    for(let x=-7.3;x<=7.3;x+=.5)for(let z=-7.3;z<=7.3;z+=.5)close(marsOutpostHeight(site.x+x,site.z+z),GREENHOUSE_GROUND_HEIGHTS[i],site.id+' pad must stay flat');
+    for(let x=-GREENHOUSE_PAD.halfSize;x<=GREENHOUSE_PAD.halfSize;x+=.5)for(let z=-GREENHOUSE_PAD.halfSize;z<=GREENHOUSE_PAD.halfSize;z+=.5)close(marsOutpostHeight(site.x+x,site.z+z),GREENHOUSE_GROUND_HEIGHTS[i],site.id+' pad must stay flat');
     for(const other of GREENHOUSE_SITES)if(other!==site)assert.ok(Math.hypot(site.x-other.x,site.z-other.z)>24);
   }
   for(const [x,z] of [[0,21],[17,10],[-24,24],[200,170],[-400,80]])close(marsOutpostHeight(x,z),marsExpeditionHeight(x,z));
@@ -35,16 +36,41 @@ test('greenhouse grading is continuous at the pads and their transitions into na
 
 test('retained ceramic decks and both ramps sit on the native pads at human scale',()=>{
   for(const [index,state] of states().entries()) {
-    close(state.baseY-GREENHOUSE_GROUND_HEIGHTS[index],.3);
-    close(state.floorAt(state.site.x,state.site.z,GREENHOUSE_GROUND_HEIGHTS[index]),state.baseY+layout.deckHeight);
+    close(state.baseY-GREENHOUSE_GROUND_HEIGHTS[index],GREENHOUSE_PAD.foundationOffset);
+    close(state.floorAt(state.site.x,state.site.z,GREENHOUSE_GROUND_HEIGHTS[index]),state.baseY+layout.deckHeight*GREENHOUSE_SCALE);
     for(const door of layout.doors) {
-      let previous=state.baseY+layout.deckHeight;
+      let previous=state.baseY+layout.deckHeight*GREENHOUSE_SCALE;
       for(let t=0;t<=layout.ramp.length;t+=.025) {
         const p=greenhousePoint(state.site,door.x+door.nx*(layout.ramp.start+t),door.z+door.nz*(layout.ramp.start+t));
         assert.ok(greenhouseClearing(p.x,p.z),'The entire ramp must be free of game rocks');
         const y=state.floorAt(p.x,p.z,GREENHOUSE_GROUND_HEIGHTS[index]);
         assert.ok(y<=previous+.005&&previous-y<.012,'Ramp must descend smoothly into game soil');previous=y;
       }
+    }
+  }
+});
+
+test('the astronaut can enter and leave the circular growing-bed area at all six rotations',()=>{
+  for(const state of states())for(const sign of [-1,1]) {
+    const outside=greenhousePoint(state.site,0,3.4),inside=greenhousePoint(state.site,0,.9);
+    const start=sign===1?outside:inside,end=sign===1?inside:outside;
+    const result=moveAndSlide(start.x,start.z,end.x-start.x,end.z-start.z,[{x:0,z:0,radius:WALKER_RADIUS}],state.obstacles,Infinity);
+    assert.ok(Math.hypot(result.x-end.x,result.z-end.z)<.01,state.site.id+' circular aisle is clear in both directions');
+    assert.equal(state.inside(inside.x,inside.z),true);
+  }
+});
+
+test('wider floor coverage includes the new perimeter while beds and the central computer stay solid',()=>{
+  for(const state of states()) {
+    const edge=greenhousePoint(state.site,0,4.1);
+    assert.equal(state.inside(edge.x,edge.z),true);
+    close(state.floorAt(edge.x,edge.z,state.baseY-GREENHOUSE_PAD.foundationOffset),state.baseY+layout.deckHeight*GREENHOUSE_SCALE);
+    const computer=state.obstacles.find(o=>o.id.endsWith('equipment-control'));
+    assert.ok(overlapDisc(state.site.x,state.site.z,WALKER_RADIUS,computer));
+    for(const [i,furniture] of layout.furniture.entries()) {
+      const obstacle=state.obstacles.find(o=>o.id.endsWith(`equipment-${i}`));
+      const point=greenhousePoint(state.site,furniture.hull.reduce((sum,p)=>sum+p[0],0)/furniture.hull.length,furniture.hull.reduce((sum,p)=>sum+p[1],0)/furniture.hull.length);
+      assert.ok(overlapDisc(point.x,point.z,WALKER_RADIUS,obstacle),furniture.name+' remains solid');
     }
   }
 });

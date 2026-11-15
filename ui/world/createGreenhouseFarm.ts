@@ -4,7 +4,7 @@ import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {assetUrl} from '../../lib/assetUrl.ts';
 import {GREENHOUSE_GROUND_HEIGHTS} from '../../game/marsExpeditionTerrain.ts';
-import {GREENHOUSE_PAD, GREENHOUSE_SITES} from '../../game/greenhouseSites.ts';
+import {GREENHOUSE_PAD, GREENHOUSE_SCALE, GREENHOUSE_SITES} from '../../game/greenhouseSites.ts';
 import {createGreenhouseStates, type GreenhouseLayout, type GreenhouseState} from '../../game/greenhouses.ts';
 import {nearestOutpostDoor, stepOutpostDoor, toggleOutpostDoor, type OutpostDoor} from '../../game/outpost.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
@@ -19,10 +19,11 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
   const root = new T.Group(); root.name = 'TARUKH cultivation district'; scene.add(root);
   const batches: Batch[] = [];
   const geometries = new Set<T.BufferGeometry>(), materials = new Set<T.Material>(), textures = new Set<T.Texture>();
-  const matrices = GREENHOUSE_SITES.map((site,i) => new T.Matrix4().makeRotationY(site.yaw).setPosition(site.x,GREENHOUSE_GROUND_HEIGHTS[i]+GREENHOUSE_PAD.foundationOffset,site.z));
+  const scale = new T.Vector3().setScalar(GREENHOUSE_SCALE);
+  const matrices = GREENHOUSE_SITES.map((site,i) => new T.Matrix4().makeRotationY(site.yaw).scale(scale).setPosition(site.x,GREENHOUSE_GROUND_HEIGHTS[i]+GREENHOUSE_PAD.foundationOffset,site.z));
   const matrix = new T.Matrix4(), translation = new T.Matrix4();
   const viewMatrix = new T.Matrix4(), frustum = new T.Frustum();
-  const bounds = matrices.map(transform => new T.Sphere(new T.Vector3(0,2.2,0).applyMatrix4(transform),8));
+  const bounds = matrices.map(transform => new T.Sphere(new T.Vector3(0,2.2,0).applyMatrix4(transform),8 * GREENHOUSE_SCALE));
   const ray = new T.Ray(), localRay = new T.Ray(), hit = new T.Vector3(), origin = new T.Vector3(), direction = new T.Vector3();
   const cameraBoxes: {obstacle: CollisionObstacle; inverse: T.Matrix4; box: T.Box3}[] = [];
   let states: GreenhouseState[] = [], doors: OutpostDoor[] = [], disposed = false, loaded = false;
@@ -84,7 +85,7 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
           hz = Math.max(...obstacle.hull!.map(p => Math.abs(p.z)));
         }
         const inverse = new T.Matrix4().makeRotationY(obstacle.yaw ?? 0).setPosition(obstacle.x,state.baseY,obstacle.z).invert();
-        cameraBoxes.push({obstacle,inverse,box:new T.Box3(new T.Vector3(-hx,-.1,-hz),new T.Vector3(hx,obstacle.id?.includes('equipment')?2.4:3.1,hz))});
+        cameraBoxes.push({obstacle,inverse,box:new T.Box3(new T.Vector3(-hx,-.1 * GREENHOUSE_SCALE,-hz),new T.Vector3(hx,(obstacle.id?.includes('equipment')?2.4:3.1) * GREENHOUSE_SCALE,hz))});
       }
     }
     buildRamps(); buildLabels();
@@ -99,7 +100,8 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
     materials.add(material);
     for (const door of layout.doors) {
       const {start,length,halfWidth} = layout.ramp;
-      const corners = [[-halfWidth,start,layout.deckHeight],[halfWidth,start,layout.deckHeight],[-halfWidth,start+length,-GREENHOUSE_PAD.foundationOffset],[halfWidth,start+length,-GREENHOUSE_PAD.foundationOffset]];
+      const groundY = -GREENHOUSE_PAD.foundationOffset / GREENHOUSE_SCALE;
+      const corners = [[-halfWidth,start,layout.deckHeight],[halfWidth,start,layout.deckHeight],[-halfWidth,start+length,groundY],[halfWidth,start+length,groundY]];
       const positions = corners.flatMap(([side,forward,y]) => [door.x+door.nz*side+door.nx*forward,y,door.z-door.nx*side+door.nz*forward]);
       const geometry = new T.BufferGeometry(); geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
       geometry.setIndex([0,2,1,1,2,3]); geometry.computeVertexNormals(); geometries.add(geometry);
@@ -120,9 +122,9 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
       context.fillStyle='#effbe9';context.font='bold 27px system-ui';context.fillText(`GH ${String(i+1).padStart(2,'0')}`,x+14,y+33);
       context.fillStyle='#c2df9c';context.font='16px system-ui';context.fillText('FOOD CULTIVATION',x+14,y+60);
       const d=states[i].doors.find(door => door.clip==='main')!;
-      const geometry=new T.PlaneGeometry(1.65,.5),uv=geometry.getAttribute('uv');
+      const geometry=new T.PlaneGeometry(1.65 * GREENHOUSE_SCALE,.5 * GREENHOUSE_SCALE),uv=geometry.getAttribute('uv');
       for(let j=0;j<uv.count;j++)uv.setXY(j,(x+uv.getX(j)*256)/512,1-(y+(1-uv.getY(j))*80)/256);
-      matrix.makeRotationY(Math.atan2(d.nx,d.nz)).setPosition(d.x+d.nx*.31,states[i].baseY+2.65,d.z+d.nz*.31);
+      matrix.makeRotationY(Math.atan2(d.nx,d.nz)).setPosition(d.x+d.nx*.31 * GREENHOUSE_SCALE,states[i].baseY+2.65 * GREENHOUSE_SCALE,d.z+d.nz*.31 * GREENHOUSE_SCALE);
       geometry.applyMatrix4(matrix);pieces.push(geometry);
     }
     const geometry=mergeGeometries(pieces);for(const piece of pieces)piece.dispose();
@@ -174,7 +176,7 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
   function floorAt(x: number,z: number,ground: number) {for(const state of states)ground=state.floorAt(x,z,ground);return ground;}
   function indoors(x: number,z: number) {return states.some(state=>state.inside(x,z));}
   function ceilingAt(x: number,z: number) {
-    for(const state of states)if(state.inside(x,z))return state.baseY+(Math.hypot(x-state.site.x,z-state.site.z)<2.5?2.25:3.08);
+    for(const state of states)if(state.inside(x,z))return state.baseY+(Math.hypot(x-state.site.x,z-state.site.z)<2.5 * GREENHOUSE_SCALE?2.25:3.08) * GREENHOUSE_SCALE;
     return Infinity;
   }
   function nearby(x: number,y: number,z: number,yaw: number) {return nearestOutpostDoor(doors,x,y,z,yaw);}
@@ -182,7 +184,7 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
     const door=nearby(x,y,z,yaw);if(!door)return false;toggleOutpostDoor(door,x,y,z);return true;
   }
   function constrainCamera(x: number,y: number,z: number,position: T.Vector3) {
-    if(!states.some(state=>Math.abs(x-state.site.x)<10&&Math.abs(z-state.site.z)<10))return;
+    if(!states.some(state=>Math.abs(x-state.site.x)<10 * GREENHOUSE_SCALE&&Math.abs(z-state.site.z)<10 * GREENHOUSE_SCALE))return;
     origin.set(x,y,z);direction.copy(position).sub(origin);let distance=direction.length();if(distance<.01)return;
     direction.divideScalar(distance);ray.set(origin,direction);
     for(const entry of cameraBoxes) {

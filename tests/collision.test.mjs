@@ -35,6 +35,33 @@ test('rounded box corners do not create square invisible exclusion zones',()=>{
  assert.ok(Math.abs(moved.z-1.29)<1e-8);
 });
 
+test('precise walking hulls leave visible space clear without changing legacy rock contacts',()=>{
+ const hull=[{x:-2,z:-.2},{x:2,z:-.2},{x:2,z:.2},{x:-2,z:.2}];
+ const obstacle={x:0,z:0,radius:Math.hypot(2,.2),hull,hullForWalking:true};
+ assert.equal(overlapDisc(0,1,WALKER_RADIUS,obstacle),null);
+ assert.ok(overlapDisc(0,1,WALKER_RADIUS,{...obstacle,hullForWalking:false}));
+ const free=moveAndSlide(-3,1,6,0,[{x:0,z:0,radius:WALKER_RADIUS}],[obstacle],Infinity);
+ assert.equal(free.x,3);assert.equal(free.z,1);
+ const hit=moveAndSlide(0,5,0,-10,[{x:0,z:0,radius:WALKER_RADIUS}],[obstacle],Infinity);
+ assert.ok(hit.z>=.2+WALKER_RADIUS&&hit.z<.521,'Fast motion cannot tunnel through a crop bed');
+ for(const [x,z] of [[0,0],[2,0],[2,.2]]) {
+  const recovered=moveAndSlide(x,z,0,0,[{x:0,z:0,radius:WALKER_RADIUS}],[obstacle],Infinity);
+  assert.ok(Number.isFinite(recovered.x)&&Number.isFinite(recovered.z));
+  assert.equal(overlapDisc(recovered.x,recovered.z,WALKER_RADIUS,obstacle),null);
+ }
+});
+
+test('walking hull corners stay rounded and angled faces permit sliding',()=>{
+ const obstacle={x:0,z:0,radius:Math.sqrt(2),hullForWalking:true,hull:[{x:-1,z:-1},{x:1,z:-1},{x:1,z:1},{x:-1,z:1}]};
+ const corner=moveAndSlide(1.29,1.8,0,-.51,[{x:0,z:0,radius:WALKER_RADIUS}],[obstacle],Infinity);
+ assert.ok(Math.abs(corner.z-1.29)<1e-8);
+ const yaw=.73,c=Math.cos(yaw),s=Math.sin(yaw);
+ obstacle.hull=obstacle.hull.map(p=>({x:p.x*c+p.z*s,z:-p.x*s+p.z*c}));
+ const slide=moveAndSlide(-.5*c+2*s,.5*s+2*c,2*c-2*s,-2*s-2*c,[{x:0,z:0,radius:WALKER_RADIUS}],[obstacle],Infinity);
+ assert.ok(slide.normals.length>0);assert.equal(overlapDisc(slide.x,slide.z,WALKER_RADIUS,obstacle),null);
+ assert.ok(slide.x*c-slide.z*s>1,'Contact preserves tangential motion along the rotated face');
+});
+
 test('rover front stops at hardware, wheels stop rolling, and reverse releases contact',()=>{
  const wall=boxObstacle(0,0,10,.1);
  let r={...enterRover(spawnRoverVehicle(0,6)),speed:13.5};
