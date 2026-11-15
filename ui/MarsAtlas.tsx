@@ -1,17 +1,46 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import * as THREE from "three";
 import { MARS_LANDMARKS, MARS_TREK_URL } from "../content/marsLandmarks";
 import {
   REGION_WORLD_BOUNDS as B,
   worldToMars,
   sampleMarsElevation,
+  marsRegionalHeight,
 } from "../game/marsRegion";
+import { marsOutpostHeight } from "../game/marsExpeditionTerrain";
 import { PLAYABLE_BOUNDS } from "../game/explorationBounds";
 import { OUTPOST_SITE } from "../game/outpostSite";
 import { GARAGE_SITE } from "../game/garageSite";
 import { GREENHOUSE_SITES } from "../game/greenhouseSites";
+import { assetUrl } from "../lib/assetUrl";
 import type { View } from "./MarsWorld";
+
+const ATLAS_HEIGHT_WIDTH = 2049;
+const ATLAS_HEIGHT_HEIGHT = 1537;
+const ATLAS_MESH_COLUMNS = 1025;
+const ATLAS_MESH_ROWS = 769;
+const RELIEF_TILT = 0.69;
+const RELIEF_HEIGHT_DIVISOR = 480;
+const smoothAtlasBlend = (start: number, end: number, value: number) => {
+  const t = Math.max(0, Math.min(1, (value - start) / (end - start)));
+  return t * t * (3 - 2 * t);
+};
+
+function sampleAtlasHeight(data: Int16Array, u: number, v: number): number {
+  const fx = Math.max(0, Math.min(ATLAS_HEIGHT_WIDTH - 1, u * (ATLAS_HEIGHT_WIDTH - 1)));
+  const fy = Math.max(0, Math.min(ATLAS_HEIGHT_HEIGHT - 1, v * (ATLAS_HEIGHT_HEIGHT - 1)));
+  const x = Math.floor(fx);
+  const y = Math.floor(fy);
+  const x1 = Math.min(ATLAS_HEIGHT_WIDTH - 1, x + 1);
+  const y1 = Math.min(ATLAS_HEIGHT_HEIGHT - 1, y + 1);
+  const tx = fx - x;
+  const ty = fy - y;
+  const a = data[y * ATLAS_HEIGHT_WIDTH + x] * (1 - tx) + data[y * ATLAS_HEIGHT_WIDTH + x1] * tx;
+  const b = data[y1 * ATLAS_HEIGHT_WIDTH + x] * (1 - tx) + data[y1 * ATLAS_HEIGHT_WIDTH + x1] * tx;
+  return a * (1 - ty) + b * ty;
+}
 
 export interface AtlasSite {
   id: string;
@@ -115,6 +144,8 @@ export default function MarsAtlas({
     width: 800,
     height: 600,
   });
+  const [terrainReady, setTerrainReady] = useState(false);
+  const [reliefRendererReady, setReliefRendererReady] = useState(false);
 
   // Traverse simulation and route state
   const [routeState, setRouteState] = useState<RouteState>("preview");
@@ -131,13 +162,46 @@ export default function MarsAtlas({
   ]);
 
   const mapViewportRef = useRef<HTMLDivElement>(null);
+  const baseMapCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
+  const reliefCanvasRef = useRef<HTMLCanvasElement>(null);
   const wireCanvasRef = useRef<HTMLCanvasElement>(null);
+  const baseMapImageRef = useRef<HTMLImageElement | null>(null);
+  const heightDataRef = useRef<Int16Array | null>(null);
+  const heightDatumRef = useRef<number | null>(null);
+  const reliefSceneRef = useRef<THREE.Scene | null>(null);
+  const reliefCameraRef = useRef<THREE.OrthographicCamera | null>(null);
+  const reliefRendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const reliefMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
   const messageTimeoutRef = useRef<number | null>(null);
 
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panZ: 0 });
   const dragDistanceRef = useRef(0);
+
+  // Region dimensions
+  const regionWidth = B.east - B.west;
+  const regionHeight = B.south - B.north;
+  const centerX = (B.west + B.east) / 2;
+  const centerZ = (B.north + B.south) / 2;
+  const terrainDatum = useMemo(() => {
+    const center = worldToMars(centerX, centerZ);
+    return sampleMarsElevation(center.longitude, center.latitude);
+  }, [centerX, centerZ]);
+  const terrainHeightAt = useCallback((wx: number, wz: number) => {
+    const heights = heightDataRef.current;
+    if (!heights) {
+      const mars = worldToMars(wx, wz);
+      return (sampleMarsElevation(mars.longitude, mars.latitude) - terrainDatum) / RELIEF_HEIGHT_DIVISOR;
+    }
+    const u = (wx - B.west) / regionWidth;
+    const v = (wz - B.north) / regionHeight;
+    const datum = heightDatumRef.current ?? terrainDatum;
+    const mola = (sampleAtlasHeight(heights, u, v) - datum) / RELIEF_HEIGHT_DIVISOR;
+    const localWeight = 1 - smoothAtlasBlend(185, 320, Math.hypot(wx, wz + 65));
+    if (localWeight <= 0) return mola;
+    return mola + (marsOutpostHeight(wx, wz) - marsRegionalHeight(wx, wz)) * localWeight;
+  }, [regionWidth, regionHeight, terrainDatum]);
 
   // Synchronize viewport size on resize/rotation
   useEffect(() => {
@@ -155,11 +219,238 @@ export default function MarsAtlas({
     return () => ro.disconnect();
   }, []);
 
-  // Region dimensions
-  const regionWidth = B.east - B.west;
-  const regionHeight = B.south - B.north;
-  const centerX = (B.west + B.east) / 2;
-  const centerZ = (B.north + B.south) / 2;
+  // Build the atlas relief once. The interactive pins and route remain HTML/game state overlays.
+  useEffect(() => {
+    const canvas = reliefCanvasRef.current;
+    const image = baseMapImageRef.current;
+    const heights = heightDataRef.current;
+    if (!terrainReady || !canvas || !image || !heights) return;
+
+    let renderer: THREE.WebGLRenderer;
+    let geometry: THREE.BufferGeometry | null = null;
+    let material: THREE.ShaderMaterial | null = null;
+    let texture: THREE.Texture | null = null;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: "low-power",
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x563b2d, 1);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x563b2d);
+
+      const positions = new Float32Array(ATLAS_MESH_COLUMNS * ATLAS_MESH_ROWS * 3);
+      const uvs = new Float32Array(ATLAS_MESH_COLUMNS * ATLAS_MESH_ROWS * 2);
+      const elevation = new Float32Array(ATLAS_MESH_COLUMNS * ATLAS_MESH_ROWS);
+      for (let row = 0; row < ATLAS_MESH_ROWS; row++) {
+        const v = row / (ATLAS_MESH_ROWS - 1);
+        const z = B.north + regionHeight * v;
+        for (let column = 0; column < ATLAS_MESH_COLUMNS; column++) {
+          const u = column / (ATLAS_MESH_COLUMNS - 1);
+          const x = B.west + regionWidth * u;
+          const index = row * ATLAS_MESH_COLUMNS + column;
+          const heightAt = terrainHeightAt(x, z);
+          positions[index * 3] = x;
+          positions[index * 3 + 1] = heightAt * 5;
+          positions[index * 3 + 2] = z;
+          elevation[index] = heightAt;
+          uvs[index * 2] = u;
+          uvs[index * 2 + 1] = 1 - v;
+        }
+      }
+
+      const indices = new Uint32Array((ATLAS_MESH_COLUMNS - 1) * (ATLAS_MESH_ROWS - 1) * 6);
+      let indexOffset = 0;
+      for (let row = 0; row < ATLAS_MESH_ROWS - 1; row++) {
+        for (let column = 0; column < ATLAS_MESH_COLUMNS - 1; column++) {
+          const northwest = row * ATLAS_MESH_COLUMNS + column;
+          const southwest = northwest + ATLAS_MESH_COLUMNS;
+          const northeast = northwest + 1;
+          const southeast = southwest + 1;
+          indices[indexOffset++] = northwest;
+          indices[indexOffset++] = southwest;
+          indices[indexOffset++] = northeast;
+          indices[indexOffset++] = northeast;
+          indices[indexOffset++] = southwest;
+          indices[indexOffset++] = southeast;
+        }
+      }
+
+      geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+      geometry.setAttribute("elev", new THREE.BufferAttribute(elevation, 1));
+      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+
+      texture = new THREE.Texture(image);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      texture.needsUpdate = true;
+      material = new THREE.ShaderMaterial({
+        uniforms: {
+          imageMap: { value: texture },
+          contour: { value: 1 },
+          contourInterval: { value: 1000 },
+          relief: { value: 1 },
+        },
+        vertexShader: `
+          attribute float elev;
+          varying float el;
+          varying vec2 coords;
+          varying vec3 faceNormal;
+          void main() {
+            el = elev;
+            coords = uv;
+            faceNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D imageMap;
+          uniform float contour;
+          uniform float contourInterval;
+          uniform float relief;
+          varying float el;
+          varying vec2 coords;
+          varying vec3 faceNormal;
+          void main() {
+            vec3 color = texture2D(imageMap, coords).rgb;
+            float light = 0.70 + 0.50 * max(dot(normalize(faceNormal), normalize(vec3(-0.42, 0.82, 0.36))), 0.0);
+            color *= mix(1.0, light, relief);
+            float level = el / (contourInterval / 480.0);
+            float line = abs(fract(level + 0.5) - 0.5);
+            color = mix(color, vec3(0.72, 0.82, 0.64), contour * (1.0 - smoothstep(0.012, 0.045, line)) * 0.48);
+            gl_FragColor = vec4(color, 1.0);
+            #include <colorspace_fragment>
+          }
+        `,
+        side: THREE.DoubleSide,
+      });
+      const terrain = new THREE.Mesh(geometry, material);
+      terrain.frustumCulled = false;
+      scene.add(terrain);
+
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 20000);
+      camera.up.set(0, 0, -1);
+      reliefSceneRef.current = scene;
+      reliefCameraRef.current = camera;
+      reliefRendererRef.current = renderer;
+      reliefMaterialRef.current = material;
+      setReliefRendererReady(true);
+    } catch (error) {
+      console.error("Mars atlas 3D relief could not be initialized:", error);
+      geometry?.dispose();
+      material?.dispose();
+      texture?.dispose();
+      return;
+    }
+
+    return () => {
+      setReliefRendererReady(false);
+      reliefRendererRef.current = null;
+      reliefCameraRef.current = null;
+      reliefSceneRef.current = null;
+      reliefMaterialRef.current = null;
+      geometry?.dispose();
+      material?.dispose();
+      texture?.dispose();
+      renderer.dispose();
+    };
+  }, [terrainReady, regionHeight, regionWidth, terrainHeightAt]);
+
+  // Keep the real mesh camera in the same world-space view as the game overlays.
+  useEffect(() => {
+    const renderer = reliefRendererRef.current;
+    const camera = reliefCameraRef.current;
+    const scene = reliefSceneRef.current;
+    const viewport = mapViewportRef.current;
+    if (!renderer || !camera || !scene || !viewport) return;
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    if (!width || !height) return;
+
+    renderer.setSize(width, height, false);
+    const aspect = width / height;
+    const viewSpan = Math.max(regionHeight, regionWidth / aspect) / zoom;
+    const halfW = viewSpan * aspect / 2;
+    const viewCX = centerX + pan.x;
+    const viewCZ = centerZ + pan.z;
+    camera.left = -halfW;
+    camera.right = halfW;
+    camera.top = viewSpan / 2;
+    camera.bottom = -viewSpan / 2;
+    camera.near = 0.1;
+    camera.far = 10000;
+    const cameraDistance = viewSpan * 1.6;
+    camera.position.set(
+      viewCX,
+      cameraDistance * Math.cos(RELIEF_TILT),
+      viewCZ + cameraDistance * Math.sin(RELIEF_TILT)
+    );
+    camera.lookAt(viewCX, 0, viewCZ);
+    camera.updateProjectionMatrix();
+    const material = reliefMaterialRef.current;
+    if (material) {
+      material.uniforms.contour.value = showContours ? 1 : 0;
+      material.uniforms.contourInterval.value = zoom > 2 ? 500 : 1000;
+      material.uniforms.relief.value = perspective === "relief" ? 1 : 0;
+    }
+    renderer.render(scene, camera);
+  }, [terrainReady, reliefRendererReady, viewportSize, zoom, pan, centerX, centerZ, regionWidth, regionHeight, showContours, perspective]);
+
+  // Load the supplied north-up raster and the matching NASA MOLA height crop locally.
+  useEffect(() => {
+    let cancelled = false;
+    const image = new Image();
+    const imageLoaded = new Promise<HTMLImageElement>((resolve, reject) => {
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Could not load the Mars atlas base map."));
+      image.src = assetUrl("art/mars-atlas/map-base.png");
+    });
+    const heightsLoaded = fetch(assetUrl("art/mars-atlas/mola-32ppd.bin"))
+      .then((response) => {
+        if (!response.ok) throw new Error(`MOLA terrain request failed (${response.status}).`);
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        const heights = new Int16Array(buffer);
+        if (heights.length !== ATLAS_HEIGHT_WIDTH * ATLAS_HEIGHT_HEIGHT) {
+          throw new Error("The Mars atlas elevation crop has an unexpected size.");
+        }
+        return heights;
+      });
+
+    Promise.all([imageLoaded, heightsLoaded])
+      .then(([loadedImage, heights]) => {
+        if (cancelled) return;
+        baseMapImageRef.current = loadedImage;
+        heightDataRef.current = heights;
+        heightDatumRef.current = sampleAtlasHeight(heights, 0.5, 0.5);
+        setTerrainReady(true);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error("Mars atlas terrain assets could not be loaded:", error);
+        // The raster remains usable if WebGL or the optional elevation asset is unavailable.
+        imageLoaded.then((loadedImage) => {
+          if (!cancelled) {
+            baseMapImageRef.current = loadedImage;
+            setTerrainReady(true);
+          }
+        }).catch(() => undefined);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Active rover / astronaut position
   const rawRoverX = view?.roverX ?? x;
@@ -296,53 +587,48 @@ export default function MarsAtlas({
   // World to screen projection
   const projectWorldToScreen = useCallback(
     (wx: number, wz: number, width: number, height: number): [number, number] => {
-      const viewW = regionWidth / zoom;
-      const viewH = regionHeight / zoom;
+      const aspect = width / height;
+      const viewSpan = Math.max(regionHeight, regionWidth / aspect) / zoom;
+      const viewW = viewSpan * aspect;
       const viewCX = centerX + pan.x;
       const viewCZ = centerZ + pan.z;
 
-      const normX = (wx - (viewCX - viewW / 2)) / viewW;
-      const normZ = (wz - (viewCZ - viewH / 2)) / viewH;
+      const sx = width / 2 + (wx - viewCX) * (width / viewW);
+      let sy = height / 2 + (wz - viewCZ) * (height / viewSpan);
 
-      const sx = normX * width;
-      let sy = normZ * height;
-
-      if (perspective === "relief") {
-        const elev = sampleMarsElevation(worldToMars(wx, wz).longitude, worldToMars(wx, wz).latitude);
-        const elevOffset = (elev / 15000) * (height * 0.14) * zoom;
-        const tiltFactor = 0.38;
-        const centerYScreen = height / 2;
-        sy = centerYScreen + (sy - centerYScreen) * Math.cos(tiltFactor) - elevOffset;
+      if (perspective === "relief" && reliefRendererReady) {
+        sy = height / 2 + ((wz - viewCZ) * Math.cos(RELIEF_TILT) - terrainHeightAt(wx, wz) * 5 * Math.sin(RELIEF_TILT)) * (height / viewSpan);
       }
 
       return [sx, sy];
     },
-    [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective]
+    [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective, terrainHeightAt, reliefRendererReady]
   );
 
   // Screen to world projection
   const projectScreenToWorld = useCallback(
     (sx: number, sy: number, width: number, height: number): [number, number] => {
-      const viewW = regionWidth / zoom;
-      const viewH = regionHeight / zoom;
+      const aspect = width / height;
+      const viewSpan = Math.max(regionHeight, regionWidth / aspect) / zoom;
+      const viewW = viewSpan * aspect;
       const viewCX = centerX + pan.x;
       const viewCZ = centerZ + pan.z;
 
-      const normX = sx / width;
-      let normZ = sy / height;
+      const wx = viewCX + (sx / width - 0.5) * viewW;
 
-      if (perspective === "relief") {
-        const tiltFactor = 0.38;
-        const centerYScreen = height / 2;
-        const unTiltedY = centerYScreen + (sy - centerYScreen) / Math.cos(tiltFactor);
-        normZ = unTiltedY / height;
+      if (perspective === "relief" && reliefRendererReady) {
+        const normalizedHeight = (sy / height - 0.5) * viewSpan;
+        let wz = viewCZ + normalizedHeight / Math.cos(RELIEF_TILT);
+        for (let i = 0; i < 3; i++) {
+          wz = viewCZ + (normalizedHeight + terrainHeightAt(wx, wz) * 5 * Math.sin(RELIEF_TILT)) / Math.cos(RELIEF_TILT);
+        }
+        return [wx, wz];
       }
 
-      const wx = viewCX - viewW / 2 + normX * viewW;
-      const wz = viewCZ - viewH / 2 + normZ * viewH;
+      const wz = viewCZ + (sy / height - 0.5) * viewSpan;
       return [wx, wz];
     },
-    [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective]
+    [regionWidth, regionHeight, zoom, centerX, centerZ, pan, perspective, terrainHeightAt, reliefRendererReady]
   );
 
   // Selection handlers
@@ -402,8 +688,11 @@ export default function MarsAtlas({
     const dy = e.clientY - dragStartRef.current.y;
     dragDistanceRef.current = Math.hypot(dx, dy);
 
-    const metersPerPixelX = regionWidth / (vp.clientWidth * zoom);
-    const metersPerPixelZ = regionHeight / (vp.clientHeight * zoom);
+    const aspect = vp.clientWidth / vp.clientHeight;
+    const viewSpan = Math.max(regionHeight, regionWidth / aspect) / zoom;
+    const metersPerPixelX = viewSpan / vp.clientHeight;
+    const metersPerPixelZ = viewSpan / (vp.clientHeight *
+      (perspective === "relief" && reliefRendererReady ? Math.cos(RELIEF_TILT) : 1));
 
     const maxPanX = regionWidth * 0.45;
     const maxPanZ = regionHeight * 0.45;
@@ -541,7 +830,35 @@ export default function MarsAtlas({
     return () => cancelAnimationFrame(animId);
   }, [routeState, routeData, activeSite.name, waypoint, addLog, showToast]);
 
-  // Render Map Canvas (MOLA Elevation, Shaded Relief, Contours, Route line)
+  // Keep the large raster copy out of the per-frame route and waypoint drawing loop.
+  useEffect(() => {
+    const baseCanvas = baseMapCanvasRef.current;
+    const vp = mapViewportRef.current;
+    if (!baseCanvas || !vp) return;
+    const width = vp.clientWidth;
+    const height = vp.clientHeight;
+    if (!width || !height) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    baseCanvas.width = Math.round(width * dpr);
+    baseCanvas.height = Math.round(height * dpr);
+    const ctx = baseCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#563b2d";
+    ctx.fillRect(0, 0, width, height);
+    if (perspective === "plan" || !reliefRendererReady) {
+      const image = baseMapImageRef.current;
+      if (image) {
+        const [left, top] = projectWorldToScreen(B.west, B.north, width, height);
+        const [right, bottom] = projectWorldToScreen(B.east, B.south, width, height);
+        ctx.drawImage(image, left, top, right - left, bottom - top);
+      }
+    }
+  }, [viewportSize, terrainReady, reliefRendererReady, perspective, zoom, pan, projectWorldToScreen]);
+
+  // Render the game overlays above either map mode.
   useEffect(() => {
     const canvas = terrainCanvasRef.current;
     const vp = mapViewportRef.current;
@@ -562,53 +879,11 @@ export default function MarsAtlas({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, width, height);
 
-    // 1. Draw base Mars terrain fill
-    ctx.fillStyle = "#563b2d";
-    ctx.fillRect(0, 0, width, height);
-
-    // 2. Render Elevation Heatmap & Shaded Relief
-    const gridRes = 56;
-    const stepX = width / gridRes;
-    const stepY = height / gridRes;
-
-    for (let gy = 0; gy < gridRes; gy++) {
-      for (let gx = 0; gx < gridRes; gx++) {
-        const sx = gx * stepX;
-        const sy = gy * stepY;
-        const [wx, wz] = projectScreenToWorld(sx + stepX / 2, sy + stepY / 2, width, height);
-        const m = worldToMars(wx, wz);
-        const elev = sampleMarsElevation(m.longitude, m.latitude);
-
-        // Directional relief shading
-        const [wxR, wzR] = projectScreenToWorld(sx + stepX * 1.5, sy + stepY / 2, width, height);
-        const [wxD, wzD] = projectScreenToWorld(sx + stepX / 2, sy + stepY * 1.5, width, height);
-        const elevR = sampleMarsElevation(worldToMars(wxR, wzR).longitude, worldToMars(wxR, wzR).latitude);
-        const elevD = sampleMarsElevation(worldToMars(wxD, wzD).longitude, worldToMars(wxD, wzD).latitude);
-        const slopeX = (elevR - elev) / 100;
-        const slopeZ = (elevD - elev) / 100;
-
-        // Light direction: (-0.42, 0.82, 0.36)
-        const light = Math.max(0.7, Math.min(1.25, 0.7 + 0.5 * (slopeX * -0.42 + 0.82 + slopeZ * 0.36)));
-
-        // Normalized elevation: -4000m to 14000m
-        const normElev = Math.max(0, Math.min(1, (elev + 4000) / 18000));
-
-        // Color ramp: deep rust -> ochre -> dusty terracotta -> pale summit
-        const r = Math.round(Math.min(255, (75 + normElev * 140) * light));
-        const g = Math.round(Math.min(255, (45 + normElev * 110) * light));
-        const b = Math.round(Math.min(255, (35 + normElev * 85) * light));
-        const alpha = 0.44 + normElev * 0.36;
-
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`;
-        ctx.fillRect(sx, sy, stepX + 0.6, stepY + 0.6);
-      }
-    }
-
-    // 3. Coordinate Grid Crosses
+    // Coordinate Grid Crosses
     ctx.strokeStyle = "rgba(244, 223, 178, 0.16)";
     ctx.lineWidth = 1;
-    for (let gx = -4000; gx <= 4000; gx += 1000) {
-      for (let gz = -4000; gz <= 4000; gz += 1000) {
+    for (let gx = B.west; gx <= B.east; gx += regionWidth / 8) {
+      for (let gz = B.north; gz <= B.south; gz += regionHeight / 8) {
         const [sx, sy] = projectWorldToScreen(gx, gz, width, height);
         if (sx >= 0 && sx <= width && sy >= 0 && sy <= height) {
           ctx.beginPath();
@@ -621,13 +896,20 @@ export default function MarsAtlas({
       }
     }
 
-    // 4. Playable Boundary Fence
-    const [pWest, pNorth] = projectWorldToScreen(PLAYABLE_BOUNDS.west, PLAYABLE_BOUNDS.north, width, height);
-    const [pEast, pSouth] = projectWorldToScreen(PLAYABLE_BOUNDS.east, PLAYABLE_BOUNDS.south, width, height);
+    // Playable Boundary Fence
+    const playableCorners = [
+      [PLAYABLE_BOUNDS.west, PLAYABLE_BOUNDS.north],
+      [PLAYABLE_BOUNDS.east, PLAYABLE_BOUNDS.north],
+      [PLAYABLE_BOUNDS.east, PLAYABLE_BOUNDS.south],
+      [PLAYABLE_BOUNDS.west, PLAYABLE_BOUNDS.south],
+    ].map(([wx, wz]) => projectWorldToScreen(wx, wz, width, height));
     ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
     ctx.lineWidth = 1.2;
     ctx.setLineDash([6, 4]);
-    ctx.strokeRect(pWest, pNorth, pEast - pWest, pSouth - pNorth);
+    ctx.beginPath();
+    playableCorners.forEach(([sx, sy], i) => (i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)));
+    ctx.closePath();
+    ctx.stroke();
     ctx.setLineDash([]);
 
     // 5. Elevation Contour Lines
@@ -694,6 +976,8 @@ export default function MarsAtlas({
     zoom,
     pan,
     perspective,
+    terrainReady,
+    reliefRendererReady,
     showContours,
     routeData,
     routeState,
@@ -880,7 +1164,19 @@ export default function MarsAtlas({
           >
             {/* Terrain Canvas */}
             <div id="terrain">
-              <canvas ref={terrainCanvasRef} />
+              <canvas
+                ref={baseMapCanvasRef}
+                className="atlas-base-map"
+                style={{ display: perspective === "plan" || !reliefRendererReady ? "block" : "none" }}
+                aria-hidden="true"
+              />
+              <canvas
+                ref={reliefCanvasRef}
+                className="atlas-relief-map"
+                style={{ display: perspective === "relief" && reliefRendererReady ? "block" : "none" }}
+                aria-hidden="true"
+              />
+              <canvas ref={terrainCanvasRef} className="atlas-map-overlay" aria-hidden="true" />
             </div>
 
             {/* Vignette Shadow Overlay */}
@@ -888,7 +1184,7 @@ export default function MarsAtlas({
 
             {/* Map Header Overlay */}
             <div className="maphead">
-              <small>Regional elevation map · NASA MOLA</small>
+            <small>User map base · NASA MOLA relief</small>
               <strong>Elysium Planitia</strong>
             </div>
 
