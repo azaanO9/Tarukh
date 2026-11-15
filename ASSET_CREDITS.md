@@ -66,6 +66,12 @@ Complete per-model links, authors, licenses, modifications and hashes are in the
 
 The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-space/chapea/), with architecture attributed to [ICON/BIG](https://big.dk/projects/mars-chapea-4310). It is an Earth-based analog habitat. The furnishings, inferred elevations, roof and colour treatment are artistic adaptations, not an official NASA/ICON/BIG model or certified habitat design. See the [asset notes](assets/outpost-review/README.md) for scale, validation and integration limits.
 
+## Separate Starbase study
+
+`public/starbase.html` uses original procedural geometry, generated surface/label textures and a generated reflection environment. No SpaceX photographs, logos, CAD, third-party models or external texture assets are included. The 145-metre tower, 71-metre booster, 50-metre upper stage and 33/6-engine layout follow the user-supplied concept brief, with [SpaceX's Starship reference](https://www.spacex.com/vehicles/starship/) as context. This is an independent artistic study, not an exact survey of current Starbase hardware or an endorsed simulation.
+
+Three.js 0.180, OrbitControls, RoomEnvironment and geometry utilities are bundled into the standalone HTML. Its embedded MIT notice is retained by `scripts/build-starbase.mjs`. The separate preview does not add downloads to the Mars game's entry.
+
 ## Software notices
 
 Three.js modeling, environment and post-processing utilities retain the dependency's MIT license. The vendored Draco decoder is distributed unchanged with its existing notices. Keep `vendor/shadcn-tailwind-4.13.0.LICENSE.md` and `scripts/vite/sites-vite-plugin.LICENSE` with their associated sources.

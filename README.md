@@ -72,6 +72,18 @@ Mobile mode enables the movement stick, swipe-to-look and contextual rover butto
 
 At the garage, use **Open garage · Bring rover out**, then F to drive after the rollout finishes. To return it, stop in the painted return bay, align with its arrows, exit with F and choose **Open garage · Park rover inside**. The same buttons work with touch. Door and vehicle movement pause if their path is occupied. Prepared outpost, greenhouse and garage models are included in the repository; ordinary builds do not require the original authoring files.
 
+## Separate Starbase preview
+
+[Open the launch-and-catch study](https://azaano9.github.io/Tarukh/starbase.html). This independent preview is not loaded by the Mars game. It includes a procedural tower, independently articulated catch arms and hydraulic pistons, a movable rocket with separable stages, individual fin/flap controls and a 32-second booster catch sequence. Drag to orbit, scroll/pinch to zoom, and use **Start catch**, **Pause**, or the rig controls.
+
+`public/starbase.html` contains the renderer, controls and generated scene in one file. Open it directly in a WebGL 2 browser, or use **Script controls → Download this HTML** to save an offline copy. No models, fonts or scripts are downloaded during operation. Rebuild the file after editing its sources:
+
+```sh
+node scripts/build-starbase.mjs
+```
+
+The public `window.starbaseControls` API is documented in [INTERFACE.md](docs/INTERFACE.md#standalone-starbase-preview). Dimensions follow the supplied concept brief; motion is an authored kinematic demonstration, not a flight or structural-load simulation.
+
 ## Checks and publication
 
 ```sh

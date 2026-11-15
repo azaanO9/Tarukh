@@ -82,6 +82,33 @@ The renderer retains Mars locomotion, terrain contacts, rover simulation, all th
 
 Terrain firmness zones still affect tint and wheel traction, so their coordinates remain in `marsTerrain.ts` without station definitions or mission data. `openWorldRegression.test.mjs` compares visible geometry, 469 rock colliders, height/traction samples and a seeded Curiosity trajectory with the release before retirement.
 
+## Standalone Starbase preview
+
+The separate `public/starbase.html` preview has no import path from the Mars entry. `scripts/build-starbase.mjs` bundles `ui/starbase/main.ts`, `createStarbase.ts`, the HTML template, Three.js and OrbitControls into that one file, including the Three.js MIT notice. Procedural geometry, runtime textures and the reflection environment need no network access. No dependencies were added. Rebuild after source edits; a test verifies the source fingerprint embedded in the HTML.
+
+`game/starbaseRig.ts` owns bounded controls and a deterministic 32-second catch sequence. `rocketEntity` remains a child of the scene, independent of the launch mount and tower. The two catch arms retain separate hinges, and four hydraulic rods aim at the current arm attachment positions. Catch completion places the bottoms of the lift pins on the rails at 96 metres. Moving a secured carriage updates the rocket in world coordinates, without reparenting it. Stage separation preserves the upper stage's world transform before a smooth 14-metre separation; rejoin restores its local attachment.
+
+`window.starbaseControls` exposes the following interface. Numeric setters reject non-finite values and clamp to the documented limits. Manual pose/surface edits stop the automated sequence. Reset and a new catch clear velocity commands; pause freezes the sequence and stage motion.
+
+| Control | Contract |
+| --- | --- |
+| `carriageHeight` | 25–120 metres; the guide rails extend to 125 metres |
+| `leftArmAngle`, `rightArmAngle`, `chopsticksAngle` | 0–35 degrees outward; the combined setter moves both arms |
+| `qdArmOpen` | `true` stows/clears the quick-disconnect arm; `false` deploys it |
+| `rocketPosX`, `rocketPosY`, `rocketPosZ` | World-space metres; X/Z ±80, Y 0–250 |
+| `rocketPitch`, `rocketYaw`, `rocketRoll` | Degrees; pitch/roll ±90, yaw ±180 |
+| `engineThrust` | 0–1 plume/light command; no computed thrust dynamics |
+| `gridFinDeflection`, `flapsBellyFlopAngle` | Set all fins (±30°) or flaps (−20–70°) |
+| `setGridFin(index, degrees)`, `setFlap(index, degrees)` | Independent surface controls, indices 0–3; flaps 0–1 forward, 2–3 aft |
+| `view` | `stack`, `booster`, or `ship`; selects an inspection preset |
+| `startCatchSequence()`, `pause()`, `resume()`, `reset()` | Sequence and playback controls |
+| `setVelocity(x, y, z)`, `stopVelocity()` | Bounded manual world-space translation in metres/second |
+| `velocity`, `angularVelocity` | Measured current translation and angular rates; angular rates use radians/second |
+| `separateStages()`, `joinStages()` | Detach/rejoin the upper stage while inspecting the full stack |
+| `rocketEntity`, `superHeavyBooster`, `starshipUpperStage` | Three.js groups for inspection or custom scripting |
+
+Auto begins with a 1.25 pixel-ratio cap and 1024 shadows, reducing the cap in small steps to 0.8 if measured rendering falls below 36 FPS. High uses 1.5/2048, Ultra 2/4096, and Performance 1/no shadows. This independent preview does not use or change the game's graphics calibration. Static components are batched; the hex tiles and exhaust use instancing. Shader preparation runs behind the loading cover. GPU resources and listeners are disposed on teardown or initialization failure. The file supports reduced motion, touch orbit controls, a narrow-screen controls drawer and a Performance retry when WebGL fails.
+
 ## Validation
 
 Run the commands in `README.md`. Unit tests cover simulation, terrain seams, collisions, rover contacts/rigging, camera geometry, streaming, graphics selection, maps and landing. Tests specific to deleted modes were removed; shared vehicle tests now use shuttle and terrain obstacles.

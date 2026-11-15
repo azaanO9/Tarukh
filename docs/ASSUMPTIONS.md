@@ -12,7 +12,7 @@ Landmarks mark gazetteer feature centres, not necessarily summits or boundaries.
 
 ## Movement, vehicles and time
 
-The solar-powered garage is a fictional shelter sized around the existing crew rover. Its six panels are assigned 200 W each, with a 6 kWh battery initially holding 4.2 kWh, 170 W of lighting/control demand and a 650 W door motor. These are game assumptions, not supplied panel specifications or NASA ratings. Automatic rollout and parking use a slow, safeguarded straight approach; this is not a validated autonomous docking or pressure-control simulation. Parking does not recharge, repair or reset the crew rover. The garage battery and docking state last for the current play session only.
+The solar-powered garage is a fictional shelter sized around the existing crew rover. Its six panels are assigned 200 W each, with a 6 kWh battery initially holding 4.2 kWh, 170 W of lighting/control demand and a 650 W door motor. The parked rover can recharge through the 850 W dock and 96%-efficient base inverter; its authored 0.35-percentage-point/second charge rate compresses charging time. These are game assumptions, not supplied panel specifications or NASA ratings. Automatic rollout and parking use a slow, safeguarded straight approach; this is not a validated autonomous docking or pressure-control simulation. Parking does not repair or reset the crew rover. The garage battery and docking state last for the current play session only.
 
 Six fictional food-cultivation modules surround the base. Their mature plants, propagation racks and water equipment come from the supplied enclosed greenhouse asset. Six is a layout/design choice, not a claim that the displayed crops feed a specified crew. This adds explorable facilities without restoring mission, resource or harvesting mechanics. Door pressure, crop yields and closed-loop life-support performance are not simulated.
 
@@ -33,6 +33,10 @@ Real-world Mars surface radiation doses accumulate over months to years (typical
 - Active SEP storm exposure rate (`sepFluxPFU >= 10`): `0.6 + Math.log10(sepFluxPFU) * 1.4 mSv/s` (scaling logarithmically with proton flux up to extreme storm levels).
 - Habitat and bunker shielding: inside the landing shuttle (`(0, 12)`) or the regolith water bunker (`(-24, 24)`), incoming SEP protons are completely blocked (`0 mSv/s`) and the astronaut undergoes medical decontamination/recovery at `-1.5 mSv/s` down to 0 mSv.
 - Acute Radiation Sickness (ARS) symptoms: vision blur (`backdrop-filter: blur()`), red peripheral vignette, CMOS sensor static snow, audio Geiger clicks, 30% movement speed penalty (`radiationExposure >= 70 mSv`), and progressive health degradation above 75 mSv. These represent acute deterministic radiation sickness thresholds in a compressed interactive format rather than a certified medical simulation.
+
+## Separate Starbase preview
+
+The standalone preview follows the dimensions and vehicle configuration in the supplied concept brief, rather than asserting that it reproduces current SpaceX hardware. The 32-second catch is an authored, frame-rate-independent path: descent, hover, arm closure and settling onto the lift pins. Pin-to-rail contact and hydraulic linkage endpoints are geometric constraints. Gravity, aerodynamic forces, fuel, structural loads, collisions outside that scripted contact, and real launch procedures are not modeled. Engine control scales visual exhaust and lighting; it does not calculate acceleration. Upper-stage separation is a presentation animation. This study is separate from Mars gameplay and its scientific terrain data.
 
 ## Graphics measurements
 
