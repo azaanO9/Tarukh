@@ -9,6 +9,7 @@ import {
   type MarsGaitState,
 } from "../../game/marsGait";
 import { createMarsAstronaut } from "./createFallbackAstronaut";
+import {ROVER_SEATED_POSE} from '../../game/roverSeating';
 
 export type BoneRecord = {
   bone: T.Object3D;
@@ -29,6 +30,7 @@ export type AstronautBones = {
   rightArm?: BoneRecord;
   leftForeArm?: BoneRecord;
   rightForeArm?: BoneRecord;
+  head?: BoneRecord;
 };
 
 export type RiggedAstronautHandle = {
@@ -36,6 +38,7 @@ export type RiggedAstronautHandle = {
   root: T.Group;
   isModelLoaded: boolean;
   modelType: "rigged-gltf" | "procedural-fallback";
+  setSeated: (seated: boolean, firstPerson?: boolean) => void;
   update: (
     dt: number,
     speed: number,
@@ -51,6 +54,7 @@ export type RiggedAstronautHandle = {
  * Supports Three.js sanitized node names (e.g. "leg_1L_050"), Mixamo, glTF humanoid, and Biped.
  */
 const BONE_PATTERNS: Record<keyof AstronautBones, RegExp[]> = {
+  head: [/^head_0/i, /mixamorig:?head$/i, /^head$/i],
   hips: [
     /hip_joint/i,
     /pelvis/i,
@@ -253,7 +257,12 @@ export function createRiggedAstronaut(
   const gaitState: MarsGaitState = createMarsGaitState();
   let baseModelX = 0;
   let baseModelY = 0;
+  let baseModelZ = 0;
   let modelRef: T.Object3D | null = null;
+  let seated = false;
+  let seatedPoseApplied = false;
+  const headScale = new T.Vector3(1,1,1);
+  const hipCenter = new T.Vector3(), otherHip = new T.Vector3();
 
   // Initialize with procedural astronaut fallback immediately so the scene is never empty
   const fallback = createMarsAstronaut();
@@ -264,6 +273,13 @@ export function createRiggedAstronaut(
     root,
     isModelLoaded: false,
     modelType: "procedural-fallback",
+    setSeated(value, firstPerson = false) {
+      if(value !== seated)seatedPoseApplied=false;
+      seated = value;
+      if (bones.head) bones.head.bone.scale.copy(headScale).multiplyScalar(value && firstPerson ? .001 : 1);
+      fallback.setSeated(value);
+      fallback.root.visible = !(value && firstPerson);
+    },
     update(
       dt: number,
       speed: number,
@@ -271,7 +287,8 @@ export function createRiggedAstronaut(
       jumpHeight: number,
       verticalVelocity = 0,
     ) {
-      const pose: MarsGaitPose = stepMarsGait(
+      if(seated && seatedPoseApplied)return;
+      const pose: MarsGaitPose = seated ? ROVER_SEATED_POSE : stepMarsGait(
         gaitState,
         speed,
         isAirborne,
@@ -285,6 +302,7 @@ export function createRiggedAstronaut(
         // Vertical bounce and lateral weight shift
         modelRef.position.y = baseModelY + pose.hipOffsetY;
         modelRef.position.x = baseModelX + pose.hipOffsetX;
+        modelRef.position.z = baseModelZ;
 
         // 2. Detect rig type: FBX-style rig (e.g. Sketchfab astro_bones with leg_1) vs standard Mixamo/humanoid
         const isAstroRig = /leg_?1/i.test(bones.leftUpLeg.bone.name);
@@ -418,11 +436,20 @@ export function createRiggedAstronaut(
             pose.spineRoll,
           );
         }
+        if (seated && bones.rightUpLeg) {
+          // Align the actual thigh sockets with the seat, independent of skeleton scale/origin.
+          modelRef.updateWorldMatrix(true,true);
+          bones.leftUpLeg.bone.getWorldPosition(hipCenter);
+          bones.rightUpLeg.bone.getWorldPosition(otherHip);
+          root.worldToLocal(hipCenter.add(otherHip).multiplyScalar(.5));
+          modelRef.position.sub(hipCenter);
+        }
       } else {
         // Fallback procedural animation
         const stride = gaitState.blend * Math.sin(gaitState.phase) * 0.45;
         fallback.animate(stride, isAirborne || jumpHeight > 0.08);
       }
+      seatedPoseApplied=seated;
     },
     dispose() {
       disposed = true;
@@ -478,6 +505,7 @@ export function createRiggedAstronaut(
       model.position.y -= scaledBox.min.y;
       baseModelX = model.position.x;
       baseModelY = model.position.y;
+      baseModelZ = model.position.z;
       modelRef = model;
 
       // Search and resolve internal bone structures
@@ -488,6 +516,8 @@ export function createRiggedAstronaut(
       root.add(model);
 
       bones = resolved;
+      seatedPoseApplied = false;
+      if (bones.head) headScale.copy(bones.head.bone.scale);
       handle.isModelLoaded = true;
       handle.modelType = "rigged-gltf";
 

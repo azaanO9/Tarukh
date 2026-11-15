@@ -33,7 +33,8 @@ test("wrapped uploads cover exactly one small patch with no out-of-bounds copies
 test("both graphics budgets stamp tracks far beyond spawn and discard off-window rover work",()=>{
  for(const light of [true,false]){
   const system=createMarsTrackSystem(light),calls=[];
-  const renderer={copyTextureToTexture:(src,dst,region,pos)=>calls.push({w:region?region.max.x-region.min.x:src.image.width,h:region?region.max.y-region.min.y:src.image.height,x:pos.x,y:pos.y})};
+  const renderer={initTexture(){},properties:{get:()=>({__webglTexture:{}})},state:{bindTexture(){},unbindTexture(){}},
+   getContext:()=>({pixelStorei(){},texSubImage2D:(_target,_level,x,y,w,h)=>calls.push({w,h,x,y})})};
   assert.equal(system.texture.image.width,light?512:1024);
   system.update(renderer,500,-500,light);
   assert.ok(calls.length<=(light?1:2),"page reclamation is bounded per frame");

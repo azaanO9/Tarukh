@@ -4,21 +4,26 @@ import type { LidarScan } from "../../game/roverLidar";
 import { assetUrl } from "../../lib/assetUrl";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { ROVER_WHEEL_OFFSETS, ROVER_WHEEL_OUTER_RADIUS, type RoverVehicle, type RoverPartId } from "../../game/roverVehicle";
 import { bindPreparedRover, type RoverWheelAssembly } from "./roverWheelAssembly";
 import { createSoftContactShadow } from "./contactShadow";
 
 import { createRoverCockpit, positionRoverCockpitCamera } from "./roverCockpit";
+import {createKeplerCockpit} from './keplerCockpit';
+import {ROVER_DRIVER_SEAT} from '../../game/roverSeating';
 
 export type BigRoverHandle = {
   ready: Promise<void>;
   setCockpitView: (enabled: boolean) => void;
   positionCockpitCamera: (camera: T.Camera, yaw: number, pitch: number) => void;
+  positionDriver: (driver: T.Object3D) => void;
   root: T.Group;
   dust: T.Mesh;
   headlightL: T.SpotLight;
   headlightR: T.SpotLight;
   isModelLoaded: boolean;
+  readonly cockpitScreens: number;
   update: (
     rover: RoverVehicle,
     groundY: number,
@@ -33,11 +38,11 @@ export type BigRoverHandle = {
 };
 
 /**
- * Loads the prepared NASA MMSEV asset and attaches the game cockpit,
- * lights, wheel rig and dust effects. Procedural geometry covers load failures.
+ * Loads the fitted Kepler body/cabin on the unchanged vehicle wheel rig.
+ * Procedural geometry and the original cockpit cover asset-load failures.
  */
 export function createBigRover(
-  modelUrl = assetUrl("/models/space-exploration-vehicle-ready.glb"),
+  modelUrl = assetUrl("/models/kepler-rover/rover.glb"),
 ): BigRoverHandle {
   const root = new T.Group();
   root.name = "BigRover";
@@ -45,6 +50,9 @@ export function createBigRover(
   let cockpitView = false;
   let exteriorBody: T.Object3D | null = null;
   const cockpit = createRoverCockpit();
+  let kepler: ReturnType<typeof createKeplerCockpit> | null = null;
+  const importedTextures = new Set<T.Texture>();
+  const importedMaterials = new Set<T.Material>();
   root.add(cockpit.root, cockpit.cabinLight);
   let disposed = false;
   let resolveReady!: () => void;
@@ -168,13 +176,13 @@ export function createBigRover(
   root.add(contactShadow.mesh);
 
   // Load the prepared vehicle and validate its wheel rig.
-  const loader = new GLTFLoader();
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath(assetUrl("/draco/"));
   loader.setDRACOLoader(dracoLoader);
 
   loader.loadAsync(modelUrl).then(
-    (gltf) => {
+    async (gltf) => {
       const model = gltf.scene;
       if (disposed) { model.traverse(o => { if (o instanceof T.Mesh) { o.geometry.dispose(); for (const m of Array.isArray(o.material) ? o.material : [o.material]) { for (const value of Object.values(m)) if (value instanceof T.Texture) value.dispose(); m.dispose(); } } }); return; }
 
@@ -189,6 +197,8 @@ export function createBigRover(
             ? mesh.material
             : [mesh.material];
           for (const mat of materials) {
+            importedMaterials.add(mat);
+            for(const value of Object.values(mat))if(value instanceof T.Texture)importedTextures.add(value);
             if (mat instanceof T.MeshStandardMaterial) {
               if (mat.map) mat.map.colorSpace = T.SRGBColorSpace;
               if (mat.emissiveMap) mat.emissiveMap.colorSpace = T.SRGBColorSpace;
@@ -201,12 +211,15 @@ export function createBigRover(
                 mat.normalMap = null;
                 mat.normalScale.set(1, 1);
               }
-              mat.roughness = Math.max(0.54, mat.roughness);
+              const glazing=mesh.userData.keplerCategory==='glazing';
+              const runningGear=/^(tire|upright)-[0-5]$/.test(mesh.name);
+              if(glazing){mat.transparent=true;mat.depthWrite=false;mat.forceSinglePass=true;}
+              mat.roughness = glazing ? mat.roughness : Math.max(runningGear ? 0.54 : 0.35, mat.roughness);
               mat.envMapIntensity = Math.min(mat.envMapIntensity, 0.95);
               if (mat instanceof T.MeshPhysicalMaterial) {
                 mat.specularIntensity = Math.min(mat.specularIntensity, 0.72);
               }
-              mat.side = T.DoubleSide;
+              mat.side = glazing || runningGear ? T.DoubleSide : mat.side;
               mat.needsUpdate = true;
             }
           }
@@ -220,8 +233,12 @@ export function createBigRover(
         return;
       }
       const assembledGroup = model;
+      if(model.getObjectByName('Kepler_Interior'))kepler=createKeplerCockpit(model);
       exteriorBody = partitioned.chassisMesh;
-      exteriorBody.visible = !cockpitView;
+      exteriorBody.visible = Boolean(kepler) || !cockpitView;
+      cockpit.root.visible = cockpitView && !kepler;
+      cockpit.cabinLight.intensity = cockpitView && !kepler ? 2.4 : 0;
+      kepler?.setActive(cockpitView);
       activeWheels = partitioned.wheels;
       // Raycast the imported chassis once to attach fittings to its actual skin.
       assembledGroup.updateMatrixWorld(true);
@@ -251,6 +268,7 @@ export function createBigRover(
       root.add(assembledGroup);
 
       isModelLoaded = true;
+      if(kepler)await kepler.ready;
     }).catch((err) => {
       console.warn(
         `[BigRover] Could not load "${modelUrl}" (${(err as Error)?.message || "File not found"}). Using procedural rover fallback.`,
@@ -271,7 +289,10 @@ export function createBigRover(
     root.position.set(rover.x, groundY, rover.z);
     root.rotation.set(rover.pitch, rover.yaw, rover.roll, "YXZ");
 
-    if (cockpitView) cockpit.update(rover, lidar, curiosity);
+    if(kepler){
+      // Screens also stay current through the windows when the rover is parked.
+      kepler.update(rover, lidar, curiosity);
+    }else if (cockpitView) cockpit.update(rover, lidar, curiosity);
 
     // 2. Rotate tires with vehicle roll, steer front wheels, and calculate independent suspension travel
     const sinYaw = Math.sin(rover.yaw);
@@ -343,21 +364,23 @@ export function createBigRover(
   function dispose() {
     disposed = true;
     tireDust.dispose();
-    cockpit.texture.dispose();
-    contactShadow.material.map?.dispose();
     dracoLoader.dispose();
+    const geometries = new Set<T.BufferGeometry>();
+    const materials = new Set<T.Material>(importedMaterials);
+    const textures = new Set<T.Texture>(importedTextures);
+    textures.add(cockpit.texture);
     root.traverse((o) => {
       if (o instanceof T.Mesh || o instanceof T.Points) {
-        o.geometry?.dispose();
-        if (o.material) {
-          if (Array.isArray(o.material)) {
-            o.material.forEach((m) => m.dispose());
-          } else {
-            o.material.dispose();
-          }
-        }
+        if(o.geometry)geometries.add(o.geometry);
+        for(const material of Array.isArray(o.material)?o.material:[o.material])if(material&&!kepler?.ownsMaterial(material))materials.add(material);
       }
     });
+    kepler?.dispose();
+    for(const material of materials){for(const value of Object.values(material))if(value instanceof T.Texture)textures.add(value);material.dispose();}
+    for(const texture of textures)texture.dispose();
+    for(const geometry of geometries)geometry.dispose();
+    importedTextures.clear();importedMaterials.clear();
+    headlightL.dispose();headlightR.dispose();
     root.clear();
   }
 
@@ -366,14 +389,21 @@ export function createBigRover(
     setCockpitView(enabled) {
       if (cockpitView === enabled) return;
       cockpitView = enabled;
-      cockpit.root.visible = enabled;
+      cockpit.root.visible = enabled && !kepler;
+      kepler?.setActive(enabled);
       fixtures.visible = !enabled;
       contactShadow.mesh.visible = !enabled;
-      cockpit.cabinLight.intensity = enabled ? 2.4 : 0;
-      if (exteriorBody) exteriorBody.visible = !enabled;
+      cockpit.cabinLight.intensity = enabled && !kepler ? 2.4 : 0;
+      if (exteriorBody) exteriorBody.visible = Boolean(kepler) || !enabled;
     },
     positionCockpitCamera(camera, yaw, pitch) {
-      positionRoverCockpitCamera(camera, root, yaw, pitch);
+      if(kepler)kepler.positionCamera(camera,root,yaw,pitch);
+      else positionRoverCockpitCamera(camera, root, yaw, pitch);
+    },
+    positionDriver(driver) {
+      root.updateWorldMatrix(true,false);
+      driver.position.fromArray(ROVER_DRIVER_SEAT).applyMatrix4(root.matrixWorld);
+      root.getWorldQuaternion(driver.quaternion);
     },
     root,
     dust: tireDust.mesh,
@@ -382,6 +412,7 @@ export function createBigRover(
     get isModelLoaded() {
       return isModelLoaded;
     },
+    get cockpitScreens(){return kepler?.screenCount??0;},
     update,
     dispose,
   };

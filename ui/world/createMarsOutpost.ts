@@ -8,19 +8,24 @@ import type {CollisionObstacle} from '../../game/collision.ts';
 import {createInstanceVisibility} from './instanceVisibility.ts';
 import {createInteriorLighting} from './interiorLighting.ts';
 
+const roomLights = [
+  [0,0],[-19,0],[18,0],[-11,-22],[12,-22],[0,-13],[-8.5,0],[9,0],[0,-8],
+] as const;
+
 /** The campus has no landscape of its own: only the game surface is rendered. */
 export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:CollisionObstacle[]) {
   const baseY=groundY+OUTPOST_SITE.foundationOffset;
   const root=new T.Group();root.name='TARUKH outpost';root.position.set(OUTPOST_SITE.x,baseY,OUTPOST_SITE.z);scene.add(root);
   const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   let state:ReturnType<typeof createOutpostState>|null=null,mixer:T.AnimationMixer|null=null,disposed=false;
-  let loaded=false;
+  let loaded=false,ultraLighting=false;
   const actions:{action:T.AnimationAction;duration:number}[]=[];
   const sectors:{object:T.Object3D;bounds:T.Box3;interior:boolean}[]=[];
   const instanceVisibility:{sector:T.Object3D;update:(frustum:T.Frustum)=>void}[]=[];
   const viewMatrix=new T.Matrix4(),frustum=new T.Frustum();
   const cameraBoxes:{obstacle:CollisionObstacle;box:T.Box3}[]=[];
   const interiorLighting=createInteriorLighting();
+  interiorLighting.setRoomCenter(OUTPOST_SITE.x,baseY,OUTPOST_SITE.z);
   const ray=new T.Ray(),hit=new T.Vector3(),origin=new T.Vector3(),direction=new T.Vector3();
   const resources={geometries:new Set<T.BufferGeometry>(),materials:new Set<T.Material>(),textures:new Set<T.Texture>(),instances:new Set<T.InstancedMesh>()};
   function remember(object:T.Object3D) {
@@ -88,7 +93,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
         while(parent){interior ||= Boolean(parent.userData.interior);if(parent.userData.outpostSector)sector=parent;parent=parent.parent;}
         // Interior and exterior share some source materials. Only the interior
         // clones receive the room fill; fixtures keep their authored emission.
-        if(interior||gateMeshes.has(o))o.material=Array.isArray(o.material)?o.material.map(material=>interiorLighting.materialFor(material)):interiorLighting.materialFor(o.material);
+        if(interior||gateMeshes.has(o))o.material=Array.isArray(o.material)?o.material.map(material=>interiorLighting.materialFor(material,interior)):interiorLighting.materialFor(o.material,interior);
         o.castShadow=!interior;o.receiveShadow=true;
         o.geometry.computeBoundingSphere();
         if(o instanceof T.InstancedMesh)o.computeBoundingSphere();
@@ -112,6 +117,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
   function updateVisibility(camera:T.Camera){
     if(!loaded)return;
     camera.updateMatrixWorld();viewMatrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+    if(ultraLighting)interiorLighting.updateView(camera);
     frustum.setFromProjectionMatrix(viewMatrix);
     for(const batch of instanceVisibility)if(batch.sector.visible)batch.update(frustum);
   }
@@ -144,6 +150,15 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       const range=sector.interior?(lightTier?8:14):(lightTier?220:400);
       sector.object.visible=sector.bounds.distanceToPoint(origin)<range;
     }
+    if(ultraLighting){
+      let index=0,distance=Infinity;
+      for(let i=0;i<roomLights.length;i++){
+        const [rx,rz]=roomLights[i],d=(x-OUTPOST_SITE.x-rx)**2+(z-OUTPOST_SITE.z-rz)**2;
+        if(d<distance){distance=d;index=i;}
+      }
+      const [rx,rz]=roomLights[index];
+      interiorLighting.setRoomCenter(OUTPOST_SITE.x+rx,baseY,OUTPOST_SITE.z+rz);
+    }
   }
   function constrainCamera(x:number,y:number,z:number,position:T.Vector3) {
     if(!loaded||Math.abs(x-OUTPOST_SITE.x)>34||Math.abs(z-OUTPOST_SITE.z)>35)return;
@@ -159,6 +174,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
   }
   return {root,ready,floorAt,indoors,ceilingAt,nearby,interact,update,updateVisibility,constrainCamera,
     setInteriorActive:interiorLighting.setActive,
+    setUltraLighting(enabled:boolean){ultraLighting=enabled;interiorLighting.setUltra(enabled);},
     get loaded(){return loaded;},get doors(){return state?.doors??[];},
     dispose(){
       disposed=true;mixer?.stopAllAction();if(mixer)mixer.uncacheRoot(mixer.getRoot());

@@ -1,5 +1,6 @@
 import {createTrackWindow,forTrackPatch,wrapTrack,TRACK_METRES_PER_PIXEL} from "../../game/trackWindow.ts";
 import * as T from "three";
+import {uploadTrackRectangle} from './trackTextureUpload.ts';
 import { ROVER_WHEEL_OFFSETS, type RoverVehicle } from "../../game/roverVehicle.ts";
 import { CURIOSITY_WHEEL_OFFSETS, type CuriosityRoverState } from "../../game/curiosityRover.ts";
 
@@ -37,8 +38,7 @@ export function createMarsTrackSystem(light=false): MarsTrackSystem {
   const origin=new T.Vector2(),scroll=new T.Vector2();
   const maskTexture=new T.DataTexture(field.mask,8,8,T.RGBAFormat);
   maskTexture.minFilter=maskTexture.magFilter=T.NearestFilter;maskTexture.generateMipmaps=false;maskTexture.needsUpdate=true;
-  const clearTexture=new T.DataTexture(new Uint8Array(field.pageSize*field.pageSize*4),field.pageSize,field.pageSize,T.RGBAFormat);
-  clearTexture.generateMipmaps=false;clearTexture.needsUpdate=true;
+  const clearData=new Uint8Array(field.pageSize*field.pageSize*4);
   let lightBudget=light;
   const texture = new T.DataTexture(
     data,
@@ -56,25 +56,10 @@ export function createMarsTrackSystem(light=false): MarsTrackSystem {
   texture.needsUpdate = true;
 
   const patchData = new Uint8Array(PATCH_SIZE * PATCH_SIZE * 4);
-  const patchTexture = new T.DataTexture(
-    patchData,
-    PATCH_SIZE,
-    PATCH_SIZE,
-    T.RGBAFormat,
-    T.UnsignedByteType,
-  );
-  patchTexture.minFilter = T.LinearFilter;
-  patchTexture.magFilter = T.LinearFilter;
-  patchTexture.generateMipmaps = false;
-  patchTexture.flipY = false;
-
-  const dstOrigin = new T.Vector3(0, 0, 0);
   const lastStamps = new Map<string, StampRecord>();
-  const copyRegion=new T.Box2();
   let activeRenderer:T.WebGLRenderer;
   const copyPatch=(sx:number,sy:number,w:number,h:number,dx:number,dy:number)=>{
-    copyRegion.min.set(sx,sy);copyRegion.max.set(sx+w,sy+h);dstOrigin.set(dx,dy,0);
-    activeRenderer.copyTextureToTexture(patchTexture,texture,copyRegion,dstOrigin);
+    uploadTrackRectangle(activeRenderer,texture,patchData,PATCH_SIZE,sx,sy,w,h,dx,dy);
   };
   function update(renderer:T.WebGLRenderer,x:number,z:number,low:boolean){
     lightBudget=low;
@@ -85,8 +70,8 @@ export function createMarsTrackSystem(light=false): MarsTrackSystem {
     }
     for(let n=0;n<(lightBudget?1:2);n++){
       const page=field.nextPage();if(page===undefined)break;
-      dstOrigin.set(page%8*field.pageSize,Math.floor(page/8)*field.pageSize,0);
-      renderer.copyTextureToTexture(clearTexture,texture,null,dstOrigin);
+      uploadTrackRectangle(renderer,texture,clearData,field.pageSize,0,0,field.pageSize,field.pageSize,
+        page%8*field.pageSize,Math.floor(page/8)*field.pageSize);
       field.markReady(page);maskTexture.needsUpdate=true;
     }
   }
@@ -198,7 +183,7 @@ export function createMarsTrackSystem(light=false): MarsTrackSystem {
       const source=(wrapTrack(baseY+row,size)*size+wrapTrack(baseX+col,size))*4,target=(row*PATCH_SIZE+col)*4;
       for(let c=0;c<4;c++)patchData[target+c]=data[source+c];
     }
-    patchTexture.needsUpdate=true;activeRenderer=renderer;
+    activeRenderer=renderer;
     forTrackPatch(size,PATCH_SIZE,baseX,baseY,copyPatch);
   }
 
@@ -231,7 +216,7 @@ export function createMarsTrackSystem(light=false): MarsTrackSystem {
 
   function dispose() {
     texture.dispose();
-    patchTexture.dispose();maskTexture.dispose();clearTexture.dispose();
+    maskTexture.dispose();
     lastStamps.clear();
   }
 

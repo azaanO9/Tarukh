@@ -58,8 +58,22 @@ export function createMarsAstronaut() {
     batchStaticMeshes(leg,new Set());batchStaticMeshes(arm,new Set());
   }
   batchStaticMeshes(root,new Set(limbs));
+  const seatedLegs=new T.Group();seatedLegs.visible=false;root.add(seatedLegs);
+  for(const side of [-1,1]){
+    const thigh=new T.Group();thigh.position.set(side*.19,.96,0);thigh.rotation.x=1.8;seatedLegs.add(thigh);
+    b.add(thigh,sleeve(.35,.145),fabric,0,0,0);
+    const shin=new T.Group();shin.position.y=-.35;shin.rotation.x=-1.65;thigh.add(shin);
+    b.add(shin,sleeve(.37,.14),fabric,0,0,0);
+    b.box(shin,.30,.2,.43,0,-.4,-.065,m.graphite);
+    b.box(shin,.305,.05,.44,0,-.49,-.065,m.alloy);
+  }
+  let seated=false;
   return {root,animate(stride:number,airborne:boolean){
+    if(seated){limbs[1].rotation.x=limbs[3].rotation.x=.4;return;}
     limbs[0].rotation.x=stride;limbs[2].rotation.x=-stride;
     limbs[1].rotation.x=airborne?-.4:-stride*.65;limbs[3].rotation.x=airborne?-.4:stride*.65;
+  },setSeated(value:boolean){
+    seated=value;seatedLegs.visible=value;limbs[0].visible=limbs[2].visible=!value;
+    root.position.y=value?-.96:0;
   }};
 }

@@ -12,6 +12,7 @@ import type { RoverVehicle } from "../../game/roverVehicle.ts";
 import type { CuriosityRoverState } from "../../game/curiosityRover.ts";
 import { fallbackMarsSurfaceTextures, stochasticSurfaceGLSL, type MarsSurfaceTextures } from "./marsSurfaceTextures.ts";
 import { terrainPatches } from './terrainPatches.ts';
+import { applyTerrainHaze } from './terrainHaze.ts';
 const firmGroundZones: readonly [
   number,
   number
@@ -560,6 +561,7 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
     reflectedLight.indirectSpecular*=mix(stoneCavity,1.0,.5);`);
   };
   lightRockMat.customProgramCacheKey = () => "tarukh-light-rock-v1";
+  for (const material of [groundMat, rockMat, lightGroundMat, lightRockMat]) applyTerrainHaze(material);
   function setLightSurfaces(light: boolean) {
     for (const ground of groundPatches) ground.material = light ? lightGroundMat : groundMat;
     for (const rocks of [small, ...large])

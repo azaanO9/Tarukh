@@ -6,3 +6,14 @@ export const graphicsTiers = {
 } as const;
 export type GraphicsTier = keyof typeof graphicsTiers;
 export function graphicsTier(name:string) { return graphicsTiers[name as GraphicsTier] ?? graphicsTiers.auto; }
+
+/** Keep the inexpensive room path except when the selected device tier is Ultra. */
+export function graphicsEffects(name:string,indoors:boolean,reducedMotion:boolean) {
+  const tier=graphicsTier(name),ultra=name==='ultra';
+  return {
+    occlusion:tier.ssao&&(!indoors||ultra),
+    bloom:tier.bloom&&!reducedMotion&&(!indoors||ultra),
+    reuseSceneDepth:ultra,
+    roomHighlights:ultra,
+  };
+}

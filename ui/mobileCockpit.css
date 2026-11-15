@@ -74,3 +74,10 @@
 .wheel-tools button {width:44px;height:44px;border-radius:50%}
 .wheel-tools svg {width:18px}
 .wheel-controls button:active,.wheel-tools button[aria-pressed="true"] {background:#40675f;transform:translateY(2px)}
+
+/* Leave the rover pedals and camera/exit buttons reachable beneath SAT-LINK. */
+.roam-root[data-controls="mobile"] .mars-radiation-hud.gta-phone.driving.phone-closed {
+  bottom: max(152px, calc(env(safe-area-inset-bottom) + 138px));
+  height: 44px;
+  transform: none;
+}
