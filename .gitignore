@@ -43,9 +43,15 @@ yarn-error.log*
 /outputs/
 /work/
 
-# Outpost models stay local for review; do not publish them to GitHub.
+# Authoring/review models stay local; include only the prepared game assets.
 /assets/outpost-review/**/*.glb
 /assets/outpost-review/**/*.blend
+/public/models/outpost/*.glb
+/public/models/greenhouse/*.glb
+/public/models/garage/*.glb
+!/public/models/outpost/campus.glb
+!/public/models/greenhouse/cultivation.glb
+!/public/models/garage/garage.glb
 
 # OS metadata
 .DS_Store

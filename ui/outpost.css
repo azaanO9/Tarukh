@@ -1,0 +1,22 @@
+.sv-outpost-prompt {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  max-width: min(400px, 70vw);
+}
+.sv-outpost-prompt button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #87d5d4;
+  border-radius: 8px;
+  background: #152b32ee;
+  color: #f4fbfb;
+  font: 600 14px/1.4 system-ui, sans-serif;
+  cursor: pointer;
+}
+.sv-outpost-prompt button:focus-visible { outline: 3px solid #ffc281; outline-offset: 3px; }
+.sv-outpost-prompt button:disabled { cursor: default; border-color: #a9b6b7; color: #e5eded; }
+.sv-outpost-prompt kbd { margin-right: 8px; padding: 2px 5px; border: 1px solid #72979f; border-radius: 3px; }
+@media (max-height: 500px) { .sv-outpost-prompt { bottom: 18px; max-width: 46vw; } }

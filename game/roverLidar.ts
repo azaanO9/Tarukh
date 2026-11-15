@@ -33,7 +33,7 @@ function rayDistance(x: number, z: number, dx: number, dz: number, obstacle: Col
 
 /** Simulated 2D lidar: nearest returns occlude farther objects on each beam. */
 export function scanRoverLidar(rover: RoverVehicle, obstacles: readonly CollisionObstacle[]): LidarScan {
-  const nearby = obstacles.filter(o => o.id !== "rover" && !o.traversable && Math.hypot(o.x - rover.x, o.z - rover.z) - o.radius <= LIDAR_RANGE);
+  const nearby = obstacles.filter(o => !o.disabled && o.id !== "rover" && !o.traversable && Math.hypot(o.x - rover.x, o.z - rover.z) - o.radius <= LIDAR_RANGE);
   const detected = new Set<CollisionObstacle>();
   for (let beam = 0; beam < 180; beam++) {
     const angle = rover.yaw + beam * Math.PI / 90;

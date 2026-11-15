@@ -11,6 +11,7 @@ import "./world.css";
 import "./mars.css";
 import "./mobileCockpit.css";
 import "./freeRoam.css";
+import "./outpost.css";
 
 export default function MarsFreeRoam() {
   const [streamed, setStreamed] = useState(false);

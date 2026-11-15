@@ -12,6 +12,12 @@ Landmarks mark gazetteer feature centres, not necessarily summits or boundaries.
 
 ## Movement, vehicles and time
 
+The solar-powered garage is a fictional shelter sized around the existing crew rover. Its six panels are assigned 200 W each, with a 6 kWh battery initially holding 4.2 kWh, 170 W of lighting/control demand and a 650 W door motor. These are game assumptions, not supplied panel specifications or NASA ratings. Automatic rollout and parking use a slow, safeguarded straight approach; this is not a validated autonomous docking or pressure-control simulation. Parking does not recharge, repair or reset the crew rover. The garage battery and docking state last for the current play session only.
+
+Six fictional food-cultivation modules surround the base. Their mature plants, propagation racks and water equipment come from the supplied enclosed greenhouse asset. Six is a layout/design choice, not a claim that the displayed crops feed a specified crew. This adds explorable facilities without restoring mission, resource or harvesting mechanics. Door pressure, crop yields and closed-loop life-support performance are not simulated.
+
+The fictional outpost is placed at human scale on an artistically graded patch of the game's terrain. Its plan, furniture, lights and lifting gates come from the separately reviewed game model, not measured Martian infrastructure. Floors and wall collisions use sampled geometry; indoor headroom uses conservative room-height proxies. Gates operate independently with an occupancy safeguard, without pressure simulation or automatic airlock sequencing. Adding this model does not change the existing radiation-shielding rules for the shuttle and bunker.
+
 Mars movement uses an approximate 3.71 m/s² gravity and an authored launch speed. The suit poses, gait, landing compression and camera response are animation choices, not validated EVA biomechanics. Airborne horizontal velocity persists until collision or landing; short-hop air drag is neglected.
 
 The crew rover's 50 km/h forward and 10 km/h reverse limits, acceleration, braking, steering and mud response are gameplay settings. They are not NASA vehicle specifications. Suspension contacts follow the game's rendered terrain and traversable rocks. Curiosity's patrols and scan effects are simulated; Perseverance is stationary.

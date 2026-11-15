@@ -1,0 +1,9 @@
+# Supplied Arcadia greenhouse
+
+The user supplied `Greenhouse_enclosed` and `Greenhouse cutway`. Both contain the same complete, enclosed GLB, with SHA-256 `41292b820311e8a84bd0befeb517cd0fafa8ad02c13fa9a2f1790eec1b256af1` and 21,495,964 bytes. The embedded generator is **Arcadia greenhouse asset studio**; the embedded module name is **Arcadia Planitia / Cultivation bay 03**. Units are metres and the floor datum is zero. No separate cutaway is present in either supplied file.
+
+No creator name or redistribution license is embedded. This record preserves the supplied provenance without assigning a new license or claiming TARUKH authored the source greenhouse. The original files remain unchanged. The prepared derivative is included with the game at the project owner's request; this record does not establish additional rights to the source model.
+
+`cultivation.glb` is prepared by `scripts/prepare-greenhouse.mjs`. Adaptations: static material batching, Meshopt compression and vertex quantization, WebP texture conversion at quality 90 with a maximum 1024 pixels, and separation of the four existing sliding leaves for runtime interaction. Source triangles are retained. Seven real-time lights are removed from the derivative while their emissive fixtures remain, avoiding 42 additional lights for six buildings. Glass uses inexpensive reflective transparency in the game renderer.
+
+The scene contains a ceramic building deck, not a separate Mars landscape. That deck and its plant beds are retained. The surrounding ground is the game's own terrain, graded into six level pads. TARUKH adds original access ramps, bay labels, collision proxies, twelve independent door interactions and instancing across six placements. These are fictional cultivation facilities; their number or crop arrangement does not establish a measured food-production capacity or NASA-certified habitat design.

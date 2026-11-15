@@ -1,5 +1,8 @@
 import { convexRockOutline, rockContact, rockLiftAt } from "../../game/rockContact.ts";
-import { marsExpeditionHeight } from "../../game/marsExpeditionTerrain.ts";
+import { marsExpeditionHeight, marsOutpostHeight } from "../../game/marsExpeditionTerrain.ts";
+import { outpostClearing } from "../../game/outpostSite.ts";
+import { greenhouseClearing } from "../../game/greenhouseSites.ts";
+import { garageClearing } from "../../game/garageSite.ts";
 import type { CollisionObstacle } from "../../game/collision.ts";
 import * as T from "three";
 import { createMarsSkyMaterial } from "./marsAtmosphere.ts";
@@ -51,8 +54,8 @@ export function marsGroundTint(out: T.Color, x: number, z: number, slope: number
     out.lerp(groundMud, mud * .42);
   return out;
 }
-export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceTextures, lightTracks = false) {
-  const surfaceHeight = marsExpeditionHeight;
+export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceTextures, lightTracks = false, gradeCampus = false) {
+  const surfaceHeight = gradeCampus ? marsOutpostHeight : marsExpeditionHeight;
   const obstacles: CollisionObstacle[] = [];
   const surfaces = suppliedSurfaces ?? fallbackMarsSurfaceTextures();
   const PLANE_SIZE = 420;
@@ -358,6 +361,14 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
       const baseH = sampleMeshHeight(x, z);
       const mesh = big ? large[i % 4] : small;
       const index = big ? Math.floor(i / 4) : i;
+      if (gradeCampus && (outpostClearing(x, z, Math.max(sx, sz) + .3) || greenhouseClearing(x, z, Math.max(sx, sz) + .3) || garageClearing(x, z, Math.max(sx, sz) + .3))) {
+        dummy.position.set(x, baseH, z);
+        dummy.scale.setScalar(0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(index, dummy.matrix);
+        mesh.setColorAt(index, color.setRGB(1, 1, 1));
+        continue;
+      }
       if (!mesh.geometry.boundingBox)
         mesh.geometry.computeBoundingBox();
       const bounds = mesh.geometry.boundingBox!;

@@ -45,6 +45,14 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
 
+## Outpost, greenhouses and garage
+
+The game uses the reviewed original TARUKH rover garage, with the supplied **Sci-Fi Door High Poly** by **Scarecrow_original** and **Solar Panel** by **AERO3D**, both CC BY 4.0. [Garage attribution](public/models/garage/ATTRIBUTION.md) records their source links and preparation changes. The derivative retains the original canopy animation, with compressed geometry and WebP textures; its surrounding soil comes from the game. The existing NASA crew rover supplies the vehicle, so neither a duplicate rover nor the review landscape is imported.
+
+The cultivation district uses the user-supplied **Arcadia greenhouse** model, placed six times using shared geometry and textures. Both provided filenames contain the same enclosed source. Its provenance, source hash and preparation changes are recorded in [greenhouse attribution](public/models/greenhouse/ATTRIBUTION.md). The original building deck, crops and equipment are retained; surrounding soil comes from the game's own graded terrain. No additional third-party models were downloaded.
+
+The game uses a derivative of the later v9 white modular campus in `public/models/outpost/`. Its [attribution](public/models/outpost/ATTRIBUTION.md) and [source manifest](public/models/outpost/sources.json) identify all furnishings and the supplied CC BY computer and lift door. Preparation removes the review landscape and basalt, simplifies surfaces conservatively, instances shared geometry, batches static parts and converts textures to WebP at a maximum 1024 pixels. All eleven gate animation clips are retained. The reviewed source exports are unchanged. The three prepared game GLBs ship with the repository and their attribution records.
+
 ## Separate outpost review models
 
 `assets/outpost-review/` retains previews, attribution, a source manifest and a Blender assembly script. The furnished cutaway, full-height GLB and source model binaries are kept locally and excluded from GitHub. These separate review assets are not loaded by Mars exploration. The shell follows the user-supplied **Mars Dune Alpha** floor plan and retains the original TARUKH architecture authored through Higgsfield 3D Jutsu. The revised interior uses 32 openly licensed models assembled in local Blender. The reference image itself is not distributed.

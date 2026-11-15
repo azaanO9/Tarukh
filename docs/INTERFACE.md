@@ -17,6 +17,9 @@
 | Daylight and landing | `game/daylightCycle.ts`, `shuttleLanding.ts`; presentation timing consumed by the renderer |
 | Space weather and radiation | `game/spaceWeatherService.ts`, `geigerAudio.ts`; live NOAA SWPC GOES proton flux polling (every 60s) with CORS-enabled JSON feed, historical NASA DONKI SEP storm simulation (May 2024, Sept 2017, Oct 2003) with realistic dynamic flux ramping curves, Web Audio synthetic Geiger counter click synthesis, and real-time biological exposure/shielding mechanics |
 | Quality selection | `game/autoGraphics.ts`, `backgroundGraphics.ts`, `ui/world/graphicsTiers.ts`; measured session-only selection with manual overrides |
+| Outpost | `game/outpostSite.ts` grades the game terrain; `game/outpost.ts` owns floors, collisions and eleven independent gates; `ui/world/createMarsOutpost.ts` loads the prepared campus, animates gates and culls furnishings by distance |
+| Cultivation district | `game/greenhouseSites.ts` defines six level pads; `game/greenhouses.ts` defines decks, ramps and collision state; `ui/world/createGreenhouseFarm.ts` instances the shared model and animates its twelve sliding airlocks |
+| Rover garage | `game/garageSite.ts` grades the pad and samples the deck/ramp; `game/roverGarage.ts` owns deployment, docking, door clearance and solar/battery state; `ui/world/createRoverGarage.ts` renders the prepared shelter and its original canopy animation |
 
 `MarsWorld` reports inspection IDs, view/rover state, readiness, WebGL failure, terrain mode, atlas requests and graphics-calibration status through callbacks. `createMarsWorld.ts` creates the terrain and science-rover targets. There is no hidden mission, lunar or outpost mode in this renderer.
 
@@ -28,7 +31,7 @@ Auto can select Ultra on integrated graphics. Failed upgrades restore the best p
 
 Performance uses an 800-metre far plane instead of 1100, no post-processing and fewer particles. It hides one outer terrain detail ring while retaining the generation pool and collision contacts. `createStreamedMars.coverage()` tells the regional surface which rectangle to omit. Recycled tiles, track pages and effect pools keep memory bounded during travel.
 
-The FPS meter is an optional user feature, not a stray debug statement. `?debug=1` exposes detailed diagnostics; `sitePreview=perseverance` and `landingPreview=16.95` are controlled visual checkpoints that require `debug=1`. Ordinary links omit these parameters. Diagnostic DOM attributes include load time, calibration trials, active quality, render scale, terrain counts and view distance.
+The FPS meter is an optional user feature, not a stray debug statement. `?debug=1` exposes detailed diagnostics; `sitePreview=perseverance`, `sitePreview=outpost` and `landingPreview=16.95` are controlled visual checkpoints that require `debug=1`. Ordinary links omit these parameters. Diagnostic DOM attributes include load time, calibration trials, active quality, render scale, terrain counts and view distance.
 
 ## Asset preparation and hosting
 
@@ -39,11 +42,37 @@ The FPS meter is an optional user feature, not a stray debug statement. `?debug=
 - `scripts/prepare-rover.mjs` documents its pinned offline glTF tools. It retains all source triangles while partitioning the wheels and removing unused texture copies.
 - `node scripts/measure-rover-windows.mjs <tools-directory>` measures the seven glazing contours after checking the source asset hash. Re-measure if the source model changes.
 
-The prepared GLBs and WebPs are checked in; ordinary install/build commands do not regenerate them. Required source models and their license notices are retained. Unused presentation images, old screenshots and unused template components were removed. See `ASSET_CREDITS.md` for attribution.
+Game GLBs and WebPs, including the prepared outpost, greenhouse and garage, are checked in; ordinary install/build commands do not regenerate them or need the local authoring workspace. Review and authoring binaries remain excluded. License notices and source manifests accompany the prepared assets. Unused presentation images, old screenshots and unused template components were removed. See `ASSET_CREDITS.md` for attribution.
 
 `vite.pages.config.ts` builds `dist-pages/`; the GitHub workflow publishes it and records `source_commit` in `version.json`. `vite.config.ts`, `worker/`, `db/`, `lib/connectors*` and `scripts/connector-preview/` support the separate Sites build. Their dependencies may be unused by the static game while still required by that integration. Do not remove them based solely on the active UI import graph.
 
 ## Persistence and shared systems
+
+### Rover garage contract
+
+The garage stands at `(26, -26)`, facing south, on the same ground datum as the campus. Its flat game-terrain pad includes the six solar panels, ramp and return bay, with a nine-metre blend into surrounding terrain. No review landscape or duplicate rover is imported. The existing crew rover starts inside at `(26, -27.3)`. Curiosity and Perseverance retain their existing roles.
+
+`game/roverGarage.ts` updates that same `RoverVehicle` through opening, rollout, closing and return states. Driving/entry is disabled only while parked or docking. Return requires the rover to be stopped, aligned in the painted bay and unoccupied; either heading is accepted. Its actual suspension and wheel rotation follow the deck/ramp. Battery, damage and upgrades are preserved. E and the contextual touch button invoke the same action. Pausing freezes the mechanism; blocked vehicle paths pause movement, and door occupancy prevents closure. The source canopy motion is played from `Garage_Door_Open`, rather than replaced with a different door animation.
+
+`scripts/prepare-garage.mjs` derives `public/models/garage/garage.glb` from the reviewed standalone shelter without modifying it. Offline tools are glTF Transform 4.2.1, meshoptimizer 0.22, Sharp 0.35.5 and draco3dgltf 1.5.7, installed in the ignored asset-tool workspace. Static parts are grouped by material, textures become WebP capped at 1024 pixels, and geometry uses Draco compression. The browser uses the existing bundled Draco decoder. The high-detail interior is hidden behind a closed opaque door and culled at 17 metres in Performance or 24 otherwise. Two nearby non-shadowing lights share the simulated garage supply; Performance retains emissive fixtures without those extra lights. Light variants are selected before shader preparation. Geometry, materials, textures, mixer and decoder workers are disposed on teardown.
+
+`?debug=1&sitePreview=garage` opens a reproducible approach checkpoint. Diagnostics expose the garage phase, door fraction, blockage and existing crew-rover position; they create no extra vehicle. The prepared garage binary is included with the integration.
+
+### Outpost asset and collision contract
+
+The cultivation district surrounds the campus with two greenhouses west, two east and two north. `marsOutpostHeight` includes both sets of graded pads at the shared campus ground level; overlapping blend shoulders preserve each flat foundation. Game rocks are cleared from the greenhouse footprints and ramps. The source contains a ceramic deck but no separate planetary landscape. Deck surfaces sit approximately 0.33 metres above the pad datum; short metal ramps bridge to game ground.
+
+The prepared `public/models/greenhouse/cultivation.glb` is loaded once and instanced across all six sites. Interiors are culled at 12 metres in Performance and 18 otherwise; shared shell batches remain visible farther away. Per-building frustum culling excludes off-screen instances. Materials and textures are shared, with at most 1024-pixel textures. The supplied lights are represented by their emissive fixtures to avoid adding 42 scene lights. Sliding leaves use the source's opening offsets and the existing gate interaction/safety rules. `sitePreview=greenhouse` with `debug=1` provides a reproducible approach checkpoint.
+
+`node scripts/prepare-greenhouse.mjs <source-file> <gltf-tools-directory> <sharp-package-directory>` reproduces the greenhouse derivative and its collision layout. Offline tools are glTF Transform 4.2.1, meshoptimizer 0.22 and Sharp 0.35.5. Its defaults use the existing ignored local preparation workspace; this is not a build-time or browser dependency. Original source files are read only.
+
+The outpost uses metre units at `(0, -65)` near the landing zone. `marsOutpostHeight` blends a level foundation into the existing terrain across a 12-metre transition. It is used by the visible ground, streaming and collision sampling. The GLB's presentation ground and scattered basalt are removed; local game rocks are cleared from the footprint.
+
+The checked-in `public/models/outpost/campus.glb` is prepared from the reviewed v9 model. `scripts/prepare-outpost.py` samples the reviewed Blender model into `layout.json`; `scripts/prepare-outpost.mjs` creates the compressed game derivative using its documented offline tools. Neither ordinary build commands nor the browser download source models or run Blender.
+
+`layout.json` contains a 0.25-metre floor-height grid, static collision rectangles sampled from the model, and matching gate clip names. Door collider slots remain stable for streamed terrain and become `disabled` only when fully open; LiDAR ignores disabled colliders. Closing reverses if the astronaut occupies the doorway. E and the visible gate button share the same action. Walkable decks and the ramp override ground height; nearby walls constrain the third-person camera. Conservative room-height proxies limit indoor jumps.
+
+Shell sectors remain visible farther than furnishing sectors (8 metres in Performance, 14 otherwise). Furnishings do not cast outdoor sun shadows. Shared meshes are instanced, small static fittings are joined by material, and textures are capped at 1024 pixels. Reflective transparent glazing avoids the review model's scene-wide refraction pass. The loader uses bundled Meshopt decoding, prepares animations during scene loading and disposes meshes, instances, textures, mixer and lights on unmount. Auto starts at its probe's actual Performance candidate so calibration remains eligible with the added scene.
 
 `game/curiositySave.ts` keeps the existing Curiosity storage key and validation. Previously stored rover state remains compatible. Removed mission saves are not read or erased. Returning to controls setup starts a new player/crew-rover session.
 

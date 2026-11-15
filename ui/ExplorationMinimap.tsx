@@ -11,6 +11,9 @@ import {
   sampleMarsElevation,
 } from "../game/marsRegion";
 import { assetUrl } from "../lib/assetUrl";
+import { OUTPOST_SITE } from "../game/outpostSite";
+import { GREENHOUSE_SITES } from "../game/greenhouseSites";
+import { GARAGE_SITE } from "../game/garageSite";
 
 export type MinimapZoomPreset = 120 | 220 | 450 | "overview";
 const ZOOM_CYCLE: MinimapZoomPreset[] = [120, 220, 450, "overview"];
@@ -70,6 +73,7 @@ export default function ExplorationMinimap({
   });
 
   const target = MARS_LANDMARKS.find((p) => p.id === selected) ?? MARS_LANDMARKS[0];
+  const outpostPin = isOverview ? toRegion(OUTPOST_SITE.x, OUTPOST_SITE.z) : mapRectPoint(OUTPOST_SITE.x, OUTPOST_SITE.z, x, z, activeRange);
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
@@ -474,6 +478,27 @@ export default function ExplorationMinimap({
               )}
             </g>
 
+            <g transform={`translate(${outpostPin.x} ${outpostPin.y})`} role="img" aria-label="TARUKH outpost">
+              <title>Outpost · {Math.round(Math.hypot(x - OUTPOST_SITE.x, z - OUTPOST_SITE.z))} game metres · fictional base</title>
+              <path d="M-6 -2 L0 -7 L6 -2 V6 H-6Z" fill="#e7ffff" stroke="#113c48" strokeWidth="1.5" />
+              <path d="M-1.5 6 V0 H1.5 V6" fill="#113c48" />
+              <text y="14" textAnchor="middle" fill="#e7ffff" stroke="#102c37" strokeWidth="2" paintOrder="stroke" fontSize="6.5" fontWeight="800">OUTPOST</text>
+            </g>
+            {!isOverview && GREENHOUSE_SITES.map(site => {
+              const point = mapRectPoint(site.x,site.z,x,z,activeRange);
+              return <g key={site.id} transform={`translate(${point.x} ${point.y})`} role="img" aria-label={site.label}>
+                <title>{site.label} · Food cultivation · {Math.round(Math.hypot(x-site.x,z-site.z))} game metres</title>
+                <path d="M-4 4 Q-6 -5 5 -5 Q6 5 -4 4 M-4 4 L2 -2" fill="#d1eaa9" stroke="#213f2d" strokeWidth="1.3" />
+              </g>;
+            })}
+            {!isOverview && (() => {
+              const pin=mapRectPoint(GARAGE_SITE.x,GARAGE_SITE.z,x,z,activeRange);
+              return <g transform={`translate(${pin.x} ${pin.y})`} role="img" aria-label="Rover garage">
+                <title>Rover garage · E to deploy or park the crew rover · {Math.round(Math.hypot(x-GARAGE_SITE.x,z-GARAGE_SITE.z))} game metres</title>
+                <path d="M-6 -2 L0 -6 L6 -2 V6 H-6Z" fill="#f5d397" stroke="#453521" strokeWidth="1.4" />
+                <path d="M-3 5 V-1 H3 V5 M-3 2 H3" fill="none" stroke="#453521" strokeWidth="1.4" />
+              </g>;
+            })()}
             {/* North Indicator */}
             <polygon points="100,32 96,38 104,38" fill="#ef4444" />
             <text

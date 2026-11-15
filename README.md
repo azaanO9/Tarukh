@@ -14,8 +14,10 @@ The game is free exploration. The repository contains the current Mars game and 
 - An explorable MOLA-based Mars region with continuous procedural terrain beyond its surveyed extent.
 - A shuttle arrival, terrain-aligned landing, opening hatch and astronaut exit; the sequence is skippable and respects reduced motion.
 - Walking, sprinting, jumping, mouse look and switchable first- and third-person cameras.
-- A driveable six-wheel crew rover with a cockpit, suspension, headlights, terrain contacts, tracks and a simulated LiDAR display.
+- One driveable six-wheel crew rover with a cockpit, suspension, headlights, terrain contacts, tracks and a simulated LiDAR display. It starts inside a solar-powered garage beside the base; a contextual action opens the canopy door and rolls it out. Return to the marked bay and exit to park it automatically.
 - An autonomous Curiosity rover and a stationary Perseverance model at its historical Jezero landing site.
+- A furnished, human-scale outpost near the landing zone, with a graded Mars foundation, accessible ramp and eleven interactive lift gates.
+- Six enclosed cultivation greenhouses around the base, with retained crops and equipment, level Mars-ground pads, access ramps, E/touch airlocks and leaf markers on the local minimap.
 - A minimap and full-region atlas with seven landmark pins and NASA/IAU source links.
 - A smooth ten-minute day/night cycle during active exploration.
 - PC and mobile controls, a landscape layout for phones, pause/resume and WebGL retry options.
@@ -61,12 +63,14 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 | Q / R | Turn the view |
 | V | Switch first- and third-person views |
 | F | Enter or exit the nearby crew rover |
-| E | Inspect a nearby science rover |
+| E | Deploy/park the crew rover at the garage, open/close a nearby base gate, or inspect a nearby science rover |
 | Caps Lock | Open or close the landmark atlas |
 | Escape | Release mouse capture or close a dismissible dialog |
 | Pause button | Pause, resume or return to controls setup |
 
 Mobile mode enables the movement stick, swipe-to-look and contextual rover buttons. The Atlas button opens the full map. **Camera & graphics** contains sensitivity, touch controls, graphics quality and the FPS meter. Unsupported mouse capture falls back to drag-to-look.
+
+At the garage, use **Open garage · Bring rover out**, then F to drive after the rollout finishes. To return it, stop in the painted return bay, align with its arrows, exit with F and choose **Open garage · Park rover inside**. The same buttons work with touch. Door and vehicle movement pause if their path is occupied. Prepared outpost, greenhouse and garage models are included in the repository; ordinary builds do not require the original authoring files.
 
 ## Checks and publication
 

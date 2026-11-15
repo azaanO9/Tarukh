@@ -1,6 +1,8 @@
 /** Continuous horizontal collision for a walking capsule or a compound rover footprint. */
 export type CollisionObstacle = {
   x: number; z: number; radius: number; id?: string; traversable?: boolean;
+  /** Animated pressure doors retain a stable slot while their aperture is open. */
+  disabled?: boolean;
   /** World-space top of a jumpable rock; omitted obstacles stay solid at all heights. */
   topY?: number;
   /** Convex horizontal rock outline, world-oriented offsets from x/z. */
@@ -19,6 +21,7 @@ function localPoint(x: number, z: number, o: CollisionObstacle) {
 }
 
 export function overlapDisc(x: number, z: number, radius: number, o: CollisionObstacle): Contact | null {
+  if (o.disabled) return null;
   if (Math.abs(x-o.x)>radius+o.radius || Math.abs(z-o.z)>radius+o.radius) return null;
   const p = localPoint(x, z, o);
   let nx: number, nz: number, depth: number;
@@ -42,6 +45,7 @@ export function overlapDisc(x: number, z: number, radius: number, o: CollisionOb
 }
 
 function sweepDisc(x: number, z: number, dx: number, dz: number, radius: number, o: CollisionObstacle) {
+  if (o.disabled) return null;
   if (Math.abs(x-o.x)>radius+o.radius+Math.abs(dx) || Math.abs(z-o.z)>radius+o.radius+Math.abs(dz)) return null;
   const p = localPoint(x, z, o), vx = dx * p.c - dz * p.s, vz = dx * p.s + dz * p.c;
   let best = 2, nx = 0, nz = 0;
@@ -118,6 +122,7 @@ function rockBoxContact(x:number,z:number,body:CollisionDisc,o:CollisionObstacle
 }
 
 export function overlapBody(x:number,z:number,body:CollisionDisc,o:CollisionObstacle):Contact|null {
+  if (o.disabled) return null;
   if(body.halfX===undefined || body.halfZ===undefined)return overlapDisc(x,z,body.radius,o);
   if(Math.abs(x-o.x)>body.radius+o.radius || Math.abs(z-o.z)>body.radius+o.radius)return null;
   if(o.hull){const contact=rockBoxContact(x,z,body,o,0,0);return contact&&contact.depth>1e-9?contact:null;}
@@ -128,6 +133,7 @@ export function overlapBody(x:number,z:number,body:CollisionDisc,o:CollisionObst
 }
 
 function sweepBody(x:number,z:number,dx:number,dz:number,body:CollisionDisc,o:CollisionObstacle){
+  if (o.disabled) return null;
   if(body.halfX===undefined || body.halfZ===undefined)return sweepDisc(x,z,dx,dz,body.radius,o);
   if(Math.abs(x-o.x)>body.radius+o.radius+Math.abs(dx) || Math.abs(z-o.z)>body.radius+o.radius+Math.abs(dz))return null;
   if(o.hull){const contact=rockBoxContact(x,z,body,o,dx,dz);return contact&&contact.t>=-1e-8&&contact.t<=1&&contact.leave>=0?{t:Math.max(0,contact.t),nx:contact.hitX,nz:contact.hitZ}:null;}
