@@ -165,6 +165,7 @@ export default function MarsWorld(props: Props) {
   const [roverBoost, setRoverBoost] = useState(false);
   const [roverBattery, setRoverBattery] = useState(100);
   const [roverSolarCharging, setRoverSolarCharging] = useState(false);
+  const [roverGarageCharging, setRoverGarageCharging] = useState(false);
   const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
@@ -743,6 +744,7 @@ export default function MarsWorld(props: Props) {
       let lastRoverBoost = false;
       let lastRoverBattery = 100;
       let lastRoverSolarCharging = false;
+      let lastRoverGarageCharging = false;
       let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
@@ -1537,6 +1539,11 @@ export default function MarsWorld(props: Props) {
               lastRoverSolarCharging = solarNow;
               setRoverSolarCharging(solarNow);
             }
+            const garageChargeNow = Boolean(rover.garageCharging);
+            if (garageChargeNow !== lastRoverGarageCharging) {
+              lastRoverGarageCharging = garageChargeNow;
+              setRoverGarageCharging(garageChargeNow);
+            }
             const rangeStr = rover.estimatedRangeKm >= 1.0
               ? `${rover.estimatedRangeKm.toFixed(1)} KM`
               : `${Math.round(rover.estimatedRangeKm * 1000)} M`;
@@ -2035,12 +2042,16 @@ export default function MarsWorld(props: Props) {
           element.dataset.garagePhase = garageState.phase;
           element.dataset.garageDoor = garageState.doorAmount.toFixed(3);
           element.dataset.garageBlocked = garageState.blocked;
+          element.dataset.garageInverterWatts = String(garageState.inverterWatts ?? 0);
+          element.dataset.garageInverterStatus = garageState.inverterStatus ?? "STANDBY";
+          element.dataset.garageBatteryWh = garageState.batteryWh.toFixed(1);
           element.dataset.crewRoverX = rover.x.toFixed(3);
           element.dataset.crewRoverZ = rover.z.toFixed(3);
           element.dataset.crewRoverYaw = rover.yaw.toFixed(4);
           element.dataset.crewWheelRoll = rover.wheelRoll.toFixed(3);
           element.dataset.crewRoverBattery = rover.battery.toFixed(3);
           element.dataset.crewRoverSolarCharging = rover.solarCharging ? "true" : "false";
+          element.dataset.crewRoverGarageCharging = rover.garageCharging ? "true" : "false";
           element.dataset.crewRoverSolarRate = rover.solarRate ? rover.solarRate.toFixed(4) : "0.0000";
           element.dataset.walkerY = (model.heightAt(walker.x, walker.z) + jump.height).toFixed(3);
           element.dataset.cameraYaw = cameraYaw.toFixed(4);
@@ -2548,7 +2559,11 @@ export default function MarsWorld(props: Props) {
         <div className="sv-rover-battery-header">
          <span className="sv-battery-title">⚡ BATTERY</span>
          <span className={`sv-battery-value ${roverBattery < 20 ? "low" : roverBattery < 40 ? "warning" : "nominal"}`}>
-          {roverSolarCharging && <span style={{ color: "#4ade80", marginRight: 4, fontWeight: 800 }}>+⚡</span>}
+          {roverGarageCharging ? (
+            <span style={{ color: "#38bdf8", marginRight: 4, fontWeight: 800 }}>⚡BASE</span>
+          ) : roverSolarCharging ? (
+            <span style={{ color: "#4ade80", marginRight: 4, fontWeight: 800 }}>+⚡</span>
+          ) : null}
           {Math.round(roverBattery)}%
          </span>
         </div>
@@ -2564,14 +2579,26 @@ export default function MarsWorld(props: Props) {
         </div>
        </div>
        <div
-         className={`sv-rover-solar-status ${roverSolarCharging ? "charging" : "dormant"}`}
-         title={roverSolarCharging ? "Solar arrays active: regenerating onboard battery" : "Solar arrays dormant"}
-         aria-label={roverSolarCharging ? "Solar panels generating charge" : "Solar panels dormant"}
+         className={`sv-rover-solar-status ${roverGarageCharging ? "garage-charging" : roverSolarCharging ? "charging" : "dormant"}`}
+         title={
+           roverGarageCharging
+             ? "Base Inverter Dock Active: charging from base solar array and battery storage"
+             : roverSolarCharging
+               ? "Solar arrays active: regenerating onboard battery"
+               : "Solar arrays dormant"
+         }
+         aria-label={
+           roverGarageCharging
+             ? "Base inverter charging rover"
+             : roverSolarCharging
+               ? "Solar panels generating charge"
+               : "Solar panels dormant"
+         }
        >
-        <span className="sv-solar-icon" aria-hidden="true">☀️</span>
+        <span className="sv-solar-icon" aria-hidden="true">{roverGarageCharging ? "⚡" : "☀️"}</span>
         <div className="sv-solar-meta">
-         <span className="sv-solar-title">SOLAR</span>
-         <small className="sv-solar-state">{roverSolarCharging ? "+CHARGING" : "STANDBY"}</small>
+         <span className="sv-solar-title">{roverGarageCharging ? "BASE INVERTER" : "SOLAR"}</span>
+         <small className="sv-solar-state">{roverGarageCharging ? "+BASE CHARGE" : roverSolarCharging ? "+CHARGING" : "STANDBY"}</small>
         </div>
        </div>
        <button type="button" className="sv-rover-exit-btn" onClick={() => toggleRoverAction.current()}>

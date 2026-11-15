@@ -1,6 +1,6 @@
 import {boxObstacle,overlapBody,type CollisionObstacle,type CollisionDisc} from './collision.ts';
 import {GARAGE_SITE} from './garageSite.ts';
-import {ROVER_WHEEL_OUTER_RADIUS,solveRockerBogieSuspension,type RoverVehicle} from './roverVehicle.ts';
+import {ROVER_NOMINAL_RANGE_KM,ROVER_WHEEL_OUTER_RADIUS,solveRockerBogieSuspension,type RoverVehicle} from './roverVehicle.ts';
 
 export type GaragePhase='parked'|'opening-out'|'rolling-out'|'closing-out'|'outside'|'opening-in'|'rolling-in'|'closing-in';
 export type GarageState=ReturnType<typeof createGarageState>;
@@ -22,6 +22,11 @@ export function createGarageState() {
   return {phase:'parked' as GaragePhase,doorAmount:0,door,obstacles,blocked:'',
     startX:x as number,startZ:z+GARAGE_SITE.parkedZ,startYaw:Math.PI,targetYaw:Math.PI,
     batteryWh:4200,solarWatts:1200,lightsOn:true,
+    inverterWatts:0,
+    inverterStatus:'STANDBY' as 'CHARGING'|'INVERTING'|'STANDBY',
+    inverterEfficiency:0.96,
+    chargerActive:false,
+    chargerWatts:0,
     body:{x:0,z:0,halfX:1.74,halfZ:2.525,radius:3.07,yaw:Math.PI} as CollisionDisc,
   };
 }
@@ -81,8 +86,42 @@ export function stepGarage(state:GarageState,rover:RoverVehicle,seconds:number,e
   const motor=state.phase.startsWith('opening')||state.phase.startsWith('closing');
   const motorAvailable=state.batteryWh>1||state.solarWatts>=820;
   state.lightsOn=state.batteryWh>1||state.solarWatts>=170;
-  const load=(state.lightsOn?170:10)+(motor&&motorAvailable?650:0);
-  state.batteryWh=Math.max(0,Math.min(6000,state.batteryWh+(state.solarWatts-load)*dt/3600));
+
+  // Base battery inverter & rover charging dock:
+  // When the rover is parked inside the garage (phase === 'parked') and not driving:
+  const roverInGarage=state.phase==='parked'&&!rover.driving;
+  const roverNeedsCharge=roverInGarage&&(rover.battery??100)<99.99;
+  const basePowerAvailable=state.batteryWh>10||state.solarWatts>=200;
+
+  if(roverNeedsCharge&&basePowerAvailable){
+    state.chargerActive=true;
+    state.chargerWatts=850;
+    rover.battery=Math.min(100,(rover.battery??100)+0.35*dt);
+    rover.garageCharging=true;
+    rover.solarCharging=false;
+    rover.estimatedRangeKm=(rover.battery/100)*ROVER_NOMINAL_RANGE_KM;
+  }else{
+    state.chargerActive=false;
+    state.chargerWatts=0;
+    rover.garageCharging=false;
+  }
+
+  const chargerGridLoad=state.chargerWatts>0?state.chargerWatts/(state.inverterEfficiency||0.96):0;
+  const baseInternalLoad=(state.lightsOn?170:10)+(motor&&motorAvailable?650:0);
+  const totalLoad=baseInternalLoad+chargerGridLoad;
+
+  if(state.chargerWatts>0){
+    state.inverterWatts=state.chargerWatts;
+    state.inverterStatus=state.solarWatts>=totalLoad?'CHARGING':'INVERTING';
+  }else if(state.solarWatts>baseInternalLoad&&state.batteryWh<6000){
+    state.inverterWatts=Math.round(state.solarWatts-baseInternalLoad);
+    state.inverterStatus='CHARGING';
+  }else{
+    state.inverterWatts=0;
+    state.inverterStatus='STANDBY';
+  }
+
+  state.batteryWh=Math.max(0,Math.min(6000,state.batteryWh+(state.solarWatts-totalLoad)*dt/3600));
   state.blocked='';
   if(state.phase==='parked'||state.phase==='outside')return;
   rover.speed=0;

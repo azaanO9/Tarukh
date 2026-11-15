@@ -99,3 +99,49 @@ test('solar-backed battery permits the door at night without changing rover batt
   assert.equal(state.solarWatts,0);assert.ok(state.batteryWh<4200);assert.ok(state.lightsOn);
   assert.equal(state.doorAmount,1);assert.equal(rover.battery,100);
 });
+
+test('rover parked in garage recharges battery from base solar panels and inverter system',()=>{
+  const {state,rover}=setup();
+  rover.battery=40;
+  assert.equal(state.phase,'parked');
+  // Daylight sunlight=1 (1200W base solar rack generation)
+  step(state,rover,observer,true,[],1);
+  assert.equal(state.chargerActive,true);
+  assert.equal(rover.garageCharging,true);
+  assert.equal(rover.solarCharging,false);
+  assert.equal(state.inverterWatts,850);
+  assert.equal(state.inverterStatus,'CHARGING');
+  assert.ok(rover.battery>40);
+
+  // Advance 100 steps
+  for(let i=0;i<100;i++)step(state,rover,observer,true,[],1);
+  assert.ok(rover.battery>40.5);
+  assert.ok(rover.estimatedRangeKm>34);
+});
+
+test('rover parked in garage recharges at night from base battery storage inverter',()=>{
+  const {state,rover}=setup();
+  rover.battery=50;
+  state.batteryWh=3000;
+  // Nighttime sunlight=0 (0W solar generation)
+  step(state,rover,observer,true,[],0);
+  assert.equal(state.solarWatts,0);
+  assert.equal(state.chargerActive,true);
+  assert.equal(rover.garageCharging,true);
+  assert.equal(state.inverterWatts,850);
+  assert.equal(state.inverterStatus,'INVERTING');
+  assert.ok(rover.battery>50);
+  assert.ok(state.batteryWh<3000);
+});
+
+test('base inverter halts rover charging when base battery is depleted at night',()=>{
+  const {state,rover}=setup();
+  rover.battery=20;
+  state.batteryWh=5;
+  step(state,rover,observer,true,[],0);
+  assert.equal(state.solarWatts,0);
+  assert.equal(state.chargerActive,false);
+  assert.equal(rover.garageCharging,false);
+  assert.equal(state.inverterStatus,'STANDBY');
+  assert.equal(rover.battery,20);
+});

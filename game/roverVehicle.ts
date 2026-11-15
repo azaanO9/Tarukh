@@ -122,6 +122,7 @@ export type RoverVehicle = {
   battery: number;          // 0..100 (%) onboard rover battery charge
   boostActive: boolean;     // whether Boost Mode drivetrain is engaged
   solarCharging: boolean;   // whether solar panels are actively generating net charge
+  garageCharging?: boolean; // whether rover is actively fast-charging from garage base inverter
   solarRate: number;        // current solar generation rate (%/sec)
   powerDrainRate: number;   // current battery consumption rate (%/sec)
   estimatedRangeKm: number; // dynamically computed live estimated range in km
@@ -343,6 +344,7 @@ export const spawnRoverVehicle = (
     battery: 100,
     boostActive: false,
     solarCharging: false,
+    garageCharging: false,
     solarRate: 0,
     powerDrainRate: 0,
     estimatedRangeKm: ROVER_NOMINAL_RANGE_KM,
@@ -486,6 +488,7 @@ export function stepRoverVehicle(
       battery: parkedBattery,
       boostActive: false,
       solarCharging,
+      garageCharging: rover.garageCharging ?? false,
       solarRate,
       powerDrainRate: 0,
       estimatedRangeKm: nominalRange,
@@ -779,6 +782,7 @@ export function stepRoverVehicle(
     battery,
     boostActive,
     solarCharging,
+    garageCharging: false,
     solarRate,
     powerDrainRate,
     estimatedRangeKm,
