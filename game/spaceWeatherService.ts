@@ -76,21 +76,86 @@ export function getStormScale(pfu: number): StormScale {
   return "S4 EXTREME";
 }
 
+export interface EnvironmentalShieldingState {
+  readonly inBase: boolean;
+  readonly inRover: boolean;
+  readonly mitigationMultiplier: number;
+  readonly label: string;
+}
+
+/**
+ * Determines environmental radiation shielding status based on player location.
+ * - Habitat Base Interior: 100% mitigation (0x radiation damage, completely safe)
+ * - 6-Wheel Rover Chassis: 50% mitigation (0.5x radiation damage)
+ * - Martian Surface EVA: 0% mitigation (1.0x radiation damage, unshielded)
+ */
+export function getEnvironmentalShielding(inBase: boolean, inRover: boolean): EnvironmentalShieldingState {
+  if (inBase) {
+    return {
+      inBase: true,
+      inRover: false,
+      mitigationMultiplier: 0,
+      label: "100% (HABITAT)",
+    };
+  }
+  if (inRover) {
+    return {
+      inBase: false,
+      inRover: true,
+      mitigationMultiplier: 0.5,
+      label: "50% (ROVER)",
+    };
+  }
+  return {
+    inBase: false,
+    inRover: false,
+    mitigationMultiplier: 1.0,
+    label: "0% (UNSHIELDED)",
+  };
+}
+
 /**
  * Calculates radiation exposure delta (mSv) for a given timestep.
  * - Inside Shielded Habitat / Lava Tube: decontamination at -1.5 mSv/sec
  * - Outside in Quiet Baseline (<10 PFU): +0.05 mSv/sec (Galactic Cosmic Rays)
  * - Outside in Active SEP Storm (>=10 PFU): 0.6 + log10(PFU) * 1.4 mSv/sec
+ *
+ * @param sepFluxPFU Active >=10 MeV proton flux in PFU
+ * @param isShielded Whether the player is inside a fully shielded base habitat
+ * @param dt Frame delta time in seconds
+ * @param mitigationMultiplier Damage/exposure mitigation factor (1.0 = exposed surface, 0.5 = rover, 0 = shielded base)
  */
-export function calculateExposureDelta(sepFluxPFU: number, isShielded: boolean, dt: number): number {
-  if (isShielded) {
+export function calculateExposureDelta(
+  sepFluxPFU: number,
+  isShielded: boolean,
+  dt: number,
+  mitigationMultiplier: number = 1.0,
+): number {
+  if (isShielded || mitigationMultiplier <= 0) {
     return -1.5 * dt;
   }
   if (sepFluxPFU < 10) {
-    return 0.05 * dt;
+    return 0.05 * mitigationMultiplier * dt;
   }
-  const exposureRate = 0.6 + Math.log10(Math.max(10, sepFluxPFU)) * 1.4;
+  const exposureRate = (0.6 + Math.log10(Math.max(10, sepFluxPFU)) * 1.4) * mitigationMultiplier;
   return exposureRate * dt;
+}
+
+/**
+ * Calculates damage drain rate applied to astronaut health / suit integrity.
+ * Applies mitigation multiplier (100% in base = 0x damage, 50% in rover = 0.5x damage).
+ */
+export function calculateRadiationDrain(
+  exposure: number,
+  isShielded: boolean,
+  mitigationMultiplier: number,
+  dt: number,
+): number {
+  if (isShielded || mitigationMultiplier <= 0 || exposure < 75) {
+    return 0;
+  }
+  const baseRate = exposure >= 90 ? 4.5 : 2.5;
+  return baseRate * mitigationMultiplier * dt;
 }
 
 export class SpaceWeatherService {
