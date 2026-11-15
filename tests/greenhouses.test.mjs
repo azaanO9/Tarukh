@@ -101,6 +101,70 @@ test('greenhouse E interaction is directional and preserves the doorway occupanc
   }
 });
 
+function advanceDoor(door,frames,position) {
+  for(let frame=0;frame<frames;frame++)stepOutpostDoor(door,.05,position.x,door.y,position.z);
+}
+
+test('every greenhouse entrance automatically seals after two clear seconds on either side',()=>{
+  for(const side of [-1,1])for(const state of states())for(const door of state.doors) {
+    const clear={x:door.x+door.nx*side*3,z:door.z+door.nz*side*3};
+    toggleOutpostDoor(door,clear.x,door.y,clear.z);
+    advanceDoor(door,34,clear);
+    assert.equal(door.amount,1,door.id+' fully opens before its timer starts');
+    assert.equal(door.collider.disabled,true);
+
+    advanceDoor(door,39,clear);
+    assert.equal(door.amount,1,door.id+' allows two seconds to reach the doorway');
+    advanceDoor(door,100,door);
+    assert.equal(door.amount,1,door.id+' remains open while occupied');
+    assert.equal(door.clearSeconds,0,'Entering the doorway resets its clear time');
+    advanceDoor(door,39,clear);
+    assert.equal(door.amount,1,'The full clear interval starts again after crossing');
+    advanceDoor(door,2,clear);
+    assert.ok(door.amount<1&&door.target===0,door.id+' begins sealing');
+    advanceDoor(door,34,clear);
+    assert.equal(door.amount,0);
+    assert.equal(door.collider.disabled,false,door.id+' restores its sealed collision');
+  }
+});
+
+test('closing greenhouse airlocks reopen before touching the astronaut and keep separate entrances independent',()=>{
+  for(const state of states()) {
+    for(const door of state.doors) {
+      assert.equal(door.pair,undefined,'Opposite room entrances are not one small airlock chamber');
+      const clear={x:door.x+door.nx*3,z:door.z+door.nz*3};
+      toggleOutpostDoor(door,clear.x,door.y,clear.z);
+      advanceDoor(door,78,clear);
+      assert.equal(door.target,0);
+      const amount=door.amount;
+      assert.ok(amount>0&&amount<1);
+      const approach={x:door.x+door.nx*(door.safetyDepth-.04),z:door.z+door.nz*(door.safetyDepth-.04)};
+      assert.equal(overlapDisc(approach.x,approach.z,WALKER_RADIUS,door.collider),null,'Safety sensor reaches beyond the closed leaf');
+      advanceDoor(door,1,approach);
+      assert.equal(door.target,1,door.id+' reverses when approached during closing');
+      assert.equal(door.blocked,true);
+      assert.ok(door.amount>amount);
+      advanceDoor(door,34,approach);
+      assert.equal(door.amount,1);
+      assert.equal(door.collider.disabled,true);
+    }
+  }
+});
+
+test('greenhouse sealing timers ignore paused or invalid deltas and bound a long frame',()=>{
+  for(const state of states())for(const door of state.doors) {
+    door.amount=door.target=1;door.collider.disabled=true;door.clearSeconds=.5;
+    const x=door.x+door.nx*3,z=door.z+door.nz*3;
+    for(const dt of [0,-1,NaN,Infinity]) {
+      assert.equal(stepOutpostDoor(door,dt,x,door.y,z),false);
+      assert.equal(door.amount,1);assert.equal(door.clearSeconds,.5);
+    }
+    stepOutpostDoor(door,1000,x,door.y,z);
+    close(door.clearSeconds,.6);
+    assert.equal(door.amount,1,'A resumed tab must not instantly shut the gate');
+  }
+});
+
 test('walls and growing beds remain solid while the service lanes stay unobstructed',()=>{
   const farm=states(),all=farm.flatMap(s=>s.obstacles);
   for(const state of farm) {

@@ -19,13 +19,14 @@ Choose Free Exploration or the Elysium Outpost story. Both use the same Mars wor
 - One driveable six-wheel crew rover with a furnished Kepler cockpit, a seated astronaut driver, five live instrument screens, suspension, headlights, terrain contacts, tracks and simulated LiDAR. The screens show vehicle speed, battery/charging, navigation, wheel diagnostics and recent telemetry. It starts inside a solar-powered garage beside the base; a contextual action opens the canopy door and rolls it out. Return to the marked bay and exit to park it automatically.
 - An autonomous Curiosity rover and a stationary Perseverance model at its historical Jezero landing site.
 - A furnished, human-scale outpost near the landing zone, with a graded Mars foundation, accessible ramp and eleven interactive lift gates. Gates close automatically after the doorway clears; paired airlocks seal one side before opening the other.
-- Six enclosed cultivation greenhouses around the base, with retained crops and equipment, level Mars-ground pads, access ramps, E/touch airlocks and leaf markers on the local minimap.
+- Six enclosed cultivation greenhouses around the base, with retained crops and equipment, level Mars-ground pads, access ramps, E/touch airlocks that close automatically when clear, and leaf markers on the local minimap.
 - A minimap and full-region atlas with seven landmark pins and NASA/IAU source links.
+- A TARUKH field phone with a six-app home screen for radiation readings, vehicle/suit systems, historical space-weather replays, sound settings, the field map and the science guide.
 - A smooth ten-minute day/night cycle during active exploration.
 - PC and mobile controls, a landscape layout for phones, pause/resume and WebGL retry options.
 - Auto, High, Ultra and Performance graphics, plus optional FPS diagnostics. Ultra adds indoor contact shading, bloom and localized metallic highlights, with bounded effects and shared-depth shading. Auto measures normal frames after loading and targets 40+ FPS; results depend on the device.
 
-The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:4,940, with exaggerated relief. Close-up rocks, materials, the shuttle and vehicle behavior are artistic or simulated. TARUKH is not an operational training simulator or a NASA-endorsed product. See [scientific sources](docs/SOURCES.md) and [model assumptions](docs/ASSUMPTIONS.md).
+The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:4,940, with exaggerated relief. Close-up rocks, materials, the Starship arrival and vehicle behavior are artistic or simulated. TARUKH is not an operational training simulator or a NASA-endorsed product. See [scientific sources](docs/SOURCES.md) and [model assumptions](docs/ASSUMPTIONS.md).
 
 ## Technology
 

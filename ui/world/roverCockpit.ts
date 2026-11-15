@@ -284,19 +284,6 @@ export function createRoverCockpit() {
     context.fillText("N", mapCenterX, mapT + 24);
     context.textAlign = "left";
 
-    // LANDING SHUTTLE ICON (Home at x=0, z=12)
-    const hx = mapCenterX + (0 - rover.x) * mapScale;
-    const hy = mapCenterY + (12 - rover.z) * mapScale;
-    if (hx >= mapL - 10 && hx <= mapL + mapW + 10 && hy >= mapT - 10 && hy <= mapT + mapH + 10) {
-      context.fillStyle = "#f59e0b";
-      context.beginPath(); context.arc(hx, hy, 7, 0, Math.PI * 2); context.fill();
-      context.strokeStyle = "#fbbf24"; context.lineWidth = 1.2; context.stroke();
-      context.fillStyle = "#ffffff";
-      context.beginPath(); context.arc(hx, hy, 2.5, 0, Math.PI * 2); context.fill();
-      context.font = "10px monospace"; context.fillStyle = "#fbbf24";
-      context.fillText("LANDER", hx - 18, hy + 16);
-    }
-
     // CURIOSITY ROVER ICON (If present)
     if (curiosity) {
       const cx = mapCenterX + (curiosity.x - rover.x) * mapScale;

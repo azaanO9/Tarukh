@@ -14,7 +14,7 @@ export type OutpostDoor = {
   id: string; label: string; clip: string; x: number; y: number; z: number;
   nx: number; nz: number; halfWidth: number; halfDepth: number; range: number;
   amount: number; target: number; blocked: boolean; collider: CollisionObstacle;
-  /** Optional for shared greenhouse gates, which keep their existing manual operation. */
+  /** Shared door controls; only gates enclosing a small airlock chamber are paired. */
   pair?: OutpostDoor; waiting?: boolean; clearSeconds?: number; autoCloseSeconds?: number;
   safetyDepth?: number;
 };

@@ -1,6 +1,6 @@
 import {boxObstacle, type CollisionObstacle} from './collision.ts';
 import {GREENHOUSE_PAD, GREENHOUSE_SCALE, GREENHOUSE_SITES, type GreenhouseSite} from './greenhouseSites.ts';
-import type {OutpostDoor} from './outpost.ts';
+import {OUTPOST_AUTO_CLOSE_SECONDS, type OutpostDoor} from './outpost.ts';
 
 export type GreenhouseLayout = {
   version: number;
@@ -51,7 +51,12 @@ export function createGreenhouseStates(layout: GreenhouseLayout, groundHeights: 
       return {id: `${site.id}-${d.id}`, label: `${site.label} · ${d.label}`, clip: d.id,
         x: p.x, y: baseY + layout.deckHeight * GREENHOUSE_SCALE, z: p.z, nx, nz,
         halfWidth: d.halfWidth * GREENHOUSE_SCALE, halfDepth: .42 * GREENHOUSE_SCALE, range: 2.8,
-        amount: 0, target: 0, blocked: false, collider};
+        amount: 0, target: 0, blocked: false, collider, clearSeconds: 0,
+        autoCloseSeconds: OUTPOST_AUTO_CLOSE_SECONDS,
+        // Stop closing before the leaf can touch the astronaut's capsule.
+        // The opposite entrance serves another side of the growing room,
+        // rather than forming a short, paired airlock chamber.
+        safetyDepth: d.halfDepth * GREENHOUSE_SCALE + .42};
     });
     function inside(x: number, z: number) {
       const dx = (x - site.x) / GREENHOUSE_SCALE, dz = (z - site.z) / GREENHOUSE_SCALE;

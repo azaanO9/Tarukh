@@ -10,16 +10,17 @@ import {
   SpaceWeatherService,
 } from "../game/spaceWeatherService.ts";
 
-test("removed bunker ground is exposed while existing habitats still provide shelter", () => {
-  assert.equal(isBaseShelter(-24, 24, false), false);
-  assert.equal(isBaseShelter(-20, 24, false), false);
-  assert.equal(isBaseShelter(0, 12, false), true);
-  assert.equal(isBaseShelter(10.5, 12, false), true);
-  assert.equal(isBaseShelter(10.51, 12, false), false);
-  assert.equal(isBaseShelter(0, -65, true), true);
-  assert.equal(isBaseShelter(0, -65, false), false);
-  const outside = getEnvironmentalShielding(isBaseShelter(-24, 24, false), false);
+test("only existing facility interiors provide habitat shielding", () => {
+  // Empty ground, including the removed lander and bunker sites, is exposed.
+  assert.equal(isBaseShelter(false, false, false), false);
+  assert.equal(isBaseShelter(true, false, false), true);
+  assert.equal(isBaseShelter(false, true, false), true);
+  assert.equal(isBaseShelter(false, false, true), true);
+  const outside = getEnvironmentalShielding(isBaseShelter(false, false, false), false);
   assert.ok(calculateExposureDelta(100, outside.inBase, 1, outside.mitigationMultiplier) > 0);
+  assert.ok(calculateRadiationDrain(100, outside.inBase, outside.mitigationMultiplier, 1) > 0);
+  const sheltered = getEnvironmentalShielding(isBaseShelter(true, false, false), false);
+  assert.equal(calculateRadiationDrain(100, sheltered.inBase, sheltered.mitigationMultiplier, 1), 0);
 });
 
 test("radiation shielding reuses immutable states in the frame loop", () => {

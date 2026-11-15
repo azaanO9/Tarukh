@@ -13,7 +13,7 @@ import { greenhousePoint } from "../game/greenhouses";
 import { GARAGE_SITE } from "../game/garageSite";
 import { createGarageState, garageControlsRover, garageIndoors, garagePrompt, requestGarageCycle, stepGarage } from "../game/roverGarage";
 import { createRoverGarage } from "./world/createRoverGarage";
-import { ARRIVAL_SPAWN, ARRIVAL_YAW } from "../game/shuttleLanding";
+import { ARRIVAL_SPAWN, ARRIVAL_YAW } from "../game/arrivalSpawn";
 import { streamingBudget, STREAM_LIMIT, streamedHeight } from "../game/terrainStreaming";
 import { PERSEVERANCE_LANDING } from '../content/marsLandingSites';
 import { createPerseveranceRover, perseveranceFootprint, PERSEVERANCE_CLEARING } from './world/createPerseveranceRover';
@@ -27,12 +27,13 @@ import type { Mesh, Object3D } from "three";
 import { scanRoverLidar, type LidarScan } from "../game/roverLidar";
 import { stepMarsLocomotion } from "../game/marsLocomotion";
 import { spawnWalker, WALKER_RADIUS, type MoveAxes } from "../game/navigation";
-import { boxObstacle, nearbyObstacles, type CollisionObstacle } from "../game/collision";
+import { nearbyObstacles, type CollisionObstacle } from "../game/collision";
 import { createExplorationBoundaryObstacles, PLAYABLE_BOUNDS } from "../game/explorationBounds";
 import { isCoarsePointerDevice } from "./mobileDevice";
 import { MarsTouchDeck } from "./world/MarsTouchDeck";
 import { RoverTouchDeck } from "./world/RoverTouchDeck";
-import { Settings2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, House, Power, Smartphone, Settings2 } from "lucide-react";
+import RadiationPhoneHome from "./RadiationPhoneHome";
 import { createMarsSky, createMarsFootprints } from "./world/marsTerrain";
 import { loadMarsSurfaceTextures, disposeMarsSurfaceTextures } from "./world/marsSurfaceTextures";
 import { createRiggedAstronaut } from "./world/createRiggedAstronaut";
@@ -65,7 +66,6 @@ import {
   type RoverDamageState,
   type RoverPartId,
 } from "../game/roverVehicle";
-import { createShuttleLanding } from "./world/createShuttleLanding";
 import {createMarsCatchSite} from './world/createMarsCatchSite';
 import {STARSHIP_RETURN_CUT,type ArrivalPlayback} from '../game/starshipArrival';
 import {
@@ -148,7 +148,6 @@ type Props = {
   onUnavailable: () => void;
   initialQuality?: "auto" | "performance";
   onTouchControlsChange?: (active: boolean) => void;
-  playLandingIntro?: boolean;
   coveredByArrival?: boolean;
   arrivalPlayback?: ArrivalPlayback;
   onRestart?: () => void;
@@ -164,7 +163,6 @@ function MarsWorld(props: Props) {
   const controls = useRef(new Set<string>());
   const lockAction = useRef<() => void>(() => { });
   const toggleRoverAction = useRef<() => void>(() => { });
-  const skipIntroAction = useRef<() => void>(() => { });
   const inspectAction = useRef<() => void>(() => { });
   const repairAction = useRef<() => void>(() => { });
   const analogWalk = useRef<MoveAxes>({});
@@ -214,8 +212,6 @@ function MarsWorld(props: Props) {
   const [repairTarget, setRepairTarget] = useState<{ id: RoverPartId; name: string; health: number } | null>(null);
   const repairTargetRef = useRef<{ id: RoverPartId; name: string; health: number } | null>(null);
   repairTargetRef.current = repairTarget;
-  const [introActive, setIntroActive] = useState(Boolean(props.playLandingIntro));
-  const [introTelemetry, setIntroTelemetry] = useState({ alt: 52, speed: 48, phase: "Powered descent" });
   const [phoneOpen, setPhoneOpen] = useState(false);
   const phoneOpenRef = useRef(false);
   phoneOpenRef.current = phoneOpen;
@@ -231,6 +227,7 @@ function MarsWorld(props: Props) {
     analogDrive.current = {};
     releasePhoneInput.current();
     if (document.pointerLockElement) document.exitPointerLock();
+    setActivePhoneTab("home");
     setPhoneOpen(true);
   }, []);
   const closePhone = useCallback(() => {
@@ -240,7 +237,9 @@ function MarsWorld(props: Props) {
     analogDrive.current = {};
     setPhoneOpen(false);
   }, []);
-  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data" | "settings">("telemetry");
+  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data" | "settings">("home");
+  const phoneContent = useRef<HTMLDivElement>(null);
+  const phoneHeading = useRef<HTMLHeadingElement>(null);
   const prevStormActive = useRef(false);
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
   const spaceWeatherService = useRef<SpaceWeatherService | null>(null);
@@ -278,6 +277,7 @@ function MarsWorld(props: Props) {
   const [isShielded, setIsShielded] = useState(false);
   const isShieldedRef = useRef(false);
   isShieldedRef.current = isShielded;
+  const [geigerMuted, setGeigerMuted] = useState(false);
 
   // Environmental Radiation Shielding States & Notifications
   const [baseShieldPopup, setBaseShieldPopup] = useState<{ visible: boolean; fading: boolean }>({ visible: false, fading: false });
@@ -409,6 +409,14 @@ function MarsWorld(props: Props) {
     setSpaceWeather(service.update(0));
   }, []);
 
+  const handleToggleGeigerMute = useCallback(() => {
+    geigerAudio.current?.resume();
+    if (geigerAudio.current) {
+      const nextMuted = geigerAudio.current.toggleMute();
+      setGeigerMuted(nextMuted);
+    }
+  }, []);
+
 
   const toggleSpaceWeatherAction = useRef(toggleSpaceWeatherMode);
   toggleSpaceWeatherAction.current = toggleSpaceWeatherMode;
@@ -454,6 +462,14 @@ function MarsWorld(props: Props) {
       }
     };
   }, [phoneOpen, props.enabled, closePhone]);
+  useEffect(() => {
+    if (!phoneOpen) return;
+    const frame = requestAnimationFrame(() => {
+      phoneContent.current?.scrollTo({ top: 0 });
+      phoneHeading.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activePhoneTab, phoneOpen]);
   const [loadingStage, setLoadingStage] = useState("Loading explorers and rovers…");
   const [loadingProgress, setLoadingProgress] = useState(10);
   const [loaded, setLoaded] = useState(false);
@@ -658,8 +674,6 @@ function MarsWorld(props: Props) {
       }
       const smallRocks = model.root.getObjectByName("mars-small-rocks") as import("three").InstancedMesh | undefined;
       const previewParams = new URLSearchParams(window.location.search);
-      const previewValue = Number(previewParams.get('landingPreview'));
-      const landingPreview = debug && previewParams.has('landingPreview') && Number.isFinite(previewValue) ? Math.max(0, Math.min(23.9, previewValue)) : undefined;
       const previewPerseverance = debug && true && previewParams.get('sitePreview') === 'perseverance';
       const previewOutpostLights = debug && previewParams.get('sitePreview') === 'outpost-lights';
       const airlockCheckpoints: Record<string, {x:number;z:number;yaw:number}> = {
@@ -673,24 +687,6 @@ function MarsWorld(props: Props) {
       const previewGreenhouse = debug && previewParams.get('sitePreview') === 'greenhouse';
       const previewBoundary = debug && previewParams.get('sitePreview') === 'boundary';
       const previewGarage = debug && previewParams.get('sitePreview') === 'garage';
-      const landingIntro = (createShuttleLanding(model.heightAt, window.matchMedia("(prefers-reduced-motion: reduce)").matches, landingPreview));
-      {
-        model.obstacles.push(boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"));
-        model.obstacles.push(boxObstacle(0, 15.7, .7, .5, "arrival-steps"));
-
-      }
-      if (landingIntro) {
-        scene.add(landingIntro.root);
-        if (current.current.playLandingIntro) {
-          landingIntro.start();
-        } else {
-          landingIntro.skip();
-        }
-        if (previewPerseverance || previewOutpost || previewGreenhouse || previewGarage) {
-          landingIntro.skip();
-          setIntroActive(false);
-        }
-      }
       // Helmet light follows the astronaut during the day/night cycle
       const helmetLamp = new T.SpotLight(0xdbeafe, 0, 32, 0.58, 0.55, 1.3);
       const helmetTarget = helmetLamp ? new T.Object3D() : null;
@@ -944,7 +940,7 @@ function MarsWorld(props: Props) {
       let lastRoverNear = false;
       let wasCockpit = false;
       let lastRoverSpeed = 0;
-      let cameraYaw = previewAirlock ? previewAirlock.yaw : previewBoundary ? -Math.PI/2 : previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : !current.current.playLandingIntro && !previewPerseverance && !previewOutpost ? ARRIVAL_YAW : 0;
+      let cameraYaw = previewAirlock ? previewAirlock.yaw : previewBoundary ? -Math.PI/2 : previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : !previewPerseverance && !previewOutpost ? ARRIVAL_YAW : 0;
       let characterYaw = cameraYaw;
       let lastRoverGear: RoverGear = "N";
       let lastRoverBoost = false;
@@ -976,21 +972,8 @@ function MarsWorld(props: Props) {
       let lockInFlight = false;
       let lastLockReleaseAt = 0;
       let lastMouseMoveTime = 0;
-      let lastLandingUiUpdate = 0;
-      skipIntroAction.current = () => {
-        if (landingIntro?.isActive()) {
-          landingIntro.skip();
-          {
-            cameraYaw = characterYaw = ARRIVAL_YAW;
-            pitch = -.04;
-            orbitInitialized = false;
-            keys.clear();
-          }
-          setIntroActive(false);
-        }
-      };
       toggleRoverAction.current = () => {
-        if (!current.current.enabled || phoneOpenRef.current || landingIntro?.isActive() || false || false)
+        if (!current.current.enabled || phoneOpenRef.current)
           return;
         if (garageControlsRover(garageState)) return;
         if (!rover.driving && current.current.story?.command.roverAllowed === false) {
@@ -1057,7 +1040,7 @@ function MarsWorld(props: Props) {
       let resolutionScale = Math.min(devicePixelRatio, 1.25);
       let gaitPhase = 0;
       let gaitBlend = 0;
-      let cameraGround = current.current.playLandingIntro ? 0 : model.heightAt(walker.x, walker.z);
+      let cameraGround = model.heightAt(walker.x, walker.z);
       const center = new T.Vector2(0, 0);
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
       const resize = () => {
@@ -1276,7 +1259,7 @@ function MarsWorld(props: Props) {
         if (dragging || document.pointerLockElement === element) {
           lastMouseMoveTime = performance.now();
         }
-        if (!current.current.enabled || phoneOpenRef.current || current.current.story?.ending || landingIntro?.isActive()) {
+        if (!current.current.enabled || phoneOpenRef.current || current.current.story?.ending) {
           return;
         }
         const isThird = cameraSettings.current.thirdPerson;
@@ -1347,7 +1330,7 @@ function MarsWorld(props: Props) {
         const onInteractive = tag === "BUTTON" || tag === "SUMMARY" || tag === "A";
         const k = e.key.toLowerCase();
         geigerAudio.current?.resume();
-        if (!landingIntro?.isActive() && radiationPhoneCommand(e.key, {
+        if (radiationPhoneCommand(e.key, {
           open: false, enabled: current.current.enabled, repeat: e.repeat,
           modified: e.altKey || e.ctrlKey || e.metaKey,
           editable: tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || Boolean(active?.isContentEditable),
@@ -1360,13 +1343,6 @@ function MarsWorld(props: Props) {
         if (!current.current.story && k === "y" && !e.repeat && !onInteractive) {
           e.preventDefault();
           toggleSpaceWeatherAction.current();
-          return;
-        }
-        if (landingIntro?.isActive()) {
-          if (e.code === "Space" && !onInteractive) {
-            e.preventDefault();
-            skipIntroAction.current();
-          }
           return;
         }
         const isMapKey = (e.code === "KeyM" || k === "m" || e.code === "CapsLock");
@@ -1412,10 +1388,6 @@ function MarsWorld(props: Props) {
         }
         if (e.code === "Space" && !e.repeat && !onInteractive) {
           e.preventDefault();
-          if (landingIntro?.isActive()) {
-            skipIntroAction.current();
-            return;
-          }
           keys.add("jump");
           keys.add("handbrake");
         }
@@ -1616,7 +1588,6 @@ function MarsWorld(props: Props) {
         outpost.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, lastQuality === "performance", worldActive);
         greenhouses.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, worldActive);
         model.updateTracks?.(renderer, walker.x, walker.z, mobileMars || lastQuality === "performance");
-        const dropRunning = Boolean(landingIntro?.isActive() && true && worldActive);
         if (isDeadRef.current) {
           keys.clear();
           walker.vx = 0;
@@ -1626,7 +1597,7 @@ function MarsWorld(props: Props) {
             rover.handbrake = true;
           }
         }
-        if (worldActive && !dropRunning && !p.story?.ending) {
+        if (worldActive && !p.story?.ending) {
           const previousCharge = rover.battery;
           const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
           const step = dt / steps;
@@ -1710,15 +1681,13 @@ function MarsWorld(props: Props) {
           lidar = scanRoverLidar(rover, lidarObstacles);
           lastLidarScan = time;
         }
-        if (!dropRunning) {
-          if (p.story?.command.night) {
-            daylightElapsed = approachStoryDaylight(daylightElapsed,true,dt); storyWasNight = true;
-          } else if (storyWasNight || storyDawn) {
-            storyWasNight = false; storyDawn = true;
-            daylightElapsed = approachStoryDaylight(daylightElapsed,false,dt);
-            if (daylightElapsed%600 > 599.8) { daylightElapsed=0;storyDawn=false; }
-          } else if(worldActive) daylightElapsed += dt;
-        }
+        if (p.story?.command.night) {
+          daylightElapsed = approachStoryDaylight(daylightElapsed,true,dt); storyWasNight = true;
+        } else if (storyWasNight || storyDawn) {
+          storyWasNight = false; storyDawn = true;
+          daylightElapsed = approachStoryDaylight(daylightElapsed,false,dt);
+          if (daylightElapsed%600 > 599.8) { daylightElapsed=0;storyDawn=false; }
+        } else if(worldActive) daylightElapsed += dt;
         const nightBlend = nightAmount(daylightElapsed);
         {
           model.root.visible = true;
@@ -1819,7 +1788,7 @@ function MarsWorld(props: Props) {
               garageDockDismissedRef.current = false;
               setGarageDockDismissed(false);
             }
-          } else if (garageDockEnteredAt === 0 && !current.current.coveredByArrival && !landingIntro?.isActive()) {
+          } else if (garageDockEnteredAt === 0 && !current.current.coveredByArrival) {
             garageDockEnteredAt = time;
           }
           lastGaragePhaseRef.current = garageState.phase;
@@ -1882,14 +1851,14 @@ function MarsWorld(props: Props) {
           geigerAudio.current?.update(dt, telemetry.sepFluxPFU, false);
         }
         // Free Exploration retains its existing, explicitly fictional exposure rules.
-        if (worldActive && !p.story && !landingIntro?.isActive()) {
+        if (worldActive && !p.story) {
           const inRover = Boolean(rover.driving);
           const playerPosX = inRover ? rover.x : walker.x;
           const playerPosZ = inRover ? rover.z : walker.z;
 
-          const inBase = !inRover && isBaseShelter(playerPosX, playerPosZ,
-            outpost.indoors(playerPosX, playerPosZ) ||
-            greenhouses.indoors(playerPosX, playerPosZ) ||
+          const inBase = !inRover && isBaseShelter(
+            outpost.indoors(playerPosX, playerPosZ),
+            greenhouses.indoors(playerPosX, playerPosZ),
             garageIndoors(playerPosX, playerPosZ)
           );
 
@@ -1988,39 +1957,7 @@ function MarsWorld(props: Props) {
         bigRover?.setCockpitView(cockpitView);
         if (astronautShadow)
           astronautShadow.mesh.visible = !rover.driving && thirdBlend>.24;
-        if (landingIntro?.isActive() && true) {
-          astronaut.visible = true;
-          const groundHeight = model.heightAt(walker.x, walker.z);
-          astronaut.position.set(walker.x, groundHeight, walker.z);
-          const podState = landingIntro.update(worldActive ? dt : 0, camera, {
-            x: walker.x,
-            y: groundHeight,
-            z: walker.z,
-          });
-          if (podState.astronaut) {
-            const actor = podState.astronaut;
-            astronaut.visible = actor.visible;
-            astronaut.position.set(actor.x, actor.y, actor.z);
-            astronaut.rotation.y = actor.yaw;
-            marsAstronaut?.update(worldActive ? dt : 0, actor.speed, actor.hopHeight > 0, actor.hopHeight, actor.verticalVelocity);
-            if (astronautShadow) {
-              astronautShadow.mesh.visible = actor.visible;
-              astronautShadow.mesh.position.set(actor.x, model.heightAt(actor.x, actor.z) + .024, actor.z);
-            }
-          }
-          if (time - lastLandingUiUpdate > 80) {
-            lastLandingUiUpdate = time;
-            setIntroTelemetry({ alt: podState.altitudeMeters, speed: podState.speedMs, phase: podState.phase ?? "Touchdown" });
-          }
-          if (!podState.active) {
-            cameraYaw = characterYaw = ARRIVAL_YAW;
-            pitch = -.04;
-            cameraGround = groundHeight;
-            keys.clear();
-            setIntroActive(false);
-          }
-        }
-        else if (rover.driving && true) {
+        if (rover.driving) {
           orbitInitialized = false;
           astronaut.visible = true;
           bigRover?.positionDriver(astronaut);
@@ -2371,7 +2308,7 @@ function MarsWorld(props: Props) {
           element.dataset.measurementStatus = 'active';
         if (backgroundProbe && !backgroundProbe.done()) {
           const candidate = backgroundProbe.candidate();
-          const eligible = worldActive && !landingIntro?.isActive() && graphicsSampling.eligible && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
+          const eligible = worldActive && graphicsSampling.eligible && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
           const decision = backgroundProbe.frame(frameInterval, performance.now() - frameStarted, eligible);
           if (decision) {
             autoProfile = decision.next.profile;
@@ -2398,7 +2335,7 @@ function MarsWorld(props: Props) {
           }
         }
         // The ongoing governor excludes paused/landing frames after initial profiling.
-        const activeSample = worldActive && !landingIntro?.isActive() && graphicsSampling.eligible;
+        const activeSample = worldActive && graphicsSampling.eligible;
         if (metricActive !== activeSample) {
           metricActive = activeSample;
           metricStart = 0;
@@ -2520,14 +2457,6 @@ function MarsWorld(props: Props) {
         curiosityRover?.dispose();
         perseverance?.dispose();
         marsAstronaut?.dispose();
-        if (landingIntro) {
-          landingIntro.root.traverse(o => {
-            if (o instanceof T.Sprite) {
-              o.material.map?.dispose();
-              o.material.dispose();
-            }
-          });
-        }
         streaming?.dispose();
         model.disposeTracks?.();
         disposeMarsSurfaceTextures(regolithSurface);
@@ -2668,18 +2597,7 @@ function MarsWorld(props: Props) {
               return;
           }
 
-          // Pre-warm the spaceship touchdown camera view (high altitude, looking down at landing zone)
-          if (landingIntro) {
-            const landingGround = model.heightAt(ARRIVAL_SPAWN.x, ARRIVAL_SPAWN.z);
-            landingIntro.update(0, camera, { x: ARRIVAL_SPAWN.x, y: landingGround, z: ARRIVAL_SPAWN.z });
-            await renderer.compileAsync(scene, camera);
-            renderer.render(scene, camera);
-            configureEffects(true);
-            // Reset landing intro so the cinematic begins smoothly from t=0
-            if (current.current.playLandingIntro && !previewPerseverance && !previewOutpost && !previewGreenhouse && !previewGarage) {
-              landingIntro.start();
-            }
-          }
+          configureEffects(true);
 
           // Warm up the ground exploration view
           camera.position.set(.22, 2.8, 17.8);
@@ -2862,7 +2780,7 @@ function MarsWorld(props: Props) {
       }}
       aria-hidden="true"
     />
-   {performanceMeter !== "off" && true && (debug || (props.enabled && !introActive)) &&
+   {performanceMeter !== "off" && true && (debug || props.enabled) &&
       <pre key={performanceMeter} ref={debugPanel} className="mars-debug" data-mode={performanceMeter} aria-label="Graphics performance diagnostics">Measuring FPS…</pre>}
    {!loaded && (<div className="sv-loading" role="status">
      <div className="sv-loading-title">{loadingStage}</div>
@@ -2881,7 +2799,7 @@ function MarsWorld(props: Props) {
        </div>
      </div>
     </div>)}
-   {props.enabled && !introActive && (<>
+   {props.enabled && (<>
      <div ref={aim} className="sv-aim" aria-hidden="true">
       <i />
       <i />
@@ -3224,272 +3142,80 @@ function MarsWorld(props: Props) {
         </aside>
       )}
 
-      {/* Free exploration retains its separate live telemetry interface. */}
-      {!props.story && (
-        <>
-          {/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
-          {touchControlsActive && !phoneOpen && (
-            <button
-              type="button"
-              className="mars-phone-mobile-pill"
-              onClick={openPhone}
-              aria-label="Open Mars Telemetry Communicator"
-              title="Open Mars Communicator"
-            >
-              <span className="mars-mobile-pill-icon">📱</span>
-              <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
-              <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
-            </button>
-          )}
+        {/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
+        {touchControlsActive && !phoneOpen && (
+          <button
+            type="button"
+            className="mars-phone-mobile-pill"
+            onClick={openPhone}
+            aria-label="Open Mars Telemetry Communicator"
+            title="Open Mars Communicator"
+          >
+            <span className="mars-mobile-pill-icon">📱</span>
+            <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
+            <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
+          </button>
+        )}
 
-          {/* Desktop Launcher button */}
-          {!touchControlsActive && !phoneOpen && (
-            <button type="button" className="mars-phone-launcher" aria-label="Open radiation phone" onClick={openPhone}>
-              <span aria-hidden="true">▣</span> Radiation phone <kbd>P / ↑</kbd>
-            </button>
-          )}
-        </>
-      )}
+        {/* Desktop Launcher button */}
+        {!touchControlsActive && !phoneOpen && (
+          <button type="button" className="mars-phone-launcher" aria-label="Open radiation phone" onClick={openPhone}>
+            <Smartphone size={19} aria-hidden="true"/> <span>Field phone</span> <kbd>P / ↑</kbd>
+          </button>
+        )}
     </>)}
 
-    {!props.story && (
-      <dialog ref={phoneDialog} className="mars-phone-modal" aria-label="Radiation phone"
+          <dialog ref={phoneDialog} className="mars-phone-modal" aria-label="Radiation phone"
         onCancel={event => { event.preventDefault(); closePhone(); }}
         onClose={event => {
           if (!event.currentTarget.open) { closePhone(); setSepInfoOpen(false); }
         }}>
-      <div className={`mars-radiation-hud gta-phone phone-open${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}>
+      <div className={`mars-radiation-hud gta-phone phone-open${roverDriving ? " driving" : ""}`} data-app={activePhoneTab}>
         <div className="mars-phone-top-bar">
-          <div className="mars-bezel-brand">
-            <span className="mars-bezel-dot" />
-            <span className="mars-bezel-text">SAT-LINK // EVA-01</span>
-          </div>
-          <div className="mars-phone-net-stats">
-            <span className="mars-signal-bars" title="Signal: Optimal">
-              <i /><i /><i /><i />
-            </span>
-            <span className="mars-battery-pill" title="Battery: 100%">
-              <span className="mars-battery-icon">
-                <i style={{ width: "100%" }} />
-              </span>
-              <span className="mars-battery-pct">100%</span>
-            </span>
-            {phoneOpen && (
-              <button
-                type="button"
-                className="mars-phone-close-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closePhone();
-                }}
-                aria-label="Close Mars Communicator"
-                title="Close phone"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          {/* Pages and Sites serve this local asset directly, without a Next image optimizer. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="mars-phone-brand-logo" src={assetUrl('/branding/tarukh-phone-logo.png')} alt="TARUKH" width="90" height="46" loading="lazy" decoding="async" />
+          <div className="handset-hardware" aria-hidden="true"><i className="handset-camera"/><i className="handset-speaker"/></div>
+          <button type="button" className="mars-bezel-btn" onClick={closePhone} aria-label="Minimize phone" title="Put phone away · P / Esc">
+            <ChevronDown size={20} aria-hidden="true"/>
+          </button>
         </div>
-
-        {/* 20% Peeking Quick-Strip (when closed) */}
-        {!phoneOpen && (
-          <div className="mars-phone-peek-strip" aria-label="Quick Telemetry Summary">
-            <div className="peek-item">
-              <span className="peek-lbl">RAD LEVEL</span>
-              <span className="peek-num">{currentRadiationHourly} <small>mSv/h</small></span>
-            </div>
-            <div className="peek-sep" />
-            <div className="peek-item">
-              <span className="peek-lbl">RAD DOSE</span>
-              <span className={`peek-num ${exposureClass}`}>
-                {phoneDose.toFixed(2)} <small>mSv</small>
-              </span>
-            </div>
-            <div className="peek-sep" />
-            <div className="peek-item">
-              <span className="peek-lbl">HEALTH</span>
-              <span className={`peek-num ${healthClass}`}>{Math.round(astronautHealth)}%</span>
-            </div>
-            <div className="peek-sep" />
-            <div className="peek-item">
-              <span className={`peek-badge ${isShielded ? "shielded" : (spaceWeather.sepFluxPFU >= 10 ? "storm" : "nominal")}`}>
-                {isShielded ? "SHIELDED" : spaceWeather.stormScale.split(" ")[0]}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Inner OLED Display Screen */}
         <div className="mars-phone-screen">
-          {/* Brand Header: NASA Logo, TARUKH and Time */}
-          <div className="mars-phone-brand-header">
-            <div className="mars-brand-left">
-              <div className="mars-nasa-wrap" title="National Aeronautics and Space Administration">
-                <svg className="mars-nasa-logo" viewBox="0 0 100 85" width="38" height="30" aria-label="NASA Logo">
-                  <defs>
-                    <radialGradient id="nasaBlueVec" cx="45%" cy="40%" r="60%">
-                      <stop offset="0%" stopColor="#1e5cb3" />
-                      <stop offset="100%" stopColor="#0b3d91" />
-                    </radialGradient>
-                  </defs>
-                  <circle cx="50" cy="42" r="38" fill="url(#nasaBlueVec)" />
-                  <circle cx="28" cy="30" r="1.2" fill="#fff" opacity="0.9" />
-                  <circle cx="38" cy="20" r="1" fill="#fff" opacity="0.8" />
-                  <circle cx="68" cy="24" r="1.3" fill="#fff" opacity="0.9" />
-                  <circle cx="76" cy="34" r="1" fill="#fff" opacity="0.85" />
-                  <circle cx="34" cy="58" r="1.1" fill="#fff" opacity="0.85" />
-                  <circle cx="62" cy="62" r="1.1" fill="#fff" opacity="0.8" />
-                  <ellipse cx="50" cy="42" rx="36" ry="14" fill="none" stroke="#fff" strokeWidth="2" transform="rotate(-28 50 42)" opacity="0.85" />
-                  <path d="M22 54 L50 18 L78 64 L70 64 L50 32 L30 54 Z" fill="#fc3d21" />
-                  <text x="50" y="48" fill="#fff" fontFamily="-apple-system, sans-serif" fontSize="16" fontWeight="900" letterSpacing="1.2" textAnchor="middle">NASA</text>
-                </svg>
-              </div>
-              <span className="mars-brand-divider">|</span>
-              <span className="mars-tarukh-text">TARUKH</span>
-            </div>
-
-            <div className="mars-clock-wrap">
-              <span className="mars-phone-clock">10:42</span>
-              <span className="mars-phone-sub">SOL 018</span>
-            </div>
+          <div className="mars-phone-status-bar">
+            <button type="button" className="mars-sat-link-btn" onClick={toggleSpaceWeatherMode} title="Switch live observations / archive replay · Y">
+              <span className="sat-title">SAT-LINK</span>
+              <span className={`sat-badge ${spaceWeather.mode}`}>
+                {spaceWeather.mode === "live" ? (spaceWeather.isLiveConnected ? "LIVE" : "OFFLINE") : "REPLAY"}
+              </span>
+            </button>
+            <span className="handset-unit">EVA–01</span>
           </div>
-
-          {/* Hero Banner: Martian Sunset Panoramic Landscape */}
-          <div className="mars-phone-hero">
-            <svg className="mars-hero-landscape-bg" viewBox="0 0 280 105" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="marsSkyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#1a0c0a" />
-                  <stop offset="35%" stopColor="#3d150e" />
-                  <stop offset="65%" stopColor="#8d2e15" />
-                  <stop offset="85%" stopColor="#d84315" />
-                  <stop offset="100%" stopColor="#f4511e" />
-                </linearGradient>
-                <radialGradient id="marsSunGlow" cx="82%" cy="32%" r="45%">
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                  <stop offset="18%" stopColor="#fff3e0" stopOpacity="0.9" />
-                  <stop offset="40%" stopColor="#ffab40" stopOpacity="0.55" />
-                  <stop offset="75%" stopColor="#ff6e40" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#d84315" stopOpacity="0" />
-                </radialGradient>
-                <linearGradient id="marsMountGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#872914" />
-                  <stop offset="100%" stopColor="#3e130c" />
-                </linearGradient>
-                <linearGradient id="marsMountGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#5d1c0e" />
-                  <stop offset="100%" stopColor="#220b07" />
-                </linearGradient>
-              </defs>
-              <rect x="0" y="0" width="280" height="105" fill="url(#marsSkyGrad)" />
-              <circle cx="230" cy="34" r="30" fill="url(#marsSunGlow)" />
-              <circle cx="230" cy="34" r="6.5" fill="#ffffff" />
-              <path d="M0 76 Q30 62 65 70 T130 58 T190 68 T240 52 T280 66 L280 105 L0 105 Z" fill="url(#marsMountGrad1)" opacity="0.88" />
-              <path d="M0 86 Q45 72 90 80 T180 72 T250 80 T280 78 L280 105 L0 105 Z" fill="url(#marsMountGrad2)" />
-              <path d="M0 96 Q50 88 110 94 T210 90 T280 93 L280 105 L0 105 Z" fill="#1b0905" opacity="0.95" />
-            </svg>
-
-            <div className="mars-hero-content">
-              <div className="mars-hero-header-row">
-                {activePhoneTab === "telemetry" && (
-                  <button
-                    type="button"
-                    className="mars-hero-sep-badge"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      document.exitPointerLock?.();
-                      setSepInfoOpen(true);
-                    }}
-                    title="What is Radiation Level / SEP? Click for NASA briefing"
-                    aria-label="Solar Energetic Particles info"
-                  >
-                    SEP
-                  </button>
-                )}
-                {activePhoneTab === "systems" && (
-                  <span className="mars-hero-sep-badge systems-badge">EVA-01</span>
-                )}
-                {activePhoneTab === "data" && (
-                  <span className="mars-hero-sep-badge data-badge">NOAA // DONKI</span>
-                )}
-                {activePhoneTab === "home" && (
-                  <span className="mars-hero-sep-badge home-badge">BASE CAMP</span>
-                )}
-              </div>
-
-              <div className="mars-hero-title-wrap">
-                <span className="mars-hero-bar" />
-                <h2 className="mars-hero-title">
-                  {activePhoneTab === "telemetry" && (
-                    <><b>Mission</b> <span>Telemetry</span></>
-                  )}
-                  {activePhoneTab === "systems" && (
-                    <><b>Systems</b></>
-                  )}
-                  {activePhoneTab === "data" && (
-                    <><b>Data</b></>
-                  )}
-                  {activePhoneTab === "home" && (
-                    <><b>Home</b></>
-                  )}
-                  {activePhoneTab === "settings" && (
-                    <><b>Settings</b></>
-                  )}
-                </h2>
-              </div>
-              <div className="mars-hero-sub">
-                {activePhoneTab === "telemetry" && "SURFACE · ENVIRONMENT · VITALS"}
-                {activePhoneTab === "systems" && "ROVER · POWER · LIFE SUPPORT"}
-                {activePhoneTab === "data" && "COLLECTION · ANALYSIS · STORAGE"}
-                {activePhoneTab === "home" && "EVA-01 · EXPEDITION OUTPOST"}
-                {activePhoneTab === "settings" && "AUDIO · CONTROLS · TELEMETRY"}
-              </div>
-            </div>
-          </div>
-
-          <p className="mars-phone-source-note">
-            {spaceWeather.mode === 'live'
-              ? <>NOAA GOES measures proton flux near Earth, not radiation at this Mars base. {spaceWeather.isLiveConnected ? 'Live feed connected.' : 'Feed unavailable or connecting: the displayed baseline is simulated.'}</>
-              : <>NASA DONKI supplies historical event references. These replay curves are authored demonstrations, not measured Mars dose.</>}
-            {props.story && <> Your Story supplies, health and simulated dose are unaffected by this feed.</>}
-          </p>
+          <h2 ref={phoneHeading} className="mars-phone-app-title" tabIndex={-1}>
+            {{home:'Your field phone',telemetry:'Radiation',systems:'Systems',data:'Space weather archive',settings:'Settings'}[activePhoneTab]}
+          </h2>
+          <div ref={phoneContent} className="mars-phone-content">
+          {/* Tab 1: Telemetry (Icon-Driven 3 - 2 - 3 Minimal Grid Layout) */}
           {activePhoneTab === "telemetry" && (
             <div className="mars-phone-tab-content">
               {/* Row 1: Top 3 Icon Cards */}
               <div className="mars-phone-grid-3">
-                {/* Box 1: ☢️ Radiation Level (Tappable for explanation) */}
-                <div
-                  className="mars-grid-card clickable rad-card"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    document.exitPointerLock?.();
-                    setSepInfoOpen(true);
-                  }}
-                  title="Radiation Level (SEP) — Click for NASA briefing"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSepInfoOpen(true);
-                    }
-                  }}
-                >
+                {/* Radiation level reports the source proton flux in PFU. */}
+                <div className="mars-grid-card">
                   <div className="mars-card-icon rad-icon">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="#facc15">
-                      <circle cx="12" cy="12" r="2.8" />
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <circle cx="12" cy="12" r="2.5" />
                       <path d="M12 2A10 10 0 0 0 3.34 7l3.46 6A6 6 0 0 1 12 8V2z" />
                       <path d="M20.66 7A10 10 0 0 0 12 2v6a6 6 0 0 1 5.2 5l3.46-6z" />
                       <path d="M12 16a6 6 0 0 1-5.2-3L3.34 19A10 10 0 0 0 20.66 19l-3.46-6A6 6 0 0 1 12 16z" />
                     </svg>
                   </div>
-                  <span className="mars-card-label">RADIATION LEVEL</span>
+                  <span className="mars-card-label">Radiation level</span>
                   <span className="mars-card-val">
-                    <b>{currentRadiationHourly}</b>
-                    <small> mSv/h</small>
+                    <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()}</b>
+                    <small> PFU</small>
                   </span>
                   <div className="mars-card-mini-meter">
-                    <i className={`m-seg ${spaceWeather.sepFluxPFU > 0.05 ? "active-green" : ""}`} />
+                    <i className={`m-seg ${spaceWeather.sepFluxPFU > 0.1 ? "active-green" : ""}`} />
                     <i className={`m-seg ${spaceWeather.sepFluxPFU >= 10 ? "active-amber" : ""}`} />
                     <i className={`m-seg ${spaceWeather.sepFluxPFU >= 100 ? "active-orange" : ""}`} />
                     <i className={`m-seg ${spaceWeather.sepFluxPFU >= 1000 ? "active-red" : ""}`} />
@@ -3497,17 +3223,19 @@ function MarsWorld(props: Props) {
                   </div>
                 </div>
 
-                {/* Box 2: 🌀 Storm Vortex / Cyclone Icon (Storm Scale) */}
+                {/* Box 2: ⚛️ Atom/Orbital Icon (Storm Scale) */}
                 <div className="mars-grid-card">
-                  <div className="mars-card-icon vortex-icon">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round">
-                      <path d="M12 12c-2 0-3.5-1.5-3.5-3.5 0-2.8 2.8-4.5 5.5-4.5 3.5 0 6 2.5 6 6 0 4.2-3.5 7.5-7.5 7.5-5.2 0-9-3.8-9-9 0-6.2 5.2-10.5 11.5-10.5" />
+                  <div className="mars-card-icon atom-icon">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                      <ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(30 12 12)" />
+                      <ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(-30 12 12)" />
                     </svg>
                   </div>
                   <span className="mars-card-label">STORM SCALE</span>
                   <span className={`mars-card-val scale-${spaceWeather.stormScale.slice(0, 2).toLowerCase()}`}>
                     <b>{spaceWeather.stormScale.split(" ")[0]}</b>
-                    <small> {spaceWeather.stormScale.split(" ")[1] ?? "NOMINAL"}</small>
+                    <small> {spaceWeather.stormScale.split(" ")[1] ?? "NORM"}</small>
                   </span>
                 </div>
 
@@ -3518,7 +3246,7 @@ function MarsWorld(props: Props) {
                   title="Click to toggle Live Feed vs NASA Archive [Hotkey Y]"
                 >
                   <div className="mars-card-icon flare-icon">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#f97316">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
                   </div>
@@ -3530,11 +3258,11 @@ function MarsWorld(props: Props) {
               </div>
 
               {/* Row 2: Middle 2 Wide Horizontal Illustrated Progress Bars */}
-              {/* Card 4: 🛡️ Shield Icon + Dose */}
-              <div className="mars-phone-bar-card dose-bar-card">
+              {/* Card 4: 🛡️ Shield Icon + Radiation Dose */}
+              <div className="mars-phone-bar-card rad-bar-card">
                 <div className="mars-bar-card-header">
                   <div className="mars-bar-card-title">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f1f5f9" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                     <span>{props.story ? "SIMULATED MARS DOSE" : "GAME DOSE"}</span>
@@ -3562,7 +3290,7 @@ function MarsWorld(props: Props) {
               <div className="mars-phone-bar-card health-bar-card">
                 <div className="mars-bar-card-header">
                   <div className="mars-bar-card-title">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f1f5f9" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                       <path d="M3.22 12H9.5l1.5-3 2 6.5 1.5-3.5h4.28" />
                     </svg>
@@ -3572,8 +3300,8 @@ function MarsWorld(props: Props) {
                     <b>{Math.round(astronautHealth)}%</b>
                   </span>
                 </div>
-                <div className="mars-capsule-track" role="progressbar" aria-valuenow={Math.round(astronautHealth)} aria-valuemin={0} aria-valuemax={100}>
-                  <div className={`mars-capsule-fill health ${healthClass}`} style={{ width: `${Math.max(0, Math.min(100, astronautHealth))}%` }} />
+                <div className="mars-striped-health-track" role="progressbar" aria-valuenow={Math.round(astronautHealth)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={`mars-striped-health-fill ${healthClass}`} style={{ width: `${Math.max(0, Math.min(100, astronautHealth))}%` }} />
                 </div>
               </div>
 
@@ -3582,7 +3310,7 @@ function MarsWorld(props: Props) {
                 {/* Box 6: 🌡️ Thermometer Icon */}
                 <div className="mars-grid-card">
                   <div className="mars-card-icon temp-icon">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f1f5f9" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
                     </svg>
                   </div>
@@ -3595,7 +3323,7 @@ function MarsWorld(props: Props) {
                 {/* Box 7: ⏱️ Speedometer / Pressure Gauge Icon */}
                 <div className="mars-grid-card">
                   <div className="mars-card-icon gauge-icon">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f1f5f9" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M12 14v-4" />
                       <path d="M3.34 19a10 10 0 1 1 17.32 0" />
                     </svg>
@@ -3625,7 +3353,7 @@ function MarsWorld(props: Props) {
           {activePhoneTab === "data" && (
             <div className="mars-phone-tab-content data-tab">
               <div className="mars-tab-heading">
-                <h3>NASA SPACE WEATHER ARCHIVE</h3>
+                <h3>SPACE WEATHER ARCHIVE</h3>
                 <p>NASA DONKI event references with authored replay curves:</p>
               </div>
               <div className="mars-events-list">
@@ -3710,375 +3438,136 @@ function MarsWorld(props: Props) {
             </div>
           )}
 
-          {/* Tab 3: Systems - Refined EVA-01 Rover Systems & Real Hardware Telemetry */}
-          {activePhoneTab === "systems" && (() => {
-            const powerSegs = Math.max(1, Math.min(8, Math.round((roverBattery / 100) * 8)));
-            const healthSegs = Math.max(0, Math.min(8, Math.round((astronautHealth / 100) * 8)));
-            const thermalVal = (21.4 + (roverDriving ? roverSpeed * 0.08 : 0)).toFixed(1);
-
-            return (
-              <div className="mars-phone-tab-content systems-tab">
-                {/* Hero Feature Card: EVA-01 Rover Systems with High-Tech Isometric Wireframe Rover */}
-                <div
-                  className="mars-systems-rover-hero-card"
-                  title="MMSEV Exploration Rover — 6x6 Independent Rocker-Bogie Drivetrain"
-                >
-                  <div className="mars-rover-hero-left">
-                    <span className="rover-hero-tag">EVA-01</span>
-                    <h3 className="rover-hero-name">Rover Systems</h3>
-                    <span className={`rover-hero-status-pill ${roverBattery < 20 ? "low" : "ok"}`}>
-                      <span className="status-dot" />
-                      {roverDriving
-                        ? `DRIVING · ${Math.round(roverSpeed)} KM/H`
-                        : roverBattery < 20
-                        ? "LOW BATTERY"
-                        : "OPERATIONAL"}
-                    </span>
-                  </div>
-
-                  {/* High-Tech Wireframe 6-Wheel Rover SVG Illustration */}
-                  <div className="mars-rover-hero-art" aria-hidden="true">
-                    <svg viewBox="0 0 130 68" width="105" height="54" fill="none">
-                      <defs>
-                        <linearGradient id="roverGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
-                          <stop offset="100%" stopColor="#ff6d00" stopOpacity="0.7" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Rocker-Bogie Struts & Mechanical Linkages */}
-                      <path d="M26 48 L48 42 L66 38 L84 43 L106 50" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M48 42 L48 54 M84 43 L84 56" stroke="#475569" strokeWidth="1.3" />
-                      <line x1="26" y1="48" x2="26" y2="52" stroke="#64748b" strokeWidth="1.3" />
-                      <line x1="66" y1="38" x2="66" y2="48" stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="1 1" />
-
-                      {/* Main Avionics Body / Chassis Deck */}
-                      <polygon points="46,30 76,24 98,34 68,40" fill="rgba(30, 41, 59, 0.7)" stroke="#94a3b8" strokeWidth="1.2" />
-                      <polygon points="46,30 68,40 68,47 46,37" fill="rgba(15, 23, 42, 0.85)" stroke="#64748b" strokeWidth="1.2" />
-                      <polygon points="68,40 98,34 98,41 68,47" fill="rgba(10, 16, 28, 0.9)" stroke="#475569" strokeWidth="1.2" />
-
-                      {/* Rear MMRTG Power Unit & Radiator Fins */}
-                      <path d="M86 28 L98 25 L104 29 L92 32 Z" fill="rgba(255, 109, 0, 0.2)" stroke="#ff6d00" strokeWidth="1.1" />
-                      <line x1="90" y1="27" x2="94" y2="31" stroke="#ff6d00" strokeWidth="0.9" />
-                      <line x1="94" y1="26" x2="98" y2="30" stroke="#ff6d00" strokeWidth="0.9" />
-
-                      {/* High-Gain Antenna (HGA) Dish */}
-                      <ellipse cx="82" cy="18" rx="6" ry="3" transform="rotate(-15 82 18)" stroke="#38bdf8" strokeWidth="1" fill="rgba(56, 189, 248, 0.15)" />
-                      <line x1="82" y1="18" x2="80" y2="28" stroke="#64748b" strokeWidth="1" />
-
-                      {/* Remote Sensing Mast (RSM / ChemCam) */}
-                      <line x1="56" y1="31" x2="56" y2="10" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" />
-                      <rect x="52" y="7" width="8" height="6" rx="1.5" fill="#1e293b" stroke="#e2e8f0" strokeWidth="1.2" />
-                      <circle cx="54.5" cy="10" r="1.2" fill="#38bdf8" />
-                      <circle cx="57.5" cy="10" r="1.2" fill="#00e676" />
-
-                      {/* Forward Robotic Arm (Folded Turret) */}
-                      <path d="M48 37 L38 39 L35 44" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
-                      <circle cx="34" cy="45" r="2" stroke="#ff6d00" strokeWidth="0.9" fill="#1e293b" />
-
-                      {/* 6 Treaded Wheels with Rim Hubs */}
-                      {/* Rear-Right Wheel */}
-                      <ellipse cx="112" cy="45" rx="5" ry="8" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
-                      {/* Mid-Right Wheel */}
-                      <ellipse cx="88" cy="38" rx="4.5" ry="7.5" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
-                      {/* Front-Right Wheel */}
-                      <ellipse cx="64" cy="32" rx="4" ry="7" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
-
-                      {/* Rear-Left Wheel */}
-                      <g transform="translate(102, 54)">
-                        <ellipse cx="0" cy="0" rx="7.5" ry="10" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
-                        <ellipse cx="0" cy="0" rx="4" ry="5.5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
-                        <circle cx="0" cy="0" r="1.5" fill="#ff6d00" />
-                        <line x1="-7" y1="-3" x2="-3" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="-7" y1="3" x2="-3" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="7" y1="-3" x2="3" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="7" y1="3" x2="3" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                      </g>
-
-                      {/* Mid-Left Wheel */}
-                      <g transform="translate(70, 50)">
-                        <ellipse cx="0" cy="0" rx="7" ry="9.5" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
-                        <ellipse cx="0" cy="0" rx="3.5" ry="5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
-                        <circle cx="0" cy="0" r="1.5" fill="#00e676" />
-                        <line x1="-6.5" y1="-3" x2="-2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="-6.5" y1="3" x2="-2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="6.5" y1="-3" x2="2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="6.5" y1="3" x2="2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                      </g>
-
-                      {/* Front-Left Wheel */}
-                      <g transform="translate(26, 46)">
-                        <ellipse cx="0" cy="0" rx="7" ry="9.5" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
-                        <ellipse cx="0" cy="0" rx="3.5" ry="5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
-                        <circle cx="0" cy="0" r="1.5" fill="#38bdf8" />
-                        <line x1="-6.5" y1="-3" x2="-2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="-6.5" y1="3" x2="-2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="6.5" y1="-3" x2="2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
-                        <line x1="6.5" y1="3" x2="2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
-                      </g>
+          {/* Tab 3: Systems (Visual Illustrated Hardware Cards) */}
+          {activePhoneTab === "systems" && (
+            <div className="mars-phone-tab-content systems-tab">
+              <div className="mars-tab-heading">
+                <h3>EXPLORATION SYSTEMS</h3>
+                <p>Surface shelter and vehicle status:</p>
+              </div>
+              <div className="mars-systems-list">
+                <div className="mars-system-card">
+                  <div className="mars-sys-icon-box">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#38bdf8" strokeWidth="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                   </div>
+                  <div className="mars-sys-info">
+                    <b>Habitat Base Bunker</b>
+                    <small>{isShielded ? "Inside shielded base (−1.5 mSv/s)" : "Outside on surface EVA (Unshielded)"}</small>
+                  </div>
+                  <span className={`mars-sys-status ${isShielded ? "ok" : "warn"}`}>
+                    {isShielded ? "SHIELDED" : "UNSHIELDED"}
+                  </span>
                 </div>
 
-                {/* 5 Distinct Horizontal System Cards matching reference mockup */}
-                <div className="mars-systems-rows-list">
-                  {/* Row 1: 🔋 Power System */}
-                  <div
-                    className="mars-system-row-card"
-                    title={`Rover Battery: ${Math.round(roverBattery)}% · Solar generation in daylight`}
-                  >
-                    <div className="sys-row-left">
-                      <div className="sys-row-icon">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00e676" strokeWidth="2">
-                          <rect x="2" y="7" width="16" height="10" rx="2" />
-                          <line x1="20" y1="11" x2="20" y2="13" stroke="#00e676" strokeWidth="2" strokeLinecap="round" />
-                          <rect x="4" y="9" width="10" height="6" fill="#00e676" rx="1" />
-                        </svg>
-                      </div>
-                      <span className="sys-row-label">Power System</span>
-                    </div>
-
-                    <div className="sys-row-right">
-                      <div className="sys-row-data-col">
-                        <span className="sys-row-value">{Math.round(roverBattery)}%</span>
-                        <div className="sys-segmented-meter" aria-hidden="true">
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
-                            <i
-                              key={seg}
-                              className={`sys-meter-seg ${seg <= powerSegs ? (roverBattery < 20 ? "low" : "active-green") : ""}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="sys-row-chevron">›</span>
-                    </div>
+                <div className="mars-system-card">
+                  <div className="mars-sys-icon-box">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#10b981" strokeWidth="2">
+                      <rect x="2" y="7" width="20" height="10" rx="2" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="18" r="3" />
+                    </svg>
                   </div>
-
-                  {/* Row 2: 🌀 Thermal Control */}
-                  <div
-                    className="mars-system-row-card"
-                    title={`Avionics thermal loop: ${thermalVal} °C · External surface: -62 °C`}
-                  >
-                    <div className="sys-row-left">
-                      <div className="sys-row-icon">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" strokeWidth="2">
-                          <circle cx="12" cy="12" r="3" />
-                          <path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.5-6.5-2.8 2.8m-7.4 7.4-2.8 2.8m0-13 2.8 2.8m7.4 7.4 2.8 2.8" strokeLinecap="round" />
-                        </svg>
-                      </div>
-                      <span className="sys-row-label">Thermal Control</span>
-                    </div>
-
-                    <div className="sys-row-right">
-                      <div className="sys-row-data-col">
-                        <span className="sys-row-value">{thermalVal} °C</span>
-                        <div className="sys-segmented-meter" aria-hidden="true">
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
-                            <i
-                              key={seg}
-                              className={`sys-meter-seg ${seg <= 7 ? "active-green" : ""}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="sys-row-chevron">›</span>
-                    </div>
+                  <div className="mars-sys-info">
+                    <b>MMSEV Exploration Rover</b>
+                    <small>Battery: {Math.round(roverBattery)}% · Speed: {Math.round(roverSpeed)} km/h</small>
                   </div>
+                  <span className="mars-sys-status ok">ONLINE</span>
+                </div>
 
-                  {/* Row 3: 🫁 Life Support (EVA) */}
-                  <div
-                    className="mars-system-row-card"
-                    title={`Astronaut Suit Vitals: ${Math.round(astronautHealth)}% · Radiation Exposure: ${radiationExposure.toFixed(1)} mSv`}
-                  >
-                    <div className="sys-row-left">
-                      <div className="sys-row-icon">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00e676" strokeWidth="2">
-                          <path d="M12 4v7m0 0c-2.5 0-4.5 1.5-5 4.5-.6 3.5 1.5 5.5 3.5 5.5s2.5-2 2.5-4v-6zm0 0c2.5 0 4.5 1.5 5 4.5.6 3.5-1.5 5.5-3.5 5.5s-2.5-2-2.5-4v-6z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <span className="sys-row-label">Life Support (EVA)</span>
-                    </div>
-
-                    <div className="sys-row-right">
-                      <div className="sys-row-data-col">
-                        <span className="sys-row-value">{Math.round(astronautHealth)}%</span>
-                        <div className="sys-segmented-meter" aria-hidden="true">
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
-                            <i
-                              key={seg}
-                              className={`sys-meter-seg ${seg <= healthSegs ? (astronautHealth < 40 ? "critical" : astronautHealth < 70 ? "low" : "active-green") : ""}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <span className="sys-row-chevron">›</span>
-                    </div>
+                <div className="mars-system-card">
+                  <div className="mars-sys-icon-box">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f59e0b" strokeWidth="2">
+                      <path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z" />
+                      <path d="M4 14v4a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-4" />
+                    </svg>
                   </div>
-
-                  {/* Row 4: 📡 Comms / Sat-Link */}
-                  <div
-                    className="mars-system-row-card clickable"
-                    onClick={toggleSpaceWeatherMode}
-                    title="Sat-Link: Click to toggle NOAA SWPC Live Satellites vs Historical Superstorms"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggleSpaceWeatherMode();
-                      }
-                    }}
-                  >
-                    <div className="sys-row-left">
-                      <div className="sys-row-icon">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" strokeWidth="2">
-                          <path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07" />
-                          <path d="M7.76 16.24A6 6 0 0 1 12 6a6 6 0 0 1 4.24 10.24" />
-                          <circle cx="12" cy="18" r="2" fill="#38bdf8" />
-                        </svg>
-                      </div>
-                      <span className="sys-row-label">Comms / Sat-Link</span>
-                    </div>
-
-                    <div className="sys-row-right">
-                      <span className="sys-row-value sys-val-green">
-                        {spaceWeather.mode === "live" ? "NOAA LIVE" : "ORBITAL"}
-                      </span>
-                      <span className="sys-row-chevron">›</span>
-                    </div>
+                  <div className="mars-sys-info">
+                    <b>Astronaut EMU Space Suit</b>
+                    <small>O₂ Life Support: 100% · Vitals: {Math.round(astronautHealth)}%</small>
                   </div>
-
-                  {/* Row 5: 📦 Payload & Tools */}
-                  <div
-                    className="mars-system-row-card"
-                    title="Mission Payload & Scientific Instruments: Operational"
-                  >
-                    <div className="sys-row-left">
-                      <div className="sys-row-icon">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e4e4e7" strokeWidth="2">
-                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                          <line x1="12" y1="22.08" x2="12" y2="12" />
-                        </svg>
-                      </div>
-                      <span className="sys-row-label">Payload & Tools</span>
-                    </div>
-
-                    <div className="sys-row-right">
-                      <span className="sys-row-value sys-val-green">
-                        READY
-                      </span>
-                      <span className="sys-row-chevron">›</span>
-                    </div>
-                  </div>
+                  <span className={`mars-sys-status ${astronautHealth > 70 ? "ok" : "warn"}`}>
+                    {astronautHealth > 70 ? "NOMINAL" : "DAMAGED"}
+                  </span>
                 </div>
               </div>
-            );
-          })()}
-
-          {/* Tab 4: Home / Mission Overview */}
-          {activePhoneTab === "home" && (
-            <div className="mars-phone-tab-content home-tab">
-              <div className="mars-home-hero">
-                <div className="mars-home-avatar-box">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#38bdf8" strokeWidth="1.8">
-                    <circle cx="12" cy="8" r="5" />
-                    <path d="M20 21a8 8 0 1 0-16 0" />
-                  </svg>
-                </div>
-                <div className="mars-home-user">
-                  <b>ASTRONAUT EVA-1</b>
-                  <small>Mars exploration · training simulation</small>
-                </div>
-              </div>
-              <div className="mars-home-stats">
-                <div className="mars-home-stat-box">
-                  <span className="h-val">{phoneDose.toFixed(2)}</span>
-                  <span className="h-lbl">mSv · SIMULATED</span>
-                </div>
-                <div className="mars-home-stat-box">
-                  <span className="h-val">{Math.round(astronautHealth)}%</span>
-                  <span className="h-lbl">VITALS</span>
-                </div>
-                <div className="mars-home-stat-box">
-                  <span className="h-val">{spaceWeather.stormScale.split(" ")[0]}</span>
-                  <span className="h-lbl">STORM</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="mars-home-launch-btn"
-                onClick={() => setActivePhoneTab("telemetry")}
-              >
-                OPEN MISSION TELEMETRY →
-              </button>
             </div>
           )}
 
-          {/* Bottom Navigation Bar (HOME, TELEMETRY, SYSTEMS, DATA) */}
-          <nav className="mars-phone-nav-bar" aria-label="Phone Navigation">
-            <button
-              type="button"
-              className={`mars-nav-btn ${activePhoneTab === "home" ? "active" : ""}`}
-              onClick={() => setActivePhoneTab("home")}
-              title="Home"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-              <span>HOME</span>
-              {activePhoneTab === "home" && <i className="nav-active-bar" />}
-            </button>
+          {/* Tab 4: Settings / Audio */}
+          {activePhoneTab === "settings" && (
+            <div className="mars-phone-tab-content settings-tab">
+              <div className="mars-tab-heading">
+                <h3>COMMUNICATOR SETTINGS</h3>
+                <p>Audio feedback and telemetry link:</p>
+              </div>
+              <div className="mars-settings-list">
+                <div className="mars-setting-row">
+                  <div className="mars-setting-label">
+                    <b>Geiger Dosimetry Sound</b>
+                    <small>Radiation counter clicks</small>
+                  </div>
+                  <button
+                    type="button"
+                    className={`mars-setting-toggle-btn ${geigerMuted ? "muted" : "active"}`}
+                    onClick={handleToggleGeigerMute}
+                  >
+                    {geigerMuted ? "MUTED" : "ACTIVE"}
+                  </button>
+                </div>
 
-            <button
-              type="button"
-              className={`mars-nav-btn ${activePhoneTab === "telemetry" ? "active" : ""}`}
-              onClick={() => setActivePhoneTab("telemetry")}
-              title="Telemetry"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-              <span>TELEMETRY</span>
-              {activePhoneTab === "telemetry" && <i className="nav-active-bar" />}
-            </button>
+                <div className="mars-setting-row">
+                  <div className="mars-setting-label">
+                    <b>Space Weather Feed</b>
+                    <small>Toggle Live NOAA vs NASA DONKI</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="mars-setting-toggle-btn active"
+                    onClick={toggleSpaceWeatherMode}
+                  >
+                    {spaceWeather.mode === "live" ? "LIVE [Y]" : "ARCHIVE [Y]"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-            <button
-              type="button"
-              className={`mars-nav-btn ${activePhoneTab === "systems" ? "active" : ""}`}
-              onClick={() => setActivePhoneTab("systems")}
-              title="Systems"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-              <span>SYSTEMS</span>
-              {activePhoneTab === "systems" && <i className="nav-active-bar" />}
+          {activePhoneTab === "home" && <RadiationPhoneHome
+            logoSrc={assetUrl('/branding/tarukh-phone-logo.png')}
+            onOpenApp={setActivePhoneTab}
+            onOpenMap={props.onOpenMap ? () => { closePhone(); props.onOpenMap?.(); } : undefined}
+            onOpenGuide={() => setSepInfoOpen(true)}
+            dose={phoneDose}
+            health={astronautHealth}
+            storm={spaceWeather.stormScale.split(" ")[0]}
+            modeLabel={spaceWeather.mode === 'live' ? (spaceWeather.isLiveConnected ? 'Live observations' : 'Feed offline') : 'Archive replay'}
+          />}
+          {(activePhoneTab === "telemetry" || activePhoneTab === "data") && (
+            <p className="mars-phone-source-note">
+              {spaceWeather.mode === 'live'
+                ? <>NOAA GOES measures proton flux near Earth, not radiation at this Mars base. {spaceWeather.isLiveConnected ? 'Live feed connected.' : 'Feed unavailable or connecting: the displayed baseline is simulated.'}</>
+                : <>NASA DONKI supplies historical event references. These replay curves are authored demonstrations, not measured Mars dose.</>}
+              {props.story && <> Your Story supplies, health and simulated dose are unaffected by this feed.</>}
+            </p>
+          )}
+          </div>
+          <nav className="mars-phone-nav-bar" aria-label="Phone navigation">
+            <button type="button" className="mars-nav-btn" onClick={() => activePhoneTab === 'home' ? closePhone() : setActivePhoneTab('home')} aria-label="Back">
+              <ChevronLeft size={21} aria-hidden="true"/><span>Back</span>
             </button>
-
-            <button
-              type="button"
-              className={`mars-nav-btn ${activePhoneTab === "data" ? "active" : ""}`}
-              onClick={() => setActivePhoneTab("data")}
-              title="Data"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-              <span>DATA</span>
-              {activePhoneTab === "data" && <i className="nav-active-bar" />}
+            <button type="button" className={`mars-nav-btn ${activePhoneTab === 'home' ? 'active' : ''}`} onClick={() => setActivePhoneTab('home')} aria-label="Home" aria-current={activePhoneTab === 'home' ? 'page' : undefined}>
+              <House size={21} aria-hidden="true"/><span>Home</span>
+            </button>
+            <button type="button" className="mars-nav-btn" onClick={closePhone} aria-label="Close phone">
+              <Power size={20} aria-hidden="true"/><span>Close</span>
             </button>
           </nav>
         </div>
       </div>
       </dialog>
-    )}
-    {props.enabled && !introActive && touchControlsActive && !phoneOpen && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
+      {props.enabled && touchControlsActive && !phoneOpen && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
    {/* Astronaut Death Screen Overlay */}
    {isDead && (
      <div className="mars-death-overlay" role="alert" aria-live="assertive">
@@ -4192,11 +3681,6 @@ function MarsWorld(props: Props) {
            </p>
            <div className="mars-sep-shelters-list">
              <div className="mars-sep-shelter-item">
-               <span>🚀</span>
-               <div><b>Landing Shuttle / Habitat Base</b> — Primary environmental shelter</div>
-               <span className="mars-sep-shelter-coord">(0, 12) m</span>
-             </div>
-             <div className="mars-sep-shelter-item">
                <span>🏛️</span>
                <div><b>Outpost Campus</b> — Enter through the main airlock</div>
                <span className="mars-sep-shelter-coord">(0, −65) m</span>
@@ -4226,8 +3710,7 @@ function MarsWorld(props: Props) {
        </div>
      </dialog>
    )}
-   {loaded && introActive && props.enabled && <div className="landing-caption" role="status"><b>{introTelemetry.phase}</b><span>{introTelemetry.alt > 0.1 ? `${introTelemetry.alt.toFixed(1)} m above landing surface` : "Elysium region · Mars"}</span><button onClick={() => skipIntroAction.current()}>Skip landing</button></div>}
-   {loaded && !introActive && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" aria-live="polite">
+   {loaded && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" aria-live="polite">
      <button disabled={outpostPromptDisabled} onClick={() => { handleInspectNearby(); host.current?.focus({ preventScroll: true }); }} aria-label={outpostPrompt}>{!outpostPromptDisabled && <kbd>E</kbd>} {outpostPrompt}</button>
    </div>}
    {message && <p className="sv-world-message" role="status">{message}</p>}

@@ -68,8 +68,8 @@ test("Curiosity executes full stop-and-scan crouch cycle (deploy + crouch -> las
   assert.ok(CURIOSITY_SCAN_DURATION > 5);
 });
 
-test("Curiosity steers cleanly around boulders and the shuttle and conducts scans predominantly in far plains", () => {
-  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"), boxObstacle(0, 15.7, .7, .5, "arrival-steps")];
+test("Curiosity steers cleanly around boulders and terrain ridges and conducts scans predominantly in far plains", () => {
+  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "terrain-ridge"), boxObstacle(0, 15.7, .7, .5, "terrain-rock")];
   const bigBoulders = [
     { x: -24, z: 12, radius: 1.6, traversable: false },
     { x: -30, z: 7, radius: 1.8, traversable: false },
@@ -264,7 +264,7 @@ test("NASA Curiosity GLB asset exists in public/models with expected rig nodes",
 });
 
 test("Different seeds produce different initial headings and non-repeating full-map scan areas", () => {
-  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"), boxObstacle(0, 15.7, .7, .5, "arrival-steps")];
+  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "terrain-ridge"), boxObstacle(0, 15.7, .7, .5, "terrain-rock")];
   const a = spawnCuriosityRover(staticTerrain, () => 0, { seed: 101, allowColonyTargets: true });
   const b = spawnCuriosityRover(staticTerrain, () => 0, { seed: 99991, allowColonyTargets: true });
   assert.ok(
@@ -317,7 +317,7 @@ test("Curiosity escapes a 3-sided rock trap via alternating reverse turns and ta
 });
 
 test("Curiosity escapes tight obstacle wall with rear boulders without left-right/back-forth oscillation", () => {
-  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"), boxObstacle(0, 15.7, .7, .5, "arrival-steps")];
+  const staticTerrain = [boxObstacle(0, 12, 4.5, 3.5, "terrain-ridge"), boxObstacle(0, 15.7, .7, .5, "terrain-rock")];
   // Wide blocking boulder cluster right ahead of nose + a rock 3.8m behind rear bumper
   const obstacles = [
     ...staticTerrain,

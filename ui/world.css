@@ -1661,7 +1661,7 @@
 }
 
 /* ==========================================================================
-   SpaceX & NASA Minimalist Icon-Driven Mars Telemetry Communicator (Bottom-Right HUD)
+   Spaceflight Minimalist Icon-Driven Mars Telemetry Communicator (Bottom-Right HUD)
    ========================================================================== */
 
 /* Aerospace Communicator Display Housing (20% Peeking when closed, slides fully open) */
@@ -1743,6 +1743,49 @@
   font: 800 7px/1 ui-monospace, "SF Mono", monospace;
   letter-spacing: 0.12em;
   color: #a1a1aa;
+}
+
+.mars-bezel-action {
+  display: flex;
+  align-items: center;
+}
+
+.mars-bezel-peek-hint {
+  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 2px;
+  padding: 1.5px 5px;
+  letter-spacing: 0.08em;
+  animation: peekPulse 1.8s infinite alternate;
+}
+
+@keyframes peekPulse {
+  0% { opacity: 0.75; }
+  100% { opacity: 1; filter: brightness(1.2); }
+}
+
+.mars-bezel-btn {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  border-radius: 2px;
+  width: 17px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.mars-bezel-btn:hover {
+  background: #1e293b;
+  color: #fff;
+  border-color: #64748b;
 }
 
 .mars-phone-net-stats {
