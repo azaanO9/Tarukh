@@ -5,6 +5,7 @@ import {MARS_CATCH_SITE,gradeMarsCatchSite,marsCatchClearing,marsCatchObstacles}
 import {marsOutpostHeight,MARS_CATCH_GROUND_HEIGHT} from '../game/marsExpeditionTerrain.ts';
 import {createMarsCatchSite} from '../ui/world/createMarsCatchSite.ts';
 import {STARBASE} from '../game/starbaseRig.ts';
+import {REUSABLE_ROCKET} from '../game/reusableRocket.ts';
 
 test('catch site uses a locally graded game surface and leaves remote terrain untouched',()=>{
   const s=MARS_CATCH_SITE;
@@ -24,7 +25,7 @@ test('the same visible ship settles on both catch rails and all owned resources 
     assert.equal(site.rig.shipEngines.flame.visible,true);
     site.settle();site.root.updateMatrixWorld(true);
     const ship=site.rig.starshipUpperStage;
-    assert.ok(Math.abs(ship.position.y+STARBASE.shipPinHeight-STARBASE.pinRadius-site.rig.chopstickCarriage.position.y)<1e-8);
+    assert.ok(Math.abs(site.rig.rocketEntity.position.y+ship.position.y+REUSABLE_ROCKET.pinHeight-STARBASE.pinRadius-site.rig.chopstickCarriage.position.y)<1e-8);
     assert.equal(site.rig.superHeavyBooster.visible,false);
     assert.equal(site.rig.shipEngines.flame.visible,false);
     assert.equal(site.rig.groundPad.children.length,0);

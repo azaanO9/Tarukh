@@ -44,7 +44,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 ## Original work
 
 - `createPerseveranceRover.ts`: original simplified rover geometry, thermal deck, wheel rig, mast, antenna and generated labels. It marks the historical landing position, not the rover's current location.
-- `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch and stairs, now used as the settled Mars shelter. The active opening is the Starship cinematic described below. Neither spacecraft presentation is a NASA vehicle certification or validated descent simulation.
+- `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch and stairs, now used as the settled Mars shelter. The active opening uses the reusable crew vehicle described below. Neither spacecraft presentation is a NASA vehicle certification or validated descent simulation.
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - The bounded exploration area's perimeter mountains are original procedural geometry. They are artistic barriers added to the MOLA crop, not NASA elevation measurements; no new external assets are used.
 - `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
@@ -77,6 +77,8 @@ The original habitat is part of [NASA CHAPEA](https://www.nasa.gov/humans-in-spa
 ## Separate Starbase study
 
 `public/starbase.html` uses original procedural geometry, generated surface/label textures and a generated reflection environment. No SpaceX photographs, logos, CAD, third-party models or external texture assets are included. The 145-metre tower, 71-metre booster, 50-metre upper stage and 33/6-engine layout follow the user-supplied concept brief, with [SpaceX's Starship reference](https://www.spacex.com/vehicles/starship/) as context. This is an independent artistic study, not an exact survey of current Starbase hardware or an endorsed simulation.
+
+The playable opening uses a different, fictional single reusable crew vehicle: original procedural white cylindrical hull, shallow roof, portholes, hatch, red support braces, catch pins and six engines. Its design is inspired by the central habitat shown in the user's `Screen Recording 2026-11-15 024322.mp4`; no video frames, textures or model data are redistributed. It departs a procedurally generated Earth coast and arrives at the actual Mars map without stage separation. Earth launch-apron markings are generated with Canvas. The persistent Mars tower reuses the original engineering rig above. This is fictional expedition artwork, not a recreation of an actual Earth-to-Mars flight.
 
 The game opening reuses this original rig with an authored upper-stage catch trajectory and lift-pin geometry, plus original procedural exhaust cores, shock-diamond/turbulence shading and a pooled ground-dust effect. It takes motion reference from [SpaceX's Flight 15 report](https://www.spacex.com/launches/starship-flight-15), accessed November 15, 2026. The report describes the upper-stage return and catch on November 14. No video frames, logos or third-party effects were copied. Geometry retains the earlier concept dimensions; this is not an exact Flight 15 vehicle reconstruction.
 

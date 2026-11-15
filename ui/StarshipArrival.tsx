@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import type {createStarshipArrival} from './starbase/createStarshipArrival';
 import {STARBASE} from '../game/starbaseRig';
+import {REUSABLE_ROCKET} from '../game/reusableRocket';
 import type {ArrivalPlayback} from '../game/starshipArrival';
 import './starshipArrival.css';
 
@@ -35,7 +36,7 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
           section.current.dataset.environment=frame.environment;
           section.current.dataset.shipAltitude=frame.shipY.toFixed(3);section.current.dataset.shipThrust=frame.shipThrust.toFixed(3);
           section.current.dataset.armAngle=frame.armAngle.toFixed(3);section.current.dataset.dust=String(dust);
-          section.current.dataset.pinGap=(frame.shipY+STARBASE.shipPinHeight-STARBASE.pinRadius-frame.carriageHeight).toFixed(4);
+          section.current.dataset.pinGap=(frame.shipY+REUSABLE_ROCKET.pinHeight-STARBASE.pinRadius-frame.carriageHeight).toFixed(4);
           const label=isPaused?'Sequence paused':frame.phase;
           if(phase.current&&phase.current.textContent!==label)phase.current.textContent=label;
           if(detail.current)detail.current.textContent=frame.returning?`Mars catch tower · ${frame.shipThrust>0?`${frame.landingEngines} landing engine${frame.landingEngines===1?'':'s'}`:'Engines off'}`:frame.environment==='space'?'Above Earth · interplanetary coast is time-compressed':'Earth coast · launch to orbit';
@@ -54,7 +55,7 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
     return ()=>{cancelled=true;window.removeEventListener('keydown',keys,true);controller.current?.dispose();controller.current=null;};
   },[performance,playback]);
   const skip=()=>{skipPending.current=true;controller.current?.skip();setPaused(false);if(ready)onComplete();};
-  return <section ref={section} className="starship-arrival" aria-label="Earth launch, space separation and Mars arrival cinematic" data-world-ready={ready}>
+  return <section ref={section} className="starship-arrival" aria-label="Reusable spacecraft Earth launch, orbital coast and Mars arrival cinematic" data-world-ready={ready}>
     <div ref={host} className="starship-arrival-world"/>
     <div ref={fade} className="starship-arrival-cut" aria-hidden="true"/>
     <header className="starship-arrival-header"><b>TARUKH <span>· EARTH TO MARS</span></b><div>
