@@ -105,7 +105,7 @@ test('rendered catch pins contact the actual arm rails while the booster remains
 });
 
 test('standalone HTML contains its renderer, no external scripts, and matches the current source files',async()=>{
-  const files=['game/starbaseRig.ts','ui/starbase/createStarbase.ts','ui/starbase/main.ts','ui/starbase/preview.html','scripts/build-starbase.mjs'];
+  const files=['game/starbaseRig.ts','game/reusableRocket.ts','ui/starbase/createStarbase.ts','ui/starbase/main.ts','ui/starbase/preview.html','scripts/build-starbase.mjs'];
   const hash=createHash('sha256');for(const file of files)hash.update(file+'\0'+(await fs.readFile(new URL('../'+file,import.meta.url),'utf8')).replaceAll('\r\n','\n'));
   const html=await fs.readFile(new URL('../public/starbase.html',import.meta.url),'utf8');
   assert.ok(html.includes('Source SHA256: '+hash.digest('hex')),'Rebuild the standalone preview after changing its source');

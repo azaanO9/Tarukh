@@ -1,0 +1,130 @@
+{
+  "sourceFile": "spacex_starship.glb",
+  "sourceBytes": 19007332,
+  "sourceSha256": "287317f26516237ed154b9364914396d562552d330a3041000f6157f97c9304c",
+  "sourceAsset": {
+    "extras": {
+      "author": "MartianDays (https://sketchfab.com/MartianDays)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/spacex-starship-a8a0b69f776841a1a465cd9fb3762fd2",
+      "title": "SpaceX Starship"
+    },
+    "generator": "Sketchfab-12.67.0",
+    "version": "2.0"
+  },
+  "bytes": 1173372,
+  "sha256": "9cb3f8b91556f14b18b6d2df4f612debd83828072c393411258d3088fd25d36f",
+  "triangles": 20630,
+  "parts": [
+    {
+      "name": "Bow_Window.001_Starship_0",
+      "triangles": 424
+    },
+    {
+      "name": "Primary_Hull.001_Starship_0",
+      "triangles": 6150
+    },
+    {
+      "name": "Cargo Doors.001_Starship_0",
+      "triangles": 344
+    },
+    {
+      "name": "SeaLev_Raptors_LP.001_Starship_0",
+      "triangles": 4452
+    },
+    {
+      "name": "Vacuum_Raptors_LP.001_Starship_0",
+      "triangles": 4644
+    },
+    {
+      "name": "Cargo_DropBoxes.001_Starship_0",
+      "triangles": 240
+    },
+    {
+      "name": "Cabin_WindowInset.001_Starship_0",
+      "triangles": 3860
+    },
+    {
+      "name": "Cabin_Windows.001_Starship_0",
+      "triangles": 516
+    }
+  ],
+  "materialCount": 1,
+  "textureCount": 4,
+  "maxTextureSize": 1024,
+  "normalized": {
+    "height": 1,
+    "min": [
+      -0.18799818298174217,
+      0,
+      -0.08979225149023772
+    ],
+    "max": [
+      0.18799818298174217,
+      1,
+      0.08979225149023772
+    ],
+    "bodyRadius": 0.08599072391068888,
+    "anchors": {
+      "seaLevelEngines": [
+        {
+          "position": [
+            -0.016197071123327536,
+            0.0028986489632088627,
+            0.005652622757320403
+          ],
+          "radius": 0.012217622159298542,
+          "sourceRimVertices": 68
+        },
+        {
+          "position": [
+            -9.62857286429528e-9,
+            0.0028986489632088627,
+            -0.022401520886827953
+          ],
+          "radius": 0.012323046389595239,
+          "sourceRimVertices": 68
+        },
+        {
+          "position": [
+            0.01619706137463719,
+            0.0028986489632088627,
+            0.005652614908858051
+          ],
+          "radius": 0.012217622316151984,
+          "sourceRimVertices": 68
+        }
+      ],
+      "vacuumEngines": [
+        {
+          "position": [
+            -0.049092827284272444,
+            0.003051471709823219,
+            -0.03204252822203692
+          ],
+          "radius": 0.02216321925269758,
+          "sourceRimVertices": 68
+        },
+        {
+          "position": [
+            -3.515866401910017e-8,
+            0.003051471709823219,
+            0.05298875077491593
+          ],
+          "radius": 0.022354463145716024,
+          "sourceRimVertices": 68
+        },
+        {
+          "position": [
+            0.04909282786449542,
+            0.003051471709823219,
+            -0.032042505757549716
+          ],
+          "radius": 0.02216322155594436,
+          "sourceRimVertices": 68
+        }
+      ]
+    }
+  },
+  "adaptation": "All eight source parts and all triangles retained. Y-up, X/Z centred, feet at Y=0; uniform height=1 for runtime fitting. Four embedded PBR textures resized from 4096 to 1024px WebP; normal and metallic-roughness maps use lossless WebP after resizing. Existing materials and original author/license metadata retained. Draco geometry compression; no new external dependencies at runtime."
+}

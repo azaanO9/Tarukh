@@ -77,6 +77,8 @@ import {
   calculateRadiationDrain,
 } from "../game/spaceWeatherService";
 import { GeigerAudio } from "../game/geigerAudio";
+import { radiationPhoneCommand, trapRadiationPhoneTab } from './radiationPhoneControls';
+import './radiationPhone.css';
 function shortestAngleDiff(from: number, to: number): number {
   let diff = (to - from) % (Math.PI * 2);
   if (diff > Math.PI)
@@ -92,6 +94,7 @@ function getPartDamageClass(health: number): string {
   return "critical";
 }
 export type View = {
+  phoneOpen?: boolean;
   storySite?: string | null;
   storyRevision?: number;
   storyTarget?: {id:string;label:string;x:number;z:number};
@@ -216,13 +219,33 @@ function MarsWorld(props: Props) {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const phoneOpenRef = useRef(false);
   phoneOpenRef.current = phoneOpen;
-  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data" | "science">("telemetry");
-  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const phoneDialog = useRef<HTMLDialogElement>(null);
+  const phoneReturnFocus = useRef<HTMLElement | null>(null);
+  const releasePhoneInput = useRef<() => void>(() => {});
+  const openPhone = useCallback(() => {
+    if (!current.current.enabled || current.current.coveredByArrival) return;
+    phoneReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    phoneOpenRef.current = true;
+    controls.current.clear();
+    analogWalk.current = {};
+    analogDrive.current = {};
+    releasePhoneInput.current();
+    if (document.pointerLockElement) document.exitPointerLock();
+    setPhoneOpen(true);
+  }, []);
+  const closePhone = useCallback(() => {
+    phoneOpenRef.current = false;
+    controls.current.clear();
+    analogWalk.current = {};
+    analogDrive.current = {};
+    setPhoneOpen(false);
+  }, []);
+  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data" | "settings">("telemetry");
   const prevStormActive = useRef(false);
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
   const spaceWeatherService = useRef<SpaceWeatherService | null>(null);
   if (!spaceWeatherService.current) {
-    spaceWeatherService.current = new SpaceWeatherService(!props.story);
+    spaceWeatherService.current = new SpaceWeatherService(false);
   }
   const geigerAudio = useRef<GeigerAudio | null>(null);
   if (!geigerAudio.current) {
@@ -231,6 +254,18 @@ function MarsWorld(props: Props) {
   const [spaceWeather, setSpaceWeather] = useState<SpaceWeatherTelemetry>(() =>
     spaceWeatherService.current!.update(0)
   );
+  useEffect(() => {
+    const service = spaceWeatherService.current!;
+    void service.fetchLiveTelemetry();
+    const timer = window.setInterval(() => {
+      if (service.getMode() === 'live') void service.fetchLiveTelemetry();
+    }, 60000);
+    return () => {
+      window.clearInterval(timer);
+      service.dispose();
+      geigerAudio.current?.dispose();
+    };
+  }, []);
   const [radiationExposure, setRadiationExposure] = useState(0);
   const radiationExposureRef = useRef(0);
   radiationExposureRef.current = radiationExposure;
@@ -338,17 +373,25 @@ function MarsWorld(props: Props) {
   }, [isDead, handleRestartWorld]);
 
   const [sepInfoOpen, setSepInfoOpen] = useState(false);
+  const sepDialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (!sepInfoOpen) return;
+    const dialog = sepDialog.current;
+    dialog?.showModal();
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter") {
+      if (dialog && trapRadiationPhoneTab(e, dialog)) return;
+      if (e.key === "Escape") {
         e.preventDefault();
+        e.stopImmediatePropagation();
         setSepInfoOpen(false);
       }
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    window.addEventListener("keydown", handleKey, true);
+    return () => {
+      window.removeEventListener("keydown", handleKey, true);
+      dialog?.close();
+    };
   }, [sepInfoOpen]);
 
   const toggleSpaceWeatherMode = useCallback(() => {
@@ -359,18 +402,58 @@ function MarsWorld(props: Props) {
     }
   }, []);
 
-  const handleNextHistoricalEvent = useCallback(() => {
-    geigerAudio.current?.resume();
-    spaceWeatherService.current?.nextHistoricalEvent();
-    if (spaceWeatherService.current) {
-      setSpaceWeather(spaceWeatherService.current.update(0));
-    }
+  const selectHistoricalEvent = useCallback((index: number) => {
+    const service = spaceWeatherService.current!;
+    service.setMode('historical');
+    service.selectHistoricalEvent(index);
+    setSpaceWeather(service.update(0));
   }, []);
 
 
   const toggleSpaceWeatherAction = useRef(toggleSpaceWeatherMode);
   toggleSpaceWeatherAction.current = toggleSpaceWeatherMode;
 
+  useEffect(() => {
+    const dialog = phoneDialog.current;
+    const worldElement = host.current;
+    if (!phoneOpen || !props.enabled) {
+      if (dialog?.open) dialog.close();
+      return;
+    }
+    if (!dialog) return;
+    dialog.showModal();
+    dialog.querySelector<HTMLButtonElement>('[aria-label="Minimize phone"]')?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const otherDialog = target?.closest('dialog, [role="dialog"]') !== dialog;
+      if (!otherDialog && trapRadiationPhoneTab(event, dialog)) return;
+      const command = radiationPhoneCommand(event.key, {
+        open: true, enabled: current.current.enabled, repeat: event.repeat,
+        modified: event.altKey || event.ctrlKey || event.metaKey,
+        editable: Boolean(target?.matches('input, textarea, select') || target?.isContentEditable),
+        interactive: Boolean(target?.closest('button, a, summary')),
+        otherDialog,
+      });
+      if (!command) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (command === 'close') closePhone();
+      if (command === 'toggle-feed') toggleSpaceWeatherAction.current();
+      if (command === 'next-tab' || command === 'previous-tab') {
+        const tabs = ['home', 'telemetry', 'systems', 'data', 'settings'] as const;
+        setActivePhoneTab(tab => tabs[(tabs.indexOf(tab) + (command === 'next-tab' ? 1 : 4)) % tabs.length]);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      dialog.close();
+      if (current.current.enabled) {
+        const previous = phoneReturnFocus.current;
+        (previous?.isConnected ? previous : worldElement)?.focus({ preventScroll: true });
+      }
+    };
+  }, [phoneOpen, props.enabled, closePhone]);
   const [loadingStage, setLoadingStage] = useState("Loading explorers and rovers…");
   const [loadingProgress, setLoadingProgress] = useState(10);
   const [loaded, setLoaded] = useState(false);
@@ -556,10 +639,11 @@ function MarsWorld(props: Props) {
         });
         model.root.removeFromParent(); light.shadow.dispose(); disposeBeforeOutpost();
       };
-      try { await Promise.all([outpost.ready, greenhouses.ready, garage.ready]); }
+      try { await Promise.all([outpost.ready, greenhouses.ready, garage.ready, catchSite.ready]); }
       catch (error) { dispose(); throw error; }
       if (cancelled) return;
       element.dataset.outpostLoaded = "true";
+      element.dataset.rocketModel = catchSite.modelStatus;
       element.dataset.greenhouses = String(GREENHOUSE_SITES.length);
       element.dataset.garageLoaded = String(garage.loaded);
       element.dataset.drivableRovers = String(scene.children.filter(object => object.name === "BigRover").length);
@@ -906,7 +990,7 @@ function MarsWorld(props: Props) {
         }
       };
       toggleRoverAction.current = () => {
-        if (!current.current.enabled || landingIntro?.isActive() || false || false)
+        if (!current.current.enabled || phoneOpenRef.current || landingIntro?.isActive() || false || false)
           return;
         if (garageControlsRover(garageState)) return;
         if (!rover.driving && current.current.story?.command.roverAllowed === false) {
@@ -1022,6 +1106,7 @@ function MarsWorld(props: Props) {
         resize();
       }
       const inspect = () => {
+        if (phoneOpenRef.current) return;
         const garageAction = garagePrompt(garageState, walker.x, walker.z, rover);
         if (current.current.enabled && garageAction?.enabled && requestGarageCycle(garageState, rover)) {
           keys.clear();
@@ -1058,7 +1143,7 @@ function MarsWorld(props: Props) {
         }, ms);
       };
       repairAction.current = () => {
-        if (!current.current.enabled || rover.driving) return;
+        if (!current.current.enabled || phoneOpenRef.current || rover.driving) return;
         const target = getNearestRoverPart(walker, rover);
         if (target && target.distance <= 2.8 && target.health < 100) {
           if (playerScrapRef.current > 0) {
@@ -1093,6 +1178,7 @@ function MarsWorld(props: Props) {
         silent?: boolean;
         forceRetry?: boolean;
       }) => {
+        if (phoneOpenRef.current) return;
         element.focus({ preventScroll: true });
         if (document.pointerLockElement === element || captureUnsupported)
           return;
@@ -1145,6 +1231,7 @@ function MarsWorld(props: Props) {
         }
       };
       const down = (e: PointerEvent) => {
+        if (phoneOpenRef.current) return;
         const targetEl = e.target as HTMLElement | null;
         if (isUiControlTarget(targetEl)) {
           return;
@@ -1171,7 +1258,7 @@ function MarsWorld(props: Props) {
         }
       };
       const sceneClick = (e: MouseEvent) => {
-        if (!current.current.enabled || cameraSettings.current.touchControlsActive)
+        if (!current.current.enabled || phoneOpenRef.current || cameraSettings.current.touchControlsActive)
           return;
         // Ignore synthetic Enter/Space clicks while still handling real pointer clicks after Esc or cooldown.
         if (e.detail === 0)
@@ -1189,7 +1276,7 @@ function MarsWorld(props: Props) {
         if (dragging || document.pointerLockElement === element) {
           lastMouseMoveTime = performance.now();
         }
-        if (!current.current.enabled || current.current.story?.ending || landingIntro?.isActive()) {
+        if (!current.current.enabled || phoneOpenRef.current || current.current.story?.ending || landingIntro?.isActive()) {
           return;
         }
         const isThird = cameraSettings.current.thirdPerson;
@@ -1221,12 +1308,21 @@ function MarsWorld(props: Props) {
           lookPointer = null;
         }
       };
+      releasePhoneInput.current = () => {
+        dragging = false;
+        lookPointer = null;
+        keys.clear();
+        walker.vx = 0;
+        walker.vz = 0;
+        rover.speed = 0;
+        setCursorMode(true);
+      };
       const keydown = (e: KeyboardEvent) => {
         if (current.current.story?.ending) {
           if (e.code==='Space'||e.key==='Escape') { e.preventDefault(); current.current.story.onEndingComplete?.(); }
           return;
         }
-        if (e.defaultPrevented || !current.current.enabled)
+        if (e.defaultPrevented || !current.current.enabled || phoneOpenRef.current)
           return;
         const active = document.activeElement as HTMLElement | null;
         const tag = active?.tagName;
@@ -1251,35 +1347,15 @@ function MarsWorld(props: Props) {
         const onInteractive = tag === "BUTTON" || tag === "SUMMARY" || tag === "A";
         const k = e.key.toLowerCase();
         geigerAudio.current?.resume();
-        if (!current.current.story && (k === "p" || e.key === "ArrowUp") && !e.repeat && !onInteractive) {
+        if (!landingIntro?.isActive() && radiationPhoneCommand(e.key, {
+          open: false, enabled: current.current.enabled, repeat: e.repeat,
+          modified: e.altKey || e.ctrlKey || e.metaKey,
+          editable: tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || Boolean(active?.isContentEditable),
+          interactive: onInteractive, otherDialog: false,
+        }) === 'open') {
           e.preventDefault();
-          setPhoneOpen((prev) => (e.key === "ArrowUp" ? true : !prev));
+          openPhone();
           return;
-        }
-        if (e.key === "ArrowDown" && !e.repeat && !onInteractive && phoneOpenRef.current) {
-          e.preventDefault();
-          setPhoneOpen(false);
-          return;
-        }
-        if (phoneOpenRef.current) {
-          if (e.key === "ArrowRight" && !e.repeat && !onInteractive) {
-            e.preventDefault();
-            setActivePhoneTab((current) => {
-              const tabs = ["home", "telemetry", "systems", "data", "science"] as const;
-              const idx = tabs.indexOf(current);
-              return tabs[(idx + 1) % tabs.length];
-            });
-            return;
-          }
-          if (e.key === "ArrowLeft" && !e.repeat && !onInteractive) {
-            e.preventDefault();
-            setActivePhoneTab((current) => {
-              const tabs = ["home", "telemetry", "systems", "data", "science"] as const;
-              const idx = tabs.indexOf(current);
-              return tabs[(idx - 1 + tabs.length) % tabs.length];
-            });
-            return;
-          }
         }
         if (!current.current.story && k === "y" && !e.repeat && !onInteractive) {
           e.preventDefault();
@@ -1494,6 +1570,7 @@ function MarsWorld(props: Props) {
         const dt = last ? Math.min(frameInterval / 1000, 0.1) : 1 / 60;
         last = time;
         const p = current.current;
+        const worldActive = p.enabled && !phoneOpenRef.current;
         if (p.story && (storySession !== p.story.sessionId || storyRevision !== p.story.command.revision)) {
           storySession = p.story.sessionId; storyRevision = p.story.command.revision;
           rover.battery = Math.max(0,Math.min(100,p.story.command.roverCharge));
@@ -1536,10 +1613,10 @@ function MarsWorld(props: Props) {
         }
         const activeHeightAt = model.heightAt;
         const activeTier = graphicsTier(lastQuality);
-        outpost.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, lastQuality === "performance", p.enabled);
-        greenhouses.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, p.enabled);
+        outpost.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, lastQuality === "performance", worldActive);
+        greenhouses.update(dt, walker.x, activeHeightAt(walker.x, walker.z) + jump.height, walker.z, worldActive);
         model.updateTracks?.(renderer, walker.x, walker.z, mobileMars || lastQuality === "performance");
-        const dropRunning = Boolean(landingIntro?.isActive() && true && p.enabled);
+        const dropRunning = Boolean(landingIntro?.isActive() && true && worldActive);
         if (isDeadRef.current) {
           keys.clear();
           walker.vx = 0;
@@ -1549,7 +1626,7 @@ function MarsWorld(props: Props) {
             rover.handbrake = true;
           }
         }
-        if (p.enabled && !dropRunning && !p.story?.ending) {
+        if (worldActive && !dropRunning && !p.story?.ending) {
           const previousCharge = rover.battery;
           const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
           const step = dt / steps;
@@ -1640,7 +1717,7 @@ function MarsWorld(props: Props) {
             storyWasNight = false; storyDawn = true;
             daylightElapsed = approachStoryDaylight(daylightElapsed,false,dt);
             if (daylightElapsed%600 > 599.8) { daylightElapsed=0;storyDawn=false; }
-          } else if(p.enabled) daylightElapsed += dt;
+          } else if(worldActive) daylightElapsed += dt;
         }
         const nightBlend = nightAmount(daylightElapsed);
         {
@@ -1794,8 +1871,18 @@ function MarsWorld(props: Props) {
             }
           }
         }
-        // Space Weather & Radiation Telemetry Loop
-        if (p.enabled && !p.story && !landingIntro?.isActive()) {
+        // The phone can replay observations while world simulation is paused.
+        // Story never converts this near-Earth feed into mission dose or penalties.
+        if (phoneOpenRef.current && spaceWeatherService.current) {
+          const telemetry = spaceWeatherService.current.update(dt);
+          if (time - lastSpaceWeatherUpdate > 250) {
+            lastSpaceWeatherUpdate = time;
+            setSpaceWeather(telemetry);
+          }
+          geigerAudio.current?.update(dt, telemetry.sepFluxPFU, false);
+        }
+        // Free Exploration retains its existing, explicitly fictional exposure rules.
+        if (worldActive && !p.story && !landingIntro?.isActive()) {
           const inRover = Boolean(rover.driving);
           const playerPosX = inRover ? rover.x : walker.x;
           const playerPosZ = inRover ? rover.z : walker.z;
@@ -1865,7 +1952,7 @@ function MarsWorld(props: Props) {
               setSpaceWeather(telemetry);
               if (telemetry.sepFluxPFU >= 10 && !prevStormActive.current) {
                 prevStormActive.current = true;
-                setPhoneOpen(true);
+                openPhone();
               } else if (telemetry.sepFluxPFU < 10 && prevStormActive.current) {
                 prevStormActive.current = false;
               }
@@ -1874,7 +1961,7 @@ function MarsWorld(props: Props) {
         }
         const insideOutpost = !p.story?.ending && !rover.driving && outpost.indoors(walker.x,walker.z);
         const insideFacility = insideOutpost || (!rover.driving && greenhouses.indoors(walker.x,walker.z));
-        if(updateOutpostRendering(outpostRendering,insideOutpost,p.enabled||p.story?.ending?dt:0)){
+        if(updateOutpostRendering(outpostRendering,insideOutpost,worldActive||p.story?.ending?dt:0)){
           outpost.setInteriorActive(outpostRendering.active);
           configureEffects();
           // Retain the cached shadow maps and shader variants while indoors.
@@ -1885,7 +1972,7 @@ function MarsWorld(props: Props) {
           backgroundProbe?.reset();
         }
         updateGraphicsSamplingGate(graphicsSampling,outpostRendering.active,time);
-        const cameraDt = p.enabled ? dt : 0;
+        const cameraDt = worldActive ? dt : 0;
         const third = updateInteriorCamera(interiorCamera,insideFacility,cameraSettings.current.thirdPerson,rover.driving?.25:cameraDt);
         if(third!==cameraSettings.current.thirdPerson){
           cameraSettings.current.thirdPerson=third;
@@ -1905,7 +1992,7 @@ function MarsWorld(props: Props) {
           astronaut.visible = true;
           const groundHeight = model.heightAt(walker.x, walker.z);
           astronaut.position.set(walker.x, groundHeight, walker.z);
-          const podState = landingIntro.update(p.enabled ? dt : 0, camera, {
+          const podState = landingIntro.update(worldActive ? dt : 0, camera, {
             x: walker.x,
             y: groundHeight,
             z: walker.z,
@@ -1915,7 +2002,7 @@ function MarsWorld(props: Props) {
             astronaut.visible = actor.visible;
             astronaut.position.set(actor.x, actor.y, actor.z);
             astronaut.rotation.y = actor.yaw;
-            marsAstronaut?.update(p.enabled ? dt : 0, actor.speed, actor.hopHeight > 0, actor.hopHeight, actor.verticalVelocity);
+            marsAstronaut?.update(worldActive ? dt : 0, actor.speed, actor.hopHeight > 0, actor.hopHeight, actor.verticalVelocity);
             if (astronautShadow) {
               astronautShadow.mesh.visible = actor.visible;
               astronautShadow.mesh.position.set(actor.x, model.heightAt(actor.x, actor.z) + .024, actor.z);
@@ -1986,7 +2073,7 @@ function MarsWorld(props: Props) {
           if (isDeadRef.current) {
             astronaut.rotation.z = Math.min(1.4, astronaut.rotation.z + deathCollapse * 1.4);
           }
-          if (p.enabled && true && !rover.driving)
+          if (worldActive && true && !rover.driving)
             footprints?.(walker.x, walker.z, characterYaw, jump.height < .04);
           gaitPhase += speed * dt * 2.4;
           gaitBlend += ((speed > .3 && jump.height < .1 ? 1 : 0) - gaitBlend) * (1 - Math.exp(-12 * dt));
@@ -2185,13 +2272,13 @@ function MarsWorld(props: Props) {
           const garageAction = garagePrompt(garageState, walker.x, walker.z, rover);
           const station = storyMarkers?.nearest(walker.x, walker.z);
           const gatePrompt = gate ? (gate.waiting ? `Cycling airlock · ${gate.label} — Cancel` : gate.blocked ? "Step clear of the doorway to close" : `${gate.target ? "Close" : "Open"} · ${gate.label}`) : "";
-          const prompt = !p.enabled ? "" : !p.story ? garageAction?.text ?? gatePrompt
+          const prompt = !worldActive ? "" : !p.story ? garageAction?.text ?? gatePrompt
             : garageAction?.enabled ? garageAction.text : gatePrompt || (station ? `Open · ${station.label}` : garageAction?.text ?? "");
           if (prompt !== lastOutpostPrompt) {
             lastOutpostPrompt = prompt; setOutpostPrompt(prompt);
             setOutpostPromptDisabled(Boolean(garageAction && !garageAction.enabled && (!p.story || !station && !gate)));
           }
-          const inspectReady = Boolean(p.enabled && (station && Math.abs(rover.speed)<.5 || !rover.driving && (garageAction?.enabled || gate || hover && range <= 5.5)));
+          const inspectReady = Boolean(worldActive && (station && Math.abs(rover.speed)<.5 || !rover.driving && (garageAction?.enabled || gate || hover && range <= 5.5)));
           if (inspectReady !== lastCanInspect) {
             lastCanInspect = inspectReady;
             setCanInspect(inspectReady);
@@ -2217,6 +2304,7 @@ function MarsWorld(props: Props) {
           current.current.onView({
             storySite: storyMarkers?.nearest(walker.x,walker.z)?.id ?? null,
             storyRevision,
+            phoneOpen: phoneOpenRef.current,
             storyTarget: storySites.find(site=>site.id===p.story?.targetSiteId),
             roverBattery: rover.battery,
             roverHealth: rover.damage.cabin_roof,
@@ -2282,7 +2370,7 @@ function MarsWorld(props: Props) {
           element.dataset.measurementStatus = 'active';
         if (backgroundProbe && !backgroundProbe.done()) {
           const candidate = backgroundProbe.candidate();
-          const eligible = p.enabled && !landingIntro?.isActive() && graphicsSampling.eligible && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
+          const eligible = worldActive && !landingIntro?.isActive() && graphicsSampling.eligible && cameraSettings.current.quality === 'auto' && backgroundPrepared && lastQuality === candidate.profile && Math.abs(resolutionScale - candidate.scale) < .02;
           const decision = backgroundProbe.frame(frameInterval, performance.now() - frameStarted, eligible);
           if (decision) {
             autoProfile = decision.next.profile;
@@ -2309,7 +2397,7 @@ function MarsWorld(props: Props) {
           }
         }
         // The ongoing governor excludes paused/landing frames after initial profiling.
-        const activeSample = p.enabled && !landingIntro?.isActive() && graphicsSampling.eligible;
+        const activeSample = worldActive && !landingIntro?.isActive() && graphicsSampling.eligible;
         if (metricActive !== activeSample) {
           metricActive = activeSample;
           metricStart = 0;
@@ -2708,7 +2796,7 @@ function MarsWorld(props: Props) {
       if (roverShieldFadeTimeoutRef.current) window.clearTimeout(roverShieldFadeTimeoutRef.current);
       dispose();
     };
-  }, []);
+  }, [openPhone]);
   const touch = useCallback((key: string, on: boolean) => {
     if (key === "f") {
       if (on)
@@ -2731,6 +2819,7 @@ function MarsWorld(props: Props) {
   const handleToggleView = useCallback(() => setThirdPerson((v) => !v), []);
   const handleToggleRover = useCallback(() => toggleRoverAction.current(), []);
   const handleInspectNearby = useCallback(() => inspectAction.current(), []);
+  const phoneDose = props.story ? props.story.simulatedDose ?? 0 : radiationExposure;
   const exposureClass = radiationExposure >= 70 ? "critical" : radiationExposure >= 30 ? "caution" : "nominal";
   const healthClass = astronautHealth < 30 ? "critical" : astronautHealth < 60 ? "warning" : "nominal";
   const blurAmount = radiationExposure >= 35 ? Math.min(8, ((radiationExposure - 35) / 65) * 8) : 0;
@@ -2752,7 +2841,7 @@ function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`Mars open world. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : `WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects.${props.story ? "" : " Y toggles space weather mode."} M opens map.`}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-phone-open={phoneOpen} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`Mars open world. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : `WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. P or Up Arrow opens the radiation phone.${props.story ? "" : " Y toggles space weather mode."} M opens map.`}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
@@ -3037,7 +3126,7 @@ function MarsWorld(props: Props) {
         </aside>
       )}
       {/* Solar Energetic Particle Alert Banner */}
-      {spaceWeather.sepFluxPFU >= 10 && !isShielded && (Date.now() - sepAlertDismissedTime > 60000) && (
+      {!props.story && spaceWeather.sepFluxPFU >= 10 && !isShielded && (Date.now() - sepAlertDismissedTime > 60000) && (
         <aside className="mars-sep-alert-banner" role="alert" aria-live="assertive">
           <div className="mars-sep-alert-pulse" aria-hidden="true" />
           <div className="mars-sep-alert-text">
@@ -3142,7 +3231,7 @@ function MarsWorld(props: Props) {
             <button
               type="button"
               className="mars-phone-mobile-pill"
-              onClick={() => setPhoneOpen(true)}
+              onClick={openPhone}
               aria-label="Open Mars Telemetry Communicator"
               title="Open Mars Communicator"
             >
@@ -3152,35 +3241,23 @@ function MarsWorld(props: Props) {
             </button>
           )}
 
-          {/* Mobile Backdrop when Phone is open */}
-          {touchControlsActive && phoneOpen && (
-            <div
-              className="mars-phone-mobile-backdrop"
-              onClick={() => setPhoneOpen(false)}
-              aria-hidden="true"
-            />
+          {/* Desktop Launcher button */}
+          {!touchControlsActive && !phoneOpen && (
+            <button type="button" className="mars-phone-launcher" aria-label="Open radiation phone" onClick={openPhone}>
+              <span aria-hidden="true">▣</span> Radiation phone <kbd>P / ↑</kbd>
+            </button>
           )}
+        </>
+      )}
+    </>)}
 
-          {/* SpaceX / NASA Minimalist Icon-Driven Mars Telemetry Communicator */}
-          <div
-            className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}
-        role="region"
-        aria-label="Mars Communicator Display"
-        onClick={() => {
-          if (!phoneOpen) {
-            setPhoneOpen(true);
-          }
-        }}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          document.exitPointerLock?.();
-          if (!phoneOpen) {
-            setPhoneOpen(true);
-          }
-        }}
-        title={!phoneOpen ? "Click or press [P] / [↑] to expand phone" : undefined}
-      >
-        {/* Top Status Bar: SAT-LINK, Signal, Battery */}
+    {!props.story && (
+      <dialog ref={phoneDialog} className="mars-phone-modal" aria-label="Radiation phone"
+        onCancel={event => { event.preventDefault(); closePhone(); }}
+        onClose={event => {
+          if (!event.currentTarget.open) { closePhone(); setSepInfoOpen(false); }
+        }}>
+      <div className={`mars-radiation-hud gta-phone phone-open${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}>
         <div className="mars-phone-top-bar">
           <div className="mars-bezel-brand">
             <span className="mars-bezel-dot" />
@@ -3202,7 +3279,7 @@ function MarsWorld(props: Props) {
                 className="mars-phone-close-btn"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPhoneOpen(false);
+                  closePhone();
                 }}
                 aria-label="Close Mars Communicator"
                 title="Close phone"
@@ -3222,8 +3299,10 @@ function MarsWorld(props: Props) {
             </div>
             <div className="peek-sep" />
             <div className="peek-item">
-              <span className="peek-lbl">DOSE</span>
-              <span className={`peek-num ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
+              <span className="peek-lbl">RAD DOSE</span>
+              <span className={`peek-num ${exposureClass}`}>
+                {phoneDose.toFixed(2)} <small>mSv</small>
+              </span>
             </div>
             <div className="peek-sep" />
             <div className="peek-item">
@@ -3270,6 +3349,7 @@ function MarsWorld(props: Props) {
 
             <div className="mars-clock-wrap">
               <span className="mars-phone-clock">10:42</span>
+              <span className="mars-phone-sub">SOL 018</span>
             </div>
           </div>
 
@@ -3351,6 +3431,9 @@ function MarsWorld(props: Props) {
                   {activePhoneTab === "home" && (
                     <><b>Home</b></>
                   )}
+                  {activePhoneTab === "settings" && (
+                    <><b>Settings</b></>
+                  )}
                 </h2>
               </div>
               <div className="mars-hero-sub">
@@ -3358,11 +3441,17 @@ function MarsWorld(props: Props) {
                 {activePhoneTab === "systems" && "ROVER · POWER · LIFE SUPPORT"}
                 {activePhoneTab === "data" && "COLLECTION · ANALYSIS · STORAGE"}
                 {activePhoneTab === "home" && "EVA-01 · EXPEDITION OUTPOST"}
+                {activePhoneTab === "settings" && "AUDIO · CONTROLS · TELEMETRY"}
               </div>
             </div>
           </div>
 
-          {/* Tab 1: Telemetry (Icon-Driven GUI matching mockup) */}
+          <p className="mars-phone-source-note">
+            {spaceWeather.mode === 'live'
+              ? <>NOAA GOES measures proton flux near Earth, not radiation at this Mars base. {spaceWeather.isLiveConnected ? 'Live feed connected.' : 'Feed unavailable or connecting: the displayed baseline is simulated.'}</>
+              : <>NASA DONKI supplies historical event references. These replay curves are authored demonstrations, not measured Mars dose.</>}
+            {props.story && <> Your Story supplies, health and simulated dose are unaffected by this feed.</>}
+          </p>
           {activePhoneTab === "telemetry" && (
             <div className="mars-phone-tab-content">
               {/* Row 1: Top 3 Icon Cards */}
@@ -3447,18 +3536,18 @@ function MarsWorld(props: Props) {
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f1f5f9" strokeWidth="2">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
-                    <span>DOSE</span>
+                    <span>{props.story ? "SIMULATED MARS DOSE" : "GAME DOSE"}</span>
                   </div>
                   <span className={`mars-bar-val ${exposureClass}`}>
-                    <b>{radiationExposure.toFixed(1)}</b> / 100.0 mSv
+                    <b>{phoneDose.toFixed(2)}</b> mSv {props.story ? "· simulation" : "· game meter / 100"}
                   </span>
                 </div>
-                <div className="mars-capsule-track" role="progressbar" aria-valuenow={Math.round(radiationExposure)} aria-valuemin={0} aria-valuemax={100}>
-                  <div className={`mars-capsule-fill ${exposureClass}`} style={{ width: `${Math.max(4, Math.min(100, radiationExposure))}%` }} />
+                <div className="mars-segmented-track" role="progressbar" aria-valuenow={Math.round(phoneDose)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={`mars-segmented-fill ${exposureClass}`} style={{ width: `${Math.max(2, Math.min(100, phoneDose))}%` }} />
                 </div>
                 <div className="mars-bar-sub-status">
                   <span className="mars-sub-bar" />
-                  {isShielded ? (
+                  {props.story ? <span className="mars-sub-text">Mission choices only · NOAA does not change this value</span> : isShielded ? (
                     <span className="mars-sub-text shielded">SHIELDED BASE · NOMINAL (−1.5 mSv/s)</span>
                   ) : (
                     <span className={`mars-sub-text ${spaceWeather.sepFluxPFU >= 10 ? "storm" : "nominal"}`}>
@@ -3536,7 +3625,7 @@ function MarsWorld(props: Props) {
             <div className="mars-phone-tab-content data-tab">
               <div className="mars-tab-heading">
                 <h3>NASA SPACE WEATHER ARCHIVE</h3>
-                <p>Select real historical superstorm replay:</p>
+                <p>NASA DONKI event references with authored replay curves:</p>
               </div>
               <div className="mars-events-list">
                 <button
@@ -3554,8 +3643,8 @@ function MarsWorld(props: Props) {
                     </svg>
                   </div>
                   <div className="mars-event-meta">
-                    <b>NOAA SWPC GOES-16/18</b>
-                    <small>Real-time live deep-space proton flux</small>
+                    <b>NOAA SWPC GOES satellites</b>
+                    <small>Near-Earth proton flux · not Mars dose</small>
                   </div>
                   <span className="mars-event-tag live">LIVE</span>
                 </button>
@@ -3563,10 +3652,7 @@ function MarsWorld(props: Props) {
                 <button
                   type="button"
                   className={`mars-event-item ${spaceWeather.activeEvent?.id.startsWith("2024") ? "active" : ""}`}
-                  onClick={() => {
-                    if (spaceWeather.mode !== "historical") toggleSpaceWeatherMode();
-                    if (!spaceWeather.activeEvent?.id.startsWith("2024")) handleNextHistoricalEvent();
-                  }}
+                  onClick={() => selectHistoricalEvent(0)}
                 >
                   <div className="mars-event-icon-col">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#f59e0b">
@@ -3575,7 +3661,7 @@ function MarsWorld(props: Props) {
                   </div>
                   <div className="mars-event-meta">
                     <b>May 2024 Superstorm (AR3664)</b>
-                    <small>X8.7 Flare · 240 PFU · MAVEN Impact</small>
+                    <small>X8.7 flare · 240 PFU replay target</small>
                   </div>
                   <span className="mars-event-tag storm">S2/S3</span>
                 </button>
@@ -3583,10 +3669,7 @@ function MarsWorld(props: Props) {
                 <button
                   type="button"
                   className={`mars-event-item ${spaceWeather.activeEvent?.id.startsWith("2017") ? "active" : ""}`}
-                  onClick={() => {
-                    if (spaceWeather.mode !== "historical") toggleSpaceWeatherMode();
-                    if (!spaceWeather.activeEvent?.id.startsWith("2017")) handleNextHistoricalEvent();
-                  }}
+                  onClick={() => selectHistoricalEvent(1)}
                 >
                   <div className="mars-event-icon-col">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#f97316">
@@ -3594,8 +3677,8 @@ function MarsWorld(props: Props) {
                     </svg>
                   </div>
                   <div className="mars-event-meta">
-                    <b>September 2017 Mars Event</b>
-                    <small>X8.2 Flare · 1,490 PFU · Surface Surge</small>
+                    <b>September 2017 Solar Event</b>
+                    <small>X8.2 flare · 1,490 PFU replay target</small>
                   </div>
                   <span className="mars-event-tag storm">S3</span>
                 </button>
@@ -3603,10 +3686,7 @@ function MarsWorld(props: Props) {
                 <button
                   type="button"
                   className={`mars-event-item ${spaceWeather.activeEvent?.id.startsWith("2003") ? "active" : ""}`}
-                  onClick={() => {
-                    if (spaceWeather.mode !== "historical") toggleSpaceWeatherMode();
-                    if (!spaceWeather.activeEvent?.id.startsWith("2003")) handleNextHistoricalEvent();
-                  }}
+                  onClick={() => selectHistoricalEvent(2)}
                 >
                   <div className="mars-event-icon-col">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="#ef4444">
@@ -3907,13 +3987,13 @@ function MarsWorld(props: Props) {
                 </div>
                 <div className="mars-home-user">
                   <b>ASTRONAUT EVA-1</b>
-                  <small>Jezero Crater · Mars Sol 1</small>
+                  <small>Mars exploration · training simulation</small>
                 </div>
               </div>
               <div className="mars-home-stats">
                 <div className="mars-home-stat-box">
-                  <span className="h-val">{radiationExposure.toFixed(1)}</span>
-                  <span className="h-lbl">mSv DOSE</span>
+                  <span className="h-val">{phoneDose.toFixed(2)}</span>
+                  <span className="h-lbl">mSv · SIMULATED</span>
                 </div>
                 <div className="mars-home-stat-box">
                   <span className="h-val">{Math.round(astronautHealth)}%</span>
@@ -3995,9 +4075,9 @@ function MarsWorld(props: Props) {
           </nav>
         </div>
       </div>
-      </>)}
-      {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
-    </>)}
+      </dialog>
+    )}
+    {props.enabled && !introActive && touchControlsActive && !phoneOpen && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
    {/* Astronaut Death Screen Overlay */}
    {isDead && (
      <div className="mars-death-overlay" role="alert" aria-live="assertive">
@@ -4032,9 +4112,9 @@ function MarsWorld(props: Props) {
    )}
    {/* Solar Energetic Particles (SEP) Educational Briefing Modal */}
    {sepInfoOpen && (
-     <div
+     <dialog ref={sepDialog}
        className="mars-sep-modal-backdrop"
-       role="dialog"
+       onCancel={event => { event.preventDefault(); setSepInfoOpen(false); }}
        aria-modal="true"
        aria-labelledby="mars-sep-modal-title"
        onClick={(e) => {
@@ -4048,7 +4128,7 @@ function MarsWorld(props: Props) {
               Radiation Level (SEP)
               <span className="mars-sep-title-tag">LIVE NASA TELEMETRY</span>
              </h2>
-            <p className="mars-sep-modal-sub">Solar Energetic Particles & Real-Time Deep-Space Weather Briefing</p>
+            <p className="mars-sep-modal-sub">Earth observations and fictional Mars exploration</p>
            </div>
            <button
              type="button"
@@ -4063,13 +4143,13 @@ function MarsWorld(props: Props) {
         {/* Section 1: Radiation Level = SEP in simple terms */}
         <div className="mars-sep-card">
           <div className="mars-sep-card-title">
-            <span>☢️</span> Radiation Level = Solar Energetic Particles (SEP)
+            <span>☀️</span> What is SEP?
           </div>
           <p>
-            On Mars, ambient radiation is dominated by <b>Solar Energetic Particles (SEPs)</b>. These are intense streams of high-velocity protons and atomic nuclei blasted into interplanetary space by <b>solar flares</b> and coronal explosions on the Sun.
+            <b>Solar Energetic Particles (SEPs)</b> are intense streams of high-energy protons (≥10 MeV) and heavy atomic nuclei blasted into interplanetary space by <b>solar flares</b> and <b>Coronal Mass Ejections (CMEs)</b> on the Sun.
           </p>
           <p>
-            <b>Why is Mars unprotected?</b> Earth is shielded by a powerful planetary magnetic field and a dense atmosphere. <b>Mars has no global magnetic shield and less than 1% of Earth&apos;s atmosphere</b>, leaving solar energetic protons to strike the surface directly.
+            <b>PFU</b> measures particle flux. NOAA GOES satellites observe near Earth; they do not measure your astronaut&apos;s Mars dose. NASA DONKI provides event references; the archive curves here are authored replays.
           </p>
         </div>
 
@@ -4079,12 +4159,12 @@ function MarsWorld(props: Props) {
             <span>🛰️</span> Live Data Streaming from NASA & NOAA
           </div>
           <p>
-            The <b>RADIATION LEVEL</b> on your communicator displays <b>genuine live interplanetary telemetry</b> streamed directly from <b>NOAA SWPC GOES-16/18 satellites</b> and the <b>NASA DONKI (Space Weather Database)</b>.
+            The <b>RADIATION LEVEL</b> on your communicator displays <b>interplanetary space weather telemetry</b> referenced from <b>NOAA SWPC GOES satellites</b> and the <b>NASA DONKI (Space Weather Database)</b>.
           </p>
           <p>
             • Current Deep-Space Proton Flux: <b>{spaceWeather.sepFluxPFU < 10 ? spaceWeather.sepFluxPFU.toFixed(2) : Math.round(spaceWeather.sepFluxPFU).toLocaleString()} PFU</b> (≥10 MeV protons).<br />
             • Surface Equivalent Dose Rate: <b>{currentRadiationHourly} mSv/h</b> ({spaceWeather.stormScale}).<br />
-            • Active Data Source: <b>{spaceWeather.mode === "live" ? "Real-Time Orbital Satellites (NOAA SWPC GOES)" : `Historical NASA DONKI Replay: ${spaceWeather.activeEvent?.name ?? "Superstorm"}`}</b>.
+            • Active Data Source: <b>{spaceWeather.mode === "live" ? "Orbital Satellites (NOAA SWPC GOES)" : `Historical NASA DONKI Replay: ${spaceWeather.activeEvent?.name ?? "Superstorm"}`}</b>.
           </p>
         </div>
 
@@ -4094,12 +4174,10 @@ function MarsWorld(props: Props) {
              <span>⚠️</span> What Does It Do on Mars?
            </div>
            <p>
-             Earth is shielded by a strong planetary magnetic field and a dense atmosphere. <b>Mars has no global magnetic shield and less than 1% of Earth&apos;s atmosphere</b>, leaving the surface exposed to direct solar storm bombardment:
+             Earth has a global magnetic field and a thick atmosphere. Mars has much less natural shielding, so real mission planners study radiation and protective materials carefully.
            </p>
            <p>
-             • High-energy protons penetrate the suit and cause <b>Acute Radiation Sickness (ARS)</b>.<br />
-             • Triggers biological exposure and <b>progressive vision blur / red tunnel vision</b>.<br />
-             • At <b>≥70 mSv</b>, causes <b>30% sprint fatigue</b>; above <b>75 mSv</b>, causes <b>Health degradation</b> until fatal.
+              {props.story ? 'Story dose changes only through your simulated mission decisions. This phone never drains supplies, damages health or creates a real-time deadline.' : 'Free Exploration uses fictional dose, health, blur and movement effects as game rules. They are not medical predictions or a conversion from NOAA flux to actual Mars exposure. High-energy protons penetrate the suit and cause progressive vision blur and health degradation above 75 mSv.'}
            </p>
          </div>
 
@@ -4109,7 +4187,7 @@ function MarsWorld(props: Props) {
              <span>🛡️</span> How to Stay Safe: Enter a Shielded Base
            </div>
            <p>
-             Solar protons cannot penetrate dense mass. When proton flux spikes (<b>≥10 PFU</b>), <b>seek shelter immediately</b>:
+             More material can reduce exposure, but protection depends on the particles and the shielding. A real habitat is not an absolute radiation barrier.
            </p>
            <div className="mars-sep-shelters-list">
              <div className="mars-sep-shelter-item">
@@ -4124,13 +4202,13 @@ function MarsWorld(props: Props) {
              </div>
            </div>
            <p style={{ marginTop: "4px" }}>
-             <b>Shielding Effect:</b> Blocks 100% of solar protons (<b>0 mSv/s</b>), decontaminates radiation dose at <b>−1.5 mSv/s</b>, and restores Health at <b>+2.5%/s</b>.
+             {props.story ? 'Use the shelter activities to compare explicitly simulated shielding plans. Previously accumulated mission dose is not erased by entering a room.' : 'In Free Exploration only, shelters stop the game exposure meter and let it recover. The displayed recovery is a game mechanic: real accumulated radiation dose is not removed by sheltering.'}
            </p>
          </div>
 
          {/* Interactive Tip */}
          <div className="mars-sep-tip-box">
-           💡 <b>Space Weather Modes [Y]:</b> Press <kbd>Y</kbd> anytime to toggle between the <b>Live NOAA Feed</b> and <b>NASA Historical Superstorms</b> (e.g. May 2024 AR3664 or Sept 2017 Mars GLE).
+           <b>Explore the evidence:</b> Switch between near-Earth NOAA observations and NASA DONKI event replays using the phone&apos;s Data tab. The two are separate from simulated Mars dose.
          </div>
 
          {/* Footer */}
@@ -4141,11 +4219,11 @@ function MarsWorld(props: Props) {
              onClick={() => setSepInfoOpen(false)}
              autoFocus
            >
-             Understood · Return to Exploration ↵
+             Understood · Return to phone
            </button>
          </div>
        </div>
-     </div>
+     </dialog>
    )}
    {loaded && introActive && props.enabled && <div className="landing-caption" role="status"><b>{introTelemetry.phase}</b><span>{introTelemetry.alt > 0.1 ? `${introTelemetry.alt.toFixed(1)} m above landing surface` : "Elysium region · Mars"}</span><button onClick={() => skipIntroAction.current()}>Skip landing</button></div>}
    {loaded && !introActive && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" aria-live="polite">

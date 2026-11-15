@@ -4,7 +4,7 @@ import * as T from 'three';
 export function createEarthDeparture(scene:T.Scene,performance:boolean){
   const coast=new T.Group(),orbit=new T.Group();coast.name='Earth coastal launch site';orbit.name='Earth from space';
   scene.add(coast,orbit);
-  const materials:T.Material[]=[],geometries:T.BufferGeometry[]=[];
+  const materials:T.Material[]=[],geometries:T.BufferGeometry[]=[],textures:T.Texture[]=[];
   const mesh=(parent:T.Object3D,geometry:T.BufferGeometry,material:T.Material)=>{
     geometries.push(geometry);materials.push(material);const result=new T.Mesh(geometry,material);parent.add(result);return result;
   };
@@ -22,6 +22,27 @@ export function createEarthDeparture(scene:T.Scene,performance:boolean){
   terrain.setAttribute('color',new T.BufferAttribute(colors,3));terrain.computeVertexNormals();
   mesh(coast,terrain,new T.MeshStandardMaterial({vertexColors:true,roughness:.94})).receiveShadow=true;
   const pad=mesh(coast,new T.BoxGeometry(100,.3,110),new T.MeshStandardMaterial({color:'#a7aaa7',roughness:.9}));pad.position.set(-5,.05,0);pad.receiveShadow=true;
+  if(typeof document!=='undefined'){
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+    const ctx=canvas.getContext('2d')!;
+    ctx.fillStyle='#858d8d';ctx.fillRect(0,0,512,512);
+    // Original launch apron markings and deterministic concrete grain; no image download.
+    let seed=491;
+    for(let i=0;i<12000;i++){
+      seed=(Math.imul(seed,1664525)+1013904223)>>>0;const x=seed%512;
+      seed=(Math.imul(seed,1664525)+1013904223)>>>0;const y=seed%512;
+      ctx.fillStyle=i%2?'#8c9393':'#7d8585';ctx.fillRect(x,y,1,1);
+    }
+    ctx.strokeStyle='#667172';ctx.lineWidth=1;
+    for(let p=0;p<=512;p+=64){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
+    ctx.strokeStyle='#dde0d4';ctx.lineWidth=4;
+    for(const r of [115,145]){ctx.beginPath();ctx.arc(256,256,r,0,Math.PI*2);ctx.stroke();}
+    ctx.strokeStyle='#d8b45e';ctx.setLineDash([9,9]);ctx.lineWidth=6;ctx.beginPath();ctx.arc(256,256,169,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#e0e3d9';ctx.font='600 19px sans-serif';ctx.textAlign='center';ctx.fillText('TARUKH  /  01',256,475);
+    const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=4;textures.push(texture);
+    const apron=mesh(coast,new T.PlaneGeometry(58,58),new T.MeshStandardMaterial({map:texture,roughness:.86}));
+    apron.rotation.x=-Math.PI/2;apron.position.y=.21;apron.receiveShadow=true;
+  }
   const road=mesh(coast,new T.BoxGeometry(16,.08,900),new T.MeshStandardMaterial({color:'#4d5556',roughness:.95}));road.position.set(62,.08,390);
   const cloudMaterial=new T.MeshBasicMaterial({color:'#ecf2ed',transparent:true,opacity:.65,depthWrite:false});
   for(let i=0;i<(performance?6:12);i++){
@@ -46,5 +67,5 @@ export function createEarthDeparture(scene:T.Scene,performance:boolean){
   for(let i=0;i<450;i++){stars[i*3]=(random()-.5)*2800;stars[i*3+1]=150+random()*1800;stars[i*3+2]=500+random()*800;}
   const starGeometry=new T.BufferGeometry();starGeometry.setAttribute('position',new T.BufferAttribute(stars,3));geometries.push(starGeometry);
   const starMaterial=new T.PointsMaterial({color:'#e3edff',size:1.5,sizeAttenuation:false});materials.push(starMaterial);orbit.add(new T.Points(starGeometry,starMaterial));
-  return {coast,orbit,setSpace(space:boolean){coast.visible=!space;orbit.visible=space;},dispose(){coast.removeFromParent();orbit.removeFromParent();for(const g of geometries)g.dispose();for(const m of new Set(materials))m.dispose();}};
+  return {coast,orbit,setSpace(space:boolean){coast.visible=!space;orbit.visible=space;},dispose(){coast.removeFromParent();orbit.removeFromParent();for(const g of geometries)g.dispose();for(const m of new Set(materials))m.dispose();for(const texture of textures)texture.dispose();}};
 }

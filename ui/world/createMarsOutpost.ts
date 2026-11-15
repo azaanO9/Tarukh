@@ -7,10 +7,58 @@ import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor,
 import type {CollisionObstacle} from '../../game/collision.ts';
 import {createInstanceVisibility} from './instanceVisibility.ts';
 import {createInteriorLighting} from './interiorLighting.ts';
+import {loadSolarPanelAsset, createOutpostSolarMesh} from './createSolarPanels.ts';
 
 const roomLights = [
   [0,0],[-19,0],[18,0],[-11,-22],[12,-22],[0,-13],[-8.5,0],[9,0],[0,-8],
 ] as const;
+
+/** Bounding region of legacy solar array mounting frames, backplates and support poles */
+export const SOLAR_LEGACY_BOUNDS = new T.Box3(new T.Vector3(-20, -1, 11), new T.Vector3(-5, 4, 18));
+
+/**
+ * Strips legacy solar panel support frames, backplates and mounting poles from campus hull seam meshes.
+ * This completely removes the overriding legacy structures so the 2K 3D model stands on its own stand.
+ */
+export function stripLegacySolarGeometry(mesh: T.Mesh, campusScene?: T.Object3D): number {
+  const geom = mesh.geometry;
+  const pos = geom.attributes.position;
+  const idx = geom.index;
+  if (!idx || !pos) return 0;
+  mesh.updateMatrixWorld(true);
+  const m = mesh.matrixWorld.clone();
+  if (campusScene) {
+    campusScene.updateMatrixWorld(true);
+    const invCampus = campusScene.matrixWorld.clone().invert();
+    m.premultiply(invCampus);
+  } else if (mesh.parent) {
+    let top: T.Object3D = mesh;
+    while (top.parent && top.parent.type !== 'Scene' && top.parent.name !== 'TARUKH Elysium Outpost') {
+      top = top.parent;
+    }
+    if (top !== mesh) {
+      top.updateMatrixWorld(true);
+      const invTop = top.matrixWorld.clone().invert();
+      m.premultiply(invTop);
+    }
+  }
+  const v = new T.Vector3();
+  const newIndices: number[] = [];
+  let stripped = 0;
+  for (let i = 0; i < idx.count; i += 3) {
+    const a = idx.getX(i), b = idx.getX(i + 1), c = idx.getX(i + 2);
+    v.fromBufferAttribute(pos, a).applyMatrix4(m);
+    if (SOLAR_LEGACY_BOUNDS.containsPoint(v)) {
+      stripped++;
+      continue;
+    }
+    newIndices.push(a, b, c);
+  }
+  geom.setIndex(newIndices);
+  geom.computeBoundingBox();
+  geom.computeBoundingSphere();
+  return stripped;
+}
 
 /** The campus has no landscape of its own: only the game surface is rendered. */
 export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:CollisionObstacle[]) {
@@ -56,7 +104,8 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       if(!response.ok)throw new Error('Outpost floor plan could not load');
       return response.json() as Promise<OutpostLayout>;
     }),
-  ]).then(([gltf,layout])=>{
+    loadSolarPanelAsset(),
+  ]).then(([gltf,layout,solarAsset])=>{
     if(disposed){freeResources();return;}
     // The review's refractive glass makes Three render the entire Mars world a
     // second time. Reflective alpha glazing retains visibility into the rooms
@@ -84,9 +133,15 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       actions.push({action,duration:clip.duration});
     }
     mixer.update(0);
+    const toRemoveMeshes: T.Mesh[] = [];
     gltf.scene.traverse(o=>{
       if(o.userData.outpostSector)sectors.push({object:o,bounds:new T.Box3().setFromObject(o),interior:Boolean(o.userData.interior)});
       if(o instanceof T.Mesh){
+        // Remove legacy low-res photovoltaic array meshes and strip their support frames/poles
+        if(/photovoltaic/i.test(o.name)){o.visible=false;toRemoveMeshes.push(o);return;}
+        if(o.name === '02__CREW_LIVING__frame_seams' || o.name === '01__bolted_vertical_seams_and_belt_rails_2'){
+          stripLegacySolarGeometry(o, gltf.scene);
+        }
         // Interior furnishings are lit locally; they do not need another full
         // rendering pass into the outdoor sun shadow map.
         let parent:T.Object3D|null=o,interior=false,sector:T.Object3D|null=null;
@@ -104,6 +159,12 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
         }
       }
     });
+    for (const mesh of toRemoveMeshes) mesh.removeFromParent();
+    const crewSector = gltf.scene.getObjectByName('OUTPOST__shell__crew');
+    const solarMesh = createOutpostSolarMesh(solarAsset);
+    if (crewSector) crewSector.add(solarMesh);
+    else root.add(solarMesh);
+    remember(solarMesh);
     obstacles.push(...state.obstacles);
     for(const obstacle of state.obstacles)cameraBoxes.push({obstacle,box:new T.Box3(
       new T.Vector3(obstacle.x-obstacle.halfX!,baseY+.72,obstacle.z-obstacle.halfZ!),

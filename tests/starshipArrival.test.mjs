@@ -2,51 +2,72 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {STARBASE,createStarbaseState} from '../game/starbaseRig.ts';
-import {createArrivalFrame,sampleStarshipArrival,advanceArrival,advanceArrivalWithReadiness,canEnterMars,SHIP_CAPTURE_ALTITUDE,STARSHIP_SEPARATION_TIME} from '../game/starshipArrival.ts';
+import {createArrivalFrame,sampleStarshipArrival,advanceArrival,advanceArrivalWithReadiness,canEnterMars,SHIP_CAPTURE_ALTITUDE,STARSHIP_SPACE_CUT,STARSHIP_RETURN_CUT,ARRIVAL_READY_HOLD} from '../game/starshipArrival.ts';
 import {createStarbase} from '../ui/starbase/createStarbase.ts';
+import {REUSABLE_ROCKET} from '../game/reusableRocket.ts';
+import {createArrivalRigPose} from '../ui/starbase/arrivalRig.ts';
 import {createLandingDust} from '../ui/starbase/landingDust.ts';
 
-test('arrival shows continuous stage separation before a covered cut to Starship return',()=>{
-  const frame=createArrivalFrame();sampleStarshipArrival(STARSHIP_SEPARATION_TIME-.001,frame);
-  assert.equal(frame.separated,false);const beforeY=frame.shipY;
-  sampleStarshipArrival(STARSHIP_SEPARATION_TIME,frame);assert.equal(frame.separated,true);assert.ok(Math.abs(frame.shipY-beforeY)<.001);
-  assert.equal(frame.shipY-frame.boosterY,71);sampleStarshipArrival(7,frame);
-  assert.ok(frame.shipY-frame.boosterY>100);assert.ok(frame.shipThrust>0);
-  sampleStarshipArrival(7.999,frame);assert.ok(frame.fade>.999);sampleStarshipArrival(8,frame);
-  assert.equal(frame.fade,1);assert.equal(frame.boosterVisible,false);assert.equal(frame.returning,true);
+test('one reusable craft remains intact through Earth, space and Mars',()=>{
+  const scene=new T.Scene(),rig=createStarbase(scene,{reusableRocket:true,ground:false});
+  const apply=createArrivalRigPose(rig),frame=createArrivalFrame(),vehicle=rig.starshipUpperStage;
+  const geometries=[];vehicle.traverse(o=>{if(o instanceof T.Mesh)geometries.push(o.geometry);});
+  try{
+    assert.ok(vehicle.getObjectByName('reusableCrewVehicle'));
+    assert.equal(vehicle.getObjectByName('windwardHexagonalTPS'),undefined);
+    assert.equal(rig.boosterEngines.centres.length,0);
+    for(let t=0;t<=32;t+=.1){
+      sampleStarshipArrival(t,frame);apply(frame,t,false);
+      assert.equal(frame.separated,false);assert.equal(frame.boosterVisible,false);
+      assert.equal(rig.stagesSeparated,false);assert.equal(vehicle.parent,rig.rocketEntity);
+      assert.equal(rig.superHeavyBooster.visible,false);
+      assert.equal(rig.rocketEntity.position.y,frame.shipY);
+    }
+    rig.separateStages();assert.equal(rig.stagesSeparated,false);
+    const after=[];vehicle.traverse(o=>{if(o instanceof T.Mesh)after.push(o.geometry);});
+    assert.deepEqual(after,geometries);
+  }finally{rig.dispose();rig.dispose();}assert.equal(scene.children.length,0);
 });
 
-test('launch starts on Earth, separation is in space and the catch is on Mars',()=>{
+test('upright Earth liftoff accelerates from the pad; both environment cuts are covered',()=>{
   const frame=createArrivalFrame();sampleStarshipArrival(0,frame);
-  assert.equal(frame.environment,'earth');assert.equal(frame.boosterY,STARBASE.mountHeight+.5);
-  for(let t=0;t<8;t+=.02){sampleStarshipArrival(t,frame);if(frame.separated)assert.equal(frame.environment,'space');}
-  sampleStarshipArrival(8,frame);assert.equal(frame.environment,'mars');
-  sampleStarshipArrival(32,frame);assert.equal(frame.environment,'mars');assert.equal(frame.shipThrust,0);
+  assert.equal(frame.environment,'earth');assert.equal(frame.shipY,REUSABLE_ROCKET.launchAltitude);
+  let previous=frame.shipY,velocity=0;
+  for(let t=.02;t<STARSHIP_SPACE_CUT;t+=.02){
+    sampleStarshipArrival(t,frame);const dy=frame.shipY-previous;
+    assert.ok(dy>=velocity-1e-7);assert.equal(frame.shipRoll,0);previous=frame.shipY;velocity=dy;
+  }
+  for(const cut of [STARSHIP_SPACE_CUT,STARSHIP_RETURN_CUT]){
+    sampleStarshipArrival(cut-.0001,frame);assert.ok(frame.fade>.999);
+    sampleStarshipArrival(cut,frame);assert.equal(frame.fade,1);
+  }
+  sampleStarshipArrival(STARSHIP_SPACE_CUT,frame);assert.equal(frame.environment,'space');
+  sampleStarshipArrival(STARSHIP_RETURN_CUT,frame);assert.equal(frame.environment,'mars');
 });
 
 test('the coast shot waits for the prepared game without advancing into an empty landing',()=>{
   let elapsed=0;for(let i=0;i<6000;i++)elapsed=advanceArrivalWithReadiness(elapsed,1/60,false,false);
-  assert.equal(elapsed,7.1);
+  assert.equal(elapsed,ARRIVAL_READY_HOLD);
   assert.equal(advanceArrivalWithReadiness(elapsed,.05,true,true),elapsed);
   assert.ok(advanceArrivalWithReadiness(elapsed,.05,false,true)>elapsed);
 });
 
 test('arms close after alignment and support both pins before the engine cutoff',()=>{
   const frame=createArrivalFrame();let lastY=Infinity;
-  for(let time=8;time<32;time+=1/120){
+  for(let time=STARSHIP_RETURN_CUT;time<32;time+=1/120){
     sampleStarshipArrival(time,frame);assert.ok(frame.shipY<=lastY+1e-8);lastY=frame.shipY;
     if(time>23){assert.equal(frame.shipX,0);assert.equal(Math.abs(frame.shipRoll),0);}
-    const gap=frame.shipY+STARBASE.shipPinHeight-STARBASE.pinRadius-frame.carriageHeight;
+    const gap=frame.shipY+REUSABLE_ROCKET.pinHeight-STARBASE.pinRadius-frame.carriageHeight;
     assert.ok(gap>=-1e-8);if(time>23&&time<26)assert.ok(gap>1.19);
     if(time>26&&time<28.9){assert.equal(frame.armAngle,0);assert.ok(frame.shipThrust>0);}
   }
   sampleStarshipArrival(32,frame);assert.equal(frame.shipY,SHIP_CAPTURE_ALTITUDE);assert.equal(frame.shipThrust,0);assert.equal(frame.complete,true);
-  assert.equal(frame.shipY+STARBASE.shipPinHeight-STARBASE.pinRadius,frame.carriageHeight);
+  assert.equal(frame.shipY+REUSABLE_ROCKET.pinHeight-STARBASE.pinRadius,frame.carriageHeight);
 });
 
-test('landing flips upright before capture and switches from three to two to one engine',()=>{
-  const frame=createArrivalFrame();sampleStarshipArrival(13,frame);assert.equal(frame.shipThrust,0);assert.equal(frame.shipRoll,-75);
-  sampleStarshipArrival(16,frame);assert.ok(frame.shipThrust>.5);assert.ok(frame.shipRoll>-75&&frame.shipRoll<0);assert.equal(frame.landingEngines,3);
+test('landing stays nearly upright and switches from three to two to one engine',()=>{
+  const frame=createArrivalFrame();sampleStarshipArrival(13,frame);assert.ok(frame.shipThrust>0);assert.ok(frame.shipRoll>=-8&&frame.shipRoll<=0);
+  sampleStarshipArrival(16,frame);assert.ok(frame.shipThrust>.45);assert.ok(frame.shipRoll>-8&&frame.shipRoll<0);assert.equal(frame.landingEngines,3);
   sampleStarshipArrival(24.5,frame);assert.equal(frame.landingEngines,2);assert.ok(frame.dust>0);
   sampleStarshipArrival(28,frame);assert.equal(frame.landingEngines,1);assert.ok(frame.dust>0);
   sampleStarshipArrival(29,frame);assert.equal(frame.shipThrust,0);assert.equal(frame.dust,0);

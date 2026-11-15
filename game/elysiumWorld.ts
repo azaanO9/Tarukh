@@ -23,6 +23,7 @@ export function approachStoryDaylight(seconds: number, night: boolean, dt: numbe
 export interface ElysiumWorldBridge {
   sessionId: string;
   command: ElysiumWorldCommand;
+  simulatedDose?: number;
   targetSiteId?: string;
   route?: 'direct' | 'ridge' | 'valley';
   routePoints?: readonly {x:number;z:number}[];

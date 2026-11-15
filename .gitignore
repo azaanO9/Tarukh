@@ -12,6 +12,8 @@
 # Generated builds and framework state
 /dist/
 /dist-pages/
+/dist-vercel/
+/.vercel/
 /.next/
 /.vinext/
 /out/

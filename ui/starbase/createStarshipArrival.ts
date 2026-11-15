@@ -2,10 +2,11 @@ import * as T from 'three';
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {createStarbase} from './createStarbase.ts';
 import {createLandingDust} from './landingDust.ts';
-import {STARBASE} from '../../game/starbaseRig.ts';
-import {advanceArrivalWithReadiness,canEnterMars,createArrivalFrame,sampleStarshipArrival,STARSHIP_ARRIVAL_DURATION,type ArrivalPlayback} from '../../game/starshipArrival.ts';
+import {REUSABLE_ROCKET} from '../../game/reusableRocket.ts';
+import {ARRIVAL_READY_HOLD,STARSHIP_SPACE_CUT,advanceArrivalWithReadiness,canEnterMars,createArrivalFrame,sampleStarshipArrival,STARSHIP_ARRIVAL_DURATION,type ArrivalPlayback} from '../../game/starshipArrival.ts';
 import {createArrivalRigPose} from './arrivalRig.ts';
 import {createEarthDeparture} from './earthDeparture.ts';
+import {createStarshipVisual} from './starshipVisual.ts';
 
 type ArrivalOptions={
   ready:()=>boolean;onComplete:()=>void;onFrame:(frame:ReturnType<typeof createArrivalFrame>,elapsed:number,paused:boolean,dust:number)=>void;
@@ -38,10 +39,11 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
   let environment:T.WebGLRenderTarget;
   try{environment=generator.fromScene(room,.04);}finally{room.dispose();generator.dispose();}
   cleanups.push(()=>environment.dispose());scene.environment=environment.texture;scene.environmentIntensity=.95;
-  const rig=createStarbase(scene,{shipCatchPins:true,ground:false});cleanups.push(()=>rig.dispose());
+  const rig=createStarbase(scene,{reusableRocket:true,ground:false});cleanups.push(()=>rig.dispose());
+  const starship=createStarshipVisual(rig);cleanups.push(()=>starship.dispose());
   const earth=createEarthDeparture(scene,options.performance);cleanups.push(()=>earth.dispose());
   const dust=createLandingDust(scene,options.performance?32:80);cleanups.push(()=>dust.dispose());
-  // Lift pins stop above the launch table; catching is a mid-air operation, not a pad touchdown.
+  // The Earth vehicle stands on its own feet; only Mars has a catch tower.
   rig.chopstickCarriage.visible=false;
   const shipBurnLight=new T.PointLight('#b7ccff',0,85,2);shipBurnLight.position.y=-3;rig.starshipUpperStage.add(shipBurnLight);
   cleanups.push(()=>shipBurnLight.dispose());
@@ -56,12 +58,17 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
     options.playback.time=time;applyRig(frameData,time,options.reduced);
     const space=frameData.environment!=='earth';earth.setSpace(space);
     scene.background=space?spaceColor:dayColor;scene.fog=space?null:earthFog;
-    rig.mechazillaTower.visible=rig.orbitalLaunchMount.visible=!space;
+    ambient.intensity=space?.38:1.1;scene.environmentIntensity=space?.55:.95;
+    rig.mechazillaTower.visible=rig.orbitalLaunchMount.visible=false;
     renderer.domElement.style.visibility=frameData.returning?'hidden':'visible';
-    rig.exhaustLight.intensity=frameData.boosterThrust*1000;shipBurnLight.intensity=frameData.shipThrust*1300;
+    rig.exhaustLight.intensity=0;shipBurnLight.intensity=frameData.shipThrust*1300;
     if(frameData.environment==='earth'){
-      cameraPosition.set(190,120+time*22,-245);cameraTarget.set(0,90+time*30,0);
-    }else{cameraPosition.set(95,235,-210);cameraTarget.set(-12,245,0);}
+      const distance=Math.max(1,1/camera.aspect),lift=frameData.shipY;
+      cameraPosition.set(32*distance,18+lift*.94,-49*distance);cameraTarget.set(10,lift+9,0);
+    }else{
+      const distance=Math.max(1,1/camera.aspect);
+      cameraPosition.set(32*distance,frameData.shipY+16,-48*distance);cameraTarget.set(frameData.shipX+10,frameData.shipY+9,0);
+    }
     camera.position.copy(cameraPosition);camera.lookAt(cameraTarget);camera.updateMatrixWorld();
     dust.update(dt,options.reduced?0:frameData.dust,frameData.shipX,0,camera,options.reduced);
   }
@@ -75,7 +82,7 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
     if(document.hidden)return;
     elapsed=advanceArrivalWithReadiness(elapsed,dt,paused,options.ready());
     const preview=options.previewTime;
-    const time=preview??(options.reduced||skipped?(options.ready()?STARSHIP_ARRIVAL_DURATION:7.1):elapsed);
+    const time=preview??(options.reduced||skipped?(options.ready()?STARSHIP_ARRIVAL_DURATION:ARRIVAL_READY_HOLD):elapsed);
     if(!paused&&preview===undefined&&canEnterMars(options.ready(),elapsed,skipped,options.reduced)){finish();return;}
     if((paused||elapsed>=36)&&now-lastDraw<100)return;
     pose(time,paused?0:dt);if(!frameData.returning)renderer.render(scene,camera);lastDraw=now;
@@ -84,12 +91,15 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
   const lost=(event:Event)=>{event.preventDefault();dispose();options.onFailure();};renderer.domElement.addEventListener('webglcontextlost',lost);
   cleanups.push(()=>renderer.domElement.removeEventListener('webglcontextlost',lost));
   async function start(){
-    // Compile the staging flames and landing scene before presenting motion.
-    for(const time of [0,4.5,6]){pose(time,0);await renderer.compileAsync(scene,camera);if(disposed)return;}
-    rig.joinStages();pose(options.reduced?7.1:0,0);renderer.render(scene,camera);
+    await starship.ready;
+    if(disposed)return;
+    host.dataset.rocketModel=starship.status;
+    // Warm both environments and the active exhaust before presenting motion.
+    for(const time of [0,2,STARSHIP_SPACE_CUT+1]){pose(time,0);await renderer.compileAsync(scene,camera);if(disposed)return;}
+    pose(options.reduced?ARRIVAL_READY_HOLD:0,0);renderer.render(scene,camera);
     if(disposed)return;started=true;host.dataset.ready='true';frameId=requestAnimationFrame(animate);
   }
   void start().catch(()=>{if(!disposed){dispose();options.onFailure();}});
-  return {dispose,skip(){skipped=true;paused=false;if(options.ready())finish();},togglePause(){paused=!paused;return paused;},get started(){return started;},get pins(){return STARBASE.shipPinHeight;}};
+  return {dispose,skip(){skipped=true;paused=false;if(options.ready())finish();},togglePause(){paused=!paused;return paused;},get started(){return started;},get pins(){return REUSABLE_ROCKET.pinHeight;}};
   }catch(error){dispose();throw error;}
 }
