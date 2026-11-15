@@ -786,6 +786,7 @@ function MarsWorld(props: Props) {
       let lastGaragePopupVisible = false;
       let lastGaragePopupSource = "none";
       let lastGaragePopupRepair = false;
+      let garageDockEnteredAt = 0;
       let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
@@ -1584,15 +1585,25 @@ function MarsWorld(props: Props) {
             setRoverRangeDisplay(rangeStr);
           }
 
-          // Garage Dock & Maintenance Bay Popup synchronization:
-          if (garageState.phase === "parked" && lastGaragePhaseRef.current !== "parked") {
+          // Garage Dock & Maintenance Bay Popup synchronization (5-second display window):
+          const isParkedInGarage = garageState.phase === "parked";
+          if (isParkedInGarage && lastGaragePhaseRef.current !== "parked") {
             setGarageDockDismissed(false);
             garageDockDismissedRef.current = false;
+            garageDockEnteredAt = time;
+          } else if (!isParkedInGarage) {
+            garageDockEnteredAt = 0;
+            if (garageDockDismissedRef.current) {
+              garageDockDismissedRef.current = false;
+              setGarageDockDismissed(false);
+            }
+          } else if (garageDockEnteredAt === 0 && !current.current.coveredByArrival && !landingIntro?.isActive()) {
+            garageDockEnteredAt = time;
           }
           lastGaragePhaseRef.current = garageState.phase;
 
-          const isParkedInGarage = garageState.phase === "parked";
-          const popupShouldShow = isParkedInGarage && !garageDockDismissedRef.current;
+          const popupTimeRemaining = garageDockEnteredAt > 0 && time - garageDockEnteredAt < 5000;
+          const popupShouldShow = isParkedInGarage && !garageDockDismissedRef.current && popupTimeRemaining;
           const popupSource = garageState.chargingSource ?? "none";
           const popupRepair = Boolean(garageState.repairActive);
 
@@ -2148,7 +2159,7 @@ function MarsWorld(props: Props) {
           element.dataset.garageBatteryWh = garageState.batteryWh.toFixed(1);
           element.dataset.garageRepairActive = garageState.repairActive ? "true" : "false";
           element.dataset.garageChargingSource = garageState.chargingSource ?? "none";
-          element.dataset.garageDockPopup = (garageState.phase === "parked" && !garageDockDismissedRef.current) ? "true" : "false";
+          element.dataset.garageDockPopup = (garageState.phase === "parked" && !garageDockDismissedRef.current && (garageDockEnteredAt > 0 && time - garageDockEnteredAt < 5000)) ? "true" : "false";
           element.dataset.crewRoverX = rover.x.toFixed(3);
           element.dataset.crewRoverZ = rover.z.toFixed(3);
           element.dataset.crewRoverYaw = rover.yaw.toFixed(4);
