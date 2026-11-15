@@ -639,645 +639,974 @@
 @media(max-height:460px){.roam-root .sv-look-controls{top:76px}.roam-root .sv-look-controls details{max-height:calc(100dvh - 90px)}.roam-root .mars-debug[data-mode=detailed]{top:128px;right:72px}}
 
 /* ==========================================================================
-   GTA V Style Interactive Full Map / Atlas Screen
+   Expedition Atlas Interactive Full Map Screen
    ========================================================================== */
 
-.roam-dialog:has(.gta-atlas-container) {
-  max-width: min(96vw, 1340px) !important;
-  width: 96vw !important;
-  height: min(92dvh, 900px) !important;
-  max-height: 92dvh !important;
+.roam-dialog:has(.atlas-expedition-wrap) {
+  max-width: min(98vw, 1500px) !important;
+  width: 98vw !important;
+  height: min(96dvh, 960px) !important;
+  max-height: 96dvh !important;
   padding: 0 !important;
-  border-radius: 14px !important;
+  border-radius: 8px !important;
   overflow: hidden !important;
-  background: rgba(14, 10, 12, 0.98) !important;
-  border: 1px solid rgba(255, 120, 70, 0.3) !important;
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 109, 0, 0.18) !important;
+  background: #0c1012 !important;
+  border: 1px solid #414b4b !important;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(153, 217, 208, 0.12) !important;
 }
 
-.gta-atlas-container {
+.atlas-expedition-wrap {
+  --bg: #0c1012;
+  --panel: #111719;
+  --line: #30393b;
+  --soft: #9eaaa9;
+  --ice: #99d9d0;
+  --gold: #ffbf76;
+  --mono: Consolas, "Courier New", monospace;
+  --sans: Bahnschrift, "Segoe UI", sans-serif;
+
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  color: #f4f4f5;
-  font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 109, 0, 0.08) 0%, transparent 60%),
-    linear-gradient(180deg, #120c0e 0%, #0a0708 100%);
+  background: var(--bg);
+  color: #e9ece5;
+  font: 14px var(--sans);
   user-select: none;
   overflow: hidden;
   position: relative;
+  box-sizing: border-box;
 }
 
-/* 1. Top Pause Menu Header */
-.gta-atlas-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  background: rgba(10, 7, 8, 0.96);
-  border-bottom: 1px solid rgba(255, 120, 70, 0.25);
-  flex-shrink: 0;
-  z-index: 10;
+.atlas-expedition-wrap * {
+  box-sizing: border-box;
 }
 
-.gta-atlas-brand {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.gta-brand-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #00e676;
-  box-shadow: 0 0 6px #00e676;
-}
-
-.gta-brand-title {
-  font: 900 13px/1 ui-monospace, sans-serif;
-  letter-spacing: 0.22em;
-  color: #ffffff;
-}
-
-.gta-brand-sub {
-  font: 700 8.5px/1 ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  color: #a1a1aa;
-}
-
-.gta-atlas-tabs {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.gta-atlas-tab {
+.atlas-expedition-wrap button,
+.atlas-expedition-wrap select {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
   background: none;
-  border: none;
-  color: #71717a;
-  padding: 6px 4px;
-  font: 800 11px/1 ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.15s ease;
 }
 
-.gta-atlas-tab:hover {
-  color: #e4e4e7;
+.atlas-expedition-wrap button:focus-visible,
+.atlas-expedition-wrap select:focus-visible,
+.atlas-expedition-wrap #map:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
 }
 
-.gta-atlas-tab.active {
-  color: #ffffff;
+.atlas-expedition-wrap button:disabled {
+  opacity: 0.48;
+  cursor: default;
 }
 
-.gta-tab-active-bar {
-  position: absolute;
-  bottom: -9px;
-  left: 0;
-  width: 100%;
-  height: 2.5px;
-  background: #ff6d00;
-  box-shadow: 0 0 8px #ff6d00;
-  border-radius: 1px;
+.atlas-expedition-wrap button:hover:enabled {
+  filter: brightness(1.19);
 }
 
-.gta-atlas-meta {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.atlas-expedition-wrap .mono,
+.atlas-expedition-wrap small,
+.atlas-expedition-wrap .meta,
+.atlas-expedition-wrap .caps {
+  font-family: var(--mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
-.gta-meta-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1.5px;
-}
-
-.meta-lbl {
-  font: 700 6.5px/1 ui-monospace, monospace;
-  color: #71717a;
-  letter-spacing: 0.1em;
-}
-
-.meta-val {
-  font: 800 9.5px/1 ui-monospace, monospace;
-  color: #ffffff;
-  font-variant-numeric: tabular-nums;
-}
-
-.gta-atlas-close-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 800;
-  transition: all 0.15s ease;
-  margin-left: 6px;
-}
-
-.gta-atlas-close-btn:hover {
-  background: rgba(239, 68, 68, 0.3);
-  border-color: #ef4444;
-}
-
-/* 2. Workspace Layout */
-.gta-atlas-workspace {
-  display: flex;
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: #080506;
-}
-
-.gta-atlas-map-viewport {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  cursor: grab;
-  touch-action: none;
-}
-
-.gta-atlas-map-viewport:active {
-  cursor: grabbing;
-}
-
-.gta-atlas-svg-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* North Directional Compass (Top-Left) */
-.gta-map-north-badge {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(14, 10, 12, 0.85);
-  border: 1px solid rgba(255, 120, 70, 0.3);
-  border-radius: 6px;
-  padding: 4px 6px;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-}
-
-.north-arrow {
-  color: #ef4444;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.north-label {
-  font: 900 9px/1 monospace;
-  color: #ef4444;
-  letter-spacing: 0.05em;
-  margin-top: 1px;
-}
-
-/* Crosshair HUD (Top-Right) */
-.gta-map-crosshair-hud {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: rgba(14, 10, 12, 0.85);
-  border: 1px solid rgba(255, 120, 70, 0.25);
-  border-radius: 5px;
-  padding: 4px 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font: 800 8.5px/1 monospace;
-  color: #e4e4e7;
-  letter-spacing: 0.05em;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-}
-
-.crosshair-icon {
-  color: #ff6d00;
-  font-size: 11px;
-}
-
-/* Zoom & Center HUD Controls (Bottom-Right of map) */
-.gta-map-controls-hud {
-  position: absolute;
-  bottom: 18px;
-  right: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: rgba(14, 10, 12, 0.9);
-  border: 1px solid rgba(255, 120, 70, 0.3);
-  border-radius: 7px;
-  padding: 4px;
-  backdrop-filter: blur(8px);
-  z-index: 5;
-}
-
-.gta-hud-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f4f4f5;
-  width: 28px;
-  height: 28px;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font: 800 12px/1 monospace;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.gta-hud-btn:hover {
-  background: rgba(255, 109, 0, 0.2);
-  border-color: #ff6d00;
-  color: #ffffff;
-}
-
-.gta-hud-divider {
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 1px 0;
-}
-
-.gta-hud-btn.center-btn {
-  color: #00e676;
-  font-size: 14px;
-}
-
-.gta-hud-btn.center-btn:hover {
-  background: rgba(0, 230, 118, 0.2);
-  border-color: #00e676;
-}
-
-/* Metric Scale HUD (Bottom-Left) */
-.gta-map-scale-hud {
-  position: absolute;
-  bottom: 18px;
-  left: 18px;
-  background: rgba(14, 10, 12, 0.85);
-  border: 1px solid rgba(255, 120, 70, 0.25);
-  border-radius: 5px;
-  padding: 5px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-}
-
-.scale-bar-track {
-  width: 90px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.scale-bar-track i {
-  display: block;
-  height: 100%;
-  background: #ff6d00;
-}
-
-.scale-text {
-  font: 700 7.5px/1 monospace;
-  color: #d4d4d8;
-  letter-spacing: 0.04em;
-}
-
-/* Waypoint HUD Pill */
-.gta-map-waypoint-hud {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(14, 10, 12, 0.92);
-  border: 1px solid #ff6d00;
-  border-radius: 20px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 0 16px rgba(255, 109, 0, 0.35);
-  backdrop-filter: blur(8px);
-}
-
-.waypoint-icon {
-  color: #ff6d00;
-  font-size: 12px;
-}
-
-.waypoint-info b {
-  display: block;
-  font-size: 8.5px;
-  color: #ffffff;
-  letter-spacing: 0.05em;
-}
-
-.waypoint-info small {
-  font-size: 7.5px;
-  color: #a1a1aa;
-}
-
-.waypoint-clear-btn {
-  background: none;
-  border: none;
-  color: #a1a1aa;
-  cursor: pointer;
-  padding: 0 2px;
+.atlas-expedition-wrap small,
+.atlas-expedition-wrap .meta,
+.atlas-expedition-wrap .caps {
   font-size: 10px;
 }
 
-.waypoint-clear-btn:hover {
-  color: #ef4444;
-}
-
-/* 3. Landmark & POI Sidebar */
-.gta-atlas-sidebar {
-  width: 290px;
-  background: rgba(16, 12, 14, 0.95);
-  border-left: 1px solid rgba(255, 120, 70, 0.25);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  overflow: hidden;
-  z-index: 8;
-}
-
-.gta-sidebar-header {
-  padding: 10px 12px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.gta-sidebar-header h3 {
-  font: 800 10px/1 monospace;
-  letter-spacing: 0.1em;
-  color: #ffffff;
-  margin: 0 0 8px;
-}
-
-.gta-filter-chips {
-  display: flex;
-  gap: 4px;
-}
-
-.filter-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #a1a1aa;
-  border-radius: 3px;
-  padding: 3px 6px;
-  font: 700 7px/1 monospace;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.filter-chip:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-
-.filter-chip.active {
-  background: rgba(255, 109, 0, 0.2);
-  border-color: #ff6d00;
-  color: #ff6d00;
-}
-
-.gta-poi-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.gta-poi-category-title {
-  font: 800 7px/1 monospace;
-  color: #ff6d00;
-  letter-spacing: 0.1em;
-  margin: 4px 2px 2px;
-}
-
-.gta-poi-card {
-  background: rgba(26, 18, 20, 0.7);
-  border: 1px solid rgba(255, 120, 70, 0.16);
-  border-radius: 6px;
-  padding: 6px 8px;
+/* 1. Masthead Header */
+.atlas-expedition-wrap .mast {
+  height: 52px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  color: inherit;
+  border-bottom: 1px solid var(--line);
+  padding: 0 clamp(16px, 2.5vw, 36px);
+  gap: 20px;
+  flex-shrink: 0;
+  background: rgba(12, 16, 18, 0.98);
 }
 
-.gta-poi-card:hover {
-  background: rgba(38, 24, 28, 0.95);
-  border-color: rgba(255, 120, 70, 0.45);
-  transform: translateX(2px);
+.atlas-expedition-wrap .brand {
+  font: 600 18px var(--sans);
+  letter-spacing: 0.22em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
 }
 
-.gta-poi-card.active {
-  background: rgba(255, 109, 0, 0.16);
-  border-color: #ff6d00;
-  box-shadow: 0 0 10px rgba(255, 109, 0, 0.2);
+.atlas-expedition-wrap .brand svg {
+  width: 28px;
+  height: 28px;
 }
 
-.poi-card-icon,
-.poi-card-num {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.4);
+.atlas-expedition-wrap .program {
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  color: #a9b6b5;
+  font-size: 13px;
+}
+
+.atlas-expedition-wrap .live {
+  margin-left: auto;
+  color: var(--ice);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 11px var(--mono);
+}
+
+.atlas-expedition-wrap .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ice);
+  box-shadow: 0 0 9px #7bd1bb;
+}
+
+.atlas-expedition-wrap .helpBtn {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 800 9px/1 monospace;
-  color: #ffedd5;
-  flex-shrink: 0;
+  color: var(--soft);
+  font: 13px var(--mono);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.15s ease;
 }
 
-.poi-card-meta {
-  flex: 1;
-  overflow: hidden;
+.atlas-expedition-wrap .helpBtn:hover {
+  color: var(--ice);
+  border-color: var(--ice);
+  background: rgba(153, 217, 208, 0.1);
 }
 
-.poi-card-meta b {
-  display: block;
-  font-size: 8.5px;
-  color: #f4f4f5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.atlas-expedition-wrap .closeBtn {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--soft);
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.15s ease;
 }
 
-.poi-card-meta small {
-  font-size: 7px;
-  color: #a1a1aa;
+.atlas-expedition-wrap .closeBtn:hover {
+  color: #fff;
+  border-color: #ff6e6e;
+  background: rgba(255, 110, 110, 0.15);
 }
 
-.poi-card-chevron {
-  color: #ff6d00;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Selected Landmark Detail Card in Sidebar */
-.gta-landmark-detail-card {
-  padding: 10px 12px;
-  background: rgba(20, 14, 16, 0.96);
-  border-top: 1px solid rgba(255, 120, 70, 0.25);
+/* 2. Main Wrap & Titlebar */
+.atlas-expedition-wrap .wrap {
+  width: 100%;
+  height: calc(100% - 52px);
+  margin: 0;
+  padding: 0 clamp(12px, 2.2vw, 32px) 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  overflow: hidden;
+}
+
+.atlas-expedition-wrap .titlebar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 12px 0 10px;
   flex-shrink: 0;
 }
 
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.atlas-expedition-wrap .kicker {
+  color: #9ac5bf;
+  font: 10px var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-.detail-header h4 {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 800;
-  color: #ffffff;
+.atlas-expedition-wrap .titlebar h1 {
+  font: 500 clamp(22px, 2.5vw, 36px) / 1.05 var(--sans);
+  letter-spacing: -0.04em;
+  margin: 4px 0 0;
+  color: #fff;
 }
 
-.detail-tag {
-  font: 800 6.5px/1 monospace;
-  background: rgba(255, 109, 0, 0.2);
-  border: 1px solid #ff6d00;
-  color: #ff6d00;
-  padding: 2px 5px;
-  border-radius: 2px;
+.atlas-expedition-wrap .sector {
+  color: var(--soft);
+  text-align: right;
+  line-height: 1.6;
+  font-size: 12px;
 }
 
-.detail-desc {
-  margin: 0;
-  font-size: 8px;
-  line-height: 1.45;
-  color: #cbd5e1;
+.atlas-expedition-wrap .sector b {
+  color: #d1d8d4;
+  font-weight: normal;
 }
 
-.detail-source-link {
-  color: #38bdf8;
-  font-size: 8px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.detail-source-link:hover {
-  color: #7dd3fc;
-}
-
-.gta-waypoint-set-btn {
-  background: linear-gradient(135deg, #ff6d00 0%, #ea580c 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+/* 3. Split Grid (Map + Side Panel) */
+.atlas-expedition-wrap .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 25vw, 370px);
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #414b4b;
+  background: var(--panel);
   border-radius: 4px;
-  padding: 6px;
-  font: 800 8.5px/1 monospace;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+/* Left Column: Map Viewport */
+.atlas-expedition-wrap #map {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  touch-action: none;
+  background: #563b2d;
+  cursor: grab;
+  height: 100%;
+}
+
+.atlas-expedition-wrap #map:active {
+  cursor: grabbing;
+}
+
+.atlas-expedition-wrap #terrain,
+.atlas-expedition-wrap .vignette,
+.atlas-expedition-wrap #pins {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
 }
 
-.gta-waypoint-set-btn:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
+.atlas-expedition-wrap #terrain canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* 4. Bottom Controls Legend Strip */
-.gta-atlas-footer {
+.atlas-expedition-wrap #pins,
+.atlas-expedition-wrap .vignette {
+  pointer-events: none;
+}
+
+.atlas-expedition-wrap .vignette {
+  background: linear-gradient(180deg, rgba(21, 20, 17, 0.48), transparent 21%, transparent 75%, rgba(18, 20, 19, 0.54));
+  box-shadow: inset 0 0 90px rgba(29, 23, 19, 0.3);
+}
+
+.atlas-expedition-wrap .maphead {
+  position: absolute;
+  left: 20px;
+  top: 18px;
+  pointer-events: none;
+  color: #fff1dc;
+  text-shadow: 0 2px 10px #1b0e08;
+}
+
+.atlas-expedition-wrap .maphead strong {
+  display: block;
+  font-size: clamp(20px, 2vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.atlas-expedition-wrap .maphead small {
+  display: block;
+  font-size: 9px;
+  margin-bottom: 3px;
+  color: #f2d7b8;
+}
+
+.atlas-expedition-wrap .maptools {
+  position: absolute;
+  right: 16px;
+  top: 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 7px 16px;
-  background: rgba(10, 7, 8, 0.96);
-  border-top: 1px solid rgba(255, 120, 70, 0.25);
-  flex-shrink: 0;
+  gap: 3px;
+  background: rgba(16, 23, 23, 0.88);
+  padding: 4px;
+  border: 1px solid rgba(178, 176, 165, 0.3);
+  border-radius: 4px;
   z-index: 10;
 }
 
-.gta-legend-keys {
+.atlas-expedition-wrap .maptools button {
+  font: 10px var(--mono);
+  padding: 6px 10px;
+  color: #bac4bd;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.atlas-expedition-wrap .maptools button.on {
+  color: #101919;
+  background: #b8dad1;
+  font-weight: 600;
+}
+
+.atlas-expedition-wrap .tools {
+  position: absolute;
+  bottom: 60px;
+  right: 16px;
+  display: grid;
+  gap: 4px;
+  z-index: 10;
+}
+
+.atlas-expedition-wrap .tools button {
+  background: rgba(17, 24, 23, 0.9);
+  border: 1px solid rgba(147, 156, 146, 0.45);
+  border-radius: 3px;
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  color: #d1d8d4;
+  transition: all 0.15s ease;
+}
+
+.atlas-expedition-wrap .tools button:hover {
+  background: rgba(25, 36, 35, 0.95);
+  border-color: var(--ice);
+}
+
+.atlas-expedition-wrap .tools button.on {
+  color: var(--ice);
+  border-color: var(--ice);
+  background: rgba(153, 217, 208, 0.15);
+}
+
+.atlas-expedition-wrap .tools svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.atlas-expedition-wrap .mapfoot {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  font: 10px var(--mono);
+  color: #fff3df;
+  text-shadow: 0 1px 4px #241206;
+  z-index: 10;
+}
+
+.atlas-expedition-wrap .mapfoot .legend {
+  background: rgba(21, 26, 24, 0.88);
+  padding: 8px 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.atlas-expedition-wrap .scale {
+  display: block;
+  border: 1px solid currentColor;
+  border-top: 0;
+  height: 5px;
+  margin: 3px 0;
+}
+
+/* Map Pins */
+.atlas-expedition-wrap .pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  text-shadow: 0 1px 3px #160e0a;
+  cursor: pointer;
+}
+
+.atlas-expedition-wrap .pin i {
+  width: 11px;
+  height: 11px;
+  background: #152122;
+  border: 2px solid #afe2d6;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 2px rgba(27, 32, 31, 0.44);
+  transition: all 0.15s ease;
+}
+
+.atlas-expedition-wrap .pin:hover i {
+  border-color: var(--gold);
+  transform: rotate(45deg) scale(1.15);
+}
+
+.atlas-expedition-wrap .pin span {
+  position: absolute;
+  bottom: 27px;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 10px var(--mono);
+  color: #e3e8df;
+  white-space: nowrap;
+  background: rgba(22, 32, 33, 0.88);
+  padding: 4px 7px;
+  border-radius: 2px;
+  border: 1px solid rgba(175, 226, 214, 0.25);
+  pointer-events: none;
+}
+
+.atlas-expedition-wrap .pin.chosen i {
+  width: 15px;
+  height: 15px;
+  border-color: var(--gold);
+  background: #6e4827;
+}
+
+.atlas-expedition-wrap .pin.chosen:after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 1px solid rgba(255, 204, 135, 0.7);
+  border-radius: 50%;
+  animation: atlasPulse 2.6s infinite;
+}
+
+.atlas-expedition-wrap .pin.chosen span {
+  bottom: 32px;
+  color: #ffdaac;
+  border-color: var(--gold);
+  background: rgba(45, 27, 16, 0.92);
+}
+
+.atlas-expedition-wrap .pin.waypoint-pin i {
+  border-color: #ff5252 !important;
+  background: #7f1d1d !important;
+}
+
+.atlas-expedition-wrap .pin.waypoint-pin:after {
+  border-color: rgba(255, 82, 82, 0.8) !important;
+}
+
+.atlas-expedition-wrap .roverPin {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 25;
+}
+
+.atlas-expedition-wrap .roverPin .rover-icon {
+  color: #d1f5e2;
+  font-size: 18px;
+  line-height: 1;
+  text-shadow: 0 0 8px #122a23, 0 0 4px #122a23, 0 0 12px rgba(153, 217, 208, 0.8);
+  transition: transform 0.1s linear;
+}
+
+.atlas-expedition-wrap .roverPin span {
+  font: 9px var(--mono);
+  margin-top: 4px;
+  background: #193c34;
+  color: #c5f1df;
+  padding: 2px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(153, 217, 208, 0.4);
+}
+
+.atlas-expedition-wrap .message {
+  position: absolute;
+  bottom: 60px;
+  left: 20px;
+  background: rgba(17, 28, 26, 0.92);
+  color: var(--ice);
+  padding: 6px 10px;
+  font: 11px var(--mono);
+  border-radius: 3px;
+  border: 1px solid rgba(153, 217, 208, 0.35);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Right Column: Expedition Side Panel */
+.atlas-expedition-wrap .panel {
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: linear-gradient(155deg, #192022, #101517 80%);
+}
+
+.atlas-expedition-wrap .tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  padding: 0 16px;
+  gap: 20px;
+  flex: none;
+}
+
+.atlas-expedition-wrap .tabs button {
+  color: var(--soft);
+  padding: 12px 0 10px;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.atlas-expedition-wrap .tabs button.on {
+  border-color: var(--ice);
+  color: #f0f4ec;
+  font-weight: 600;
+}
+
+.atlas-expedition-wrap .panelbody {
+  overflow-y: auto;
+  padding: 14px 16px 8px;
+  scrollbar-width: thin;
+  flex: 1;
+  min-height: 0;
+}
+
+.atlas-expedition-wrap .category-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
 }
 
-.gta-key-tip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font: 700 7.5px/1 monospace;
-  color: #a1a1aa;
-  letter-spacing: 0.04em;
+.atlas-expedition-wrap .category-chips .chip {
+  padding: 3px 9px;
+  font: 10px var(--mono);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.gta-kbd {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #ffffff;
-  border-radius: 3px;
-  padding: 2px 5px;
-  font: 800 7.5px/1 monospace;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+.atlas-expedition-wrap .category-chips .chip:hover {
+  border-color: var(--ice);
+  color: #e9ece5;
 }
 
-.gta-footer-right {
+.atlas-expedition-wrap .category-chips .chip.active {
+  background: rgba(153, 217, 208, 0.15);
+  border-color: var(--ice);
+  color: var(--ice);
+  font-weight: 600;
+}
+
+.atlas-expedition-wrap .list {
+  display: grid;
+  gap: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 2px;
+}
+
+.atlas-expedition-wrap .site {
   display: flex;
   align-items: center;
+  gap: 8px;
+  text-align: left;
+  width: 100%;
+  padding: 6px 8px;
+  color: #cdd3cb;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: all 0.15s ease;
 }
 
-.gta-trek-link {
-  font: 700 8px/1 monospace;
-  color: #38bdf8;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  transition: color 0.15s ease;
+.atlas-expedition-wrap .site:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.gta-trek-link:hover {
-  color: #7dd3fc;
-  text-decoration: underline;
+.atlas-expedition-wrap .site .g {
+  font-size: 16px;
+  color: #a0bab5;
+  flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .gta-atlas-sidebar {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 250px;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+.atlas-expedition-wrap .site .site-title {
+  flex: 1;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas-expedition-wrap .site .dist-chip {
+  font: 10px var(--mono);
+  color: var(--ice);
+  background: rgba(153, 217, 208, 0.1);
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.atlas-expedition-wrap .site .type {
+  font: 9px var(--mono);
+  color: #9daba8;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.atlas-expedition-wrap .site.on {
+  background: #28312e;
+  color: #ffe3b9;
+  border-color: #59604f;
+}
+
+.atlas-expedition-wrap .site.on .g {
+  color: var(--gold);
+}
+
+/* Site Detail Profile */
+.atlas-expedition-wrap .detail {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.atlas-expedition-wrap .detail .topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.atlas-expedition-wrap .typechip {
+  color: var(--gold);
+  font: 9px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.atlas-expedition-wrap .detail h2 {
+  font-size: 22px;
+  letter-spacing: -0.035em;
+  margin: 5px 0;
+  font-weight: 500;
+  color: #fff;
+}
+
+.atlas-expedition-wrap .detail p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #b0bbb7;
+  margin: 4px 0 8px;
+}
+
+/* 3D Local Wireframe Mesh Canvas */
+.atlas-expedition-wrap .wire {
+  width: 100%;
+  height: 80px;
+  display: block;
+  background: linear-gradient(0deg, #192122, #131a1b);
+  border: 1px solid #303c3b;
+  border-radius: 3px;
+}
+
+.atlas-expedition-wrap .readings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.atlas-expedition-wrap .readings small {
+  display: block;
+  color: #97a6a0;
+  font-size: 9px;
+}
+
+.atlas-expedition-wrap .readings strong {
+  display: block;
+  font-size: 16px;
+  margin-top: 2px;
+  font-weight: 500;
+  color: #e9ece5;
+}
+
+.atlas-expedition-wrap .meta-readings {
+  font: 10px var(--mono);
+  color: var(--soft);
+  margin-top: 6px;
+  padding: 5px 7px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.atlas-expedition-wrap .meta-readings b {
+  color: #e9ece5;
+}
+
+/* Bottom Command Bar */
+.atlas-expedition-wrap .command {
+  margin-top: auto;
+  padding: 10px 16px 12px;
+  background: #12191a;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.atlas-expedition-wrap .command button {
+  background: var(--gold);
+  color: #241e15;
+  width: 100%;
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+
+.atlas-expedition-wrap .command button:hover {
+  background: #ffd095;
+}
+
+.atlas-expedition-wrap .command .routeState {
+  font: 10px var(--mono);
+  color: var(--ice);
+  margin-bottom: 6px;
+  min-height: 12px;
+}
+
+/* 4. Bottom Legend Strip */
+.atlas-expedition-wrap .bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #98a7a1;
+  font: 10px var(--mono);
+  padding: 8px 0 2px;
+  flex-shrink: 0;
+}
+
+.atlas-expedition-wrap .bottom kbd {
+  color: #d9e4da;
+  border: 1px solid #46524c;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.atlas-expedition-wrap .demo {
+  color: #84938e;
+}
+
+/* 5. Traverse Log Brief */
+.atlas-expedition-wrap .brief {
+  color: #c5d0c8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.atlas-expedition-wrap .brief h2 {
+  color: #eff3e9;
+  font-size: 18px;
+  margin: 6px 0;
+}
+
+.atlas-expedition-wrap .brief ol {
+  padding-left: 18px;
+  margin: 8px 0;
+}
+
+.atlas-expedition-wrap .brief li {
+  margin: 6px 0;
+  color: #a0bab5;
+}
+
+/* 6. Guide Dialog */
+.atlas-expedition-wrap .guide-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 10, 13, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.atlas-expedition-wrap dialog#guide {
+  position: static;
+  max-width: min(440px, 92vw);
+  background: #192020;
+  color: #e4eade;
+  border: 1px solid #53605d;
+  border-radius: 6px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.atlas-expedition-wrap dialog#guide h2 {
+  font-size: 17px;
+  margin: 0;
+  color: var(--ice);
+  font-weight: 600;
+}
+
+.atlas-expedition-wrap dialog#guide p {
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 0;
+  color: #cdd3cb;
+}
+
+.atlas-expedition-wrap dialog#guide b {
+  color: #fff;
+}
+
+.atlas-expedition-wrap dialog#guide #dismiss {
+  align-self: flex-end;
+  background: #bed8d0;
+  color: #17201c;
+  padding: 7px 16px;
+  border-radius: 3px;
+  font: 11px var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 6px;
+  transition: background 0.15s ease;
+}
+
+.atlas-expedition-wrap dialog#guide #dismiss:hover {
+  background: #d8ece6;
+}
+
+/* Animations */
+@keyframes atlasPulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.92);
   }
-  .gta-atlas-tabs {
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+/* Responsive Overrides */
+@media (max-height: 780px) and (min-width: 801px) {
+  .atlas-expedition-wrap .mast {
+    height: 44px;
+  }
+  .atlas-expedition-wrap .titlebar {
+    padding: 8px 0;
+  }
+  .atlas-expedition-wrap .titlebar h1 {
+    font-size: 24px;
+  }
+  .atlas-expedition-wrap .wire {
+    height: 60px;
+  }
+  .atlas-expedition-wrap .site {
+    padding: 4px 6px;
+  }
+  .atlas-expedition-wrap .detail {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .atlas-expedition-wrap .detail h2 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 800px) {
+  .atlas-expedition-wrap .grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow-y: auto;
+  }
+  .atlas-expedition-wrap .panel {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .atlas-expedition-wrap #map {
+    height: 48dvh;
+    min-height: 280px;
+  }
+  .atlas-expedition-wrap .panelbody {
+    overflow: visible;
+  }
+  .atlas-expedition-wrap .list {
+    grid-template-columns: 1fr 1fr;
+    max-height: 120px;
+  }
+  .atlas-expedition-wrap .site .type {
     display: none;
+  }
+  .atlas-expedition-wrap .mast .program {
+    display: none;
+  }
+  .atlas-expedition-wrap .mast {
+    height: 44px;
+  }
+  .atlas-expedition-wrap .titlebar {
+    padding: 8px 0;
+  }
+  .atlas-expedition-wrap .sector {
+    font-size: 10px;
+  }
+  .atlas-expedition-wrap .bottom .keys {
+    display: none;
+  }
+  .atlas-expedition-wrap .maphead {
+    left: 12px;
+    top: 12px;
+  }
+  .atlas-expedition-wrap .maptools {
+    right: 8px;
+    top: 10px;
+  }
+  .atlas-expedition-wrap .maphead strong {
+    font-size: 18px;
+  }
+  .atlas-expedition-wrap .pin span {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-expedition-wrap *,
+  .atlas-expedition-wrap *:after {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
