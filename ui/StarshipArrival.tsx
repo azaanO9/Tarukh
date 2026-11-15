@@ -33,7 +33,8 @@ export default function StarshipArrival({ready,onComplete,performance=false}:{re
           section.current.dataset.shipAltitude=frame.shipY.toFixed(3);section.current.dataset.shipThrust=frame.shipThrust.toFixed(3);
           section.current.dataset.armAngle=frame.armAngle.toFixed(3);section.current.dataset.dust=String(dust);
           section.current.dataset.pinGap=(frame.shipY+STARBASE.shipPinHeight-STARBASE.pinRadius-frame.carriageHeight).toFixed(4);
-          if(phase.current)phase.current.textContent=isPaused?'Sequence paused':frame.phase;
+          const label=isPaused?'Sequence paused':frame.phase;
+          if(phase.current&&phase.current.textContent!==label)phase.current.textContent=label;
           if(detail.current)detail.current.textContent=frame.returning?`${frame.shipY.toFixed(0)} m · ${frame.shipThrust>0?`${frame.landingEngines} landing engine${frame.landingEngines===1?'':'s'}`:'Engines off'}`:'Super Heavy + Starship · time-compressed flight';
           if(bar.current)bar.current.style.transform=`scaleX(${frame.progress})`;
           if(fade.current)fade.current.style.opacity=String(frame.fade);
