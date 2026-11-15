@@ -109,6 +109,7 @@ test('rover parked in garage recharges battery from base solar panels and invert
   assert.equal(state.chargerActive,true);
   assert.equal(rover.garageCharging,true);
   assert.equal(rover.solarCharging,false);
+  assert.equal(state.chargingSource,'base-solar');
   assert.equal(state.inverterWatts,850);
   assert.equal(state.inverterStatus,'CHARGING');
   assert.ok(rover.battery>40);
@@ -128,6 +129,7 @@ test('rover parked in garage recharges at night from base battery storage invert
   assert.equal(state.solarWatts,0);
   assert.equal(state.chargerActive,true);
   assert.equal(rover.garageCharging,true);
+  assert.equal(state.chargingSource,'base-inverter');
   assert.equal(state.inverterWatts,850);
   assert.equal(state.inverterStatus,'INVERTING');
   assert.ok(rover.battery>50);
@@ -142,6 +144,28 @@ test('base inverter halts rover charging when base battery is depleted at night'
   assert.equal(state.solarWatts,0);
   assert.equal(state.chargerActive,false);
   assert.equal(rover.garageCharging,false);
+  assert.equal(state.chargingSource,'none');
   assert.equal(state.inverterStatus,'STANDBY');
   assert.equal(rover.battery,20);
+});
+
+test('rover parked in garage automatically repairs damaged components and reports repair status',()=>{
+  const {state,rover}=setup();
+  rover.damage.wheel_fl=40;
+  rover.damage.wheel_fr=60;
+  rover.damage.cabin_roof=50;
+  assert.equal(state.phase,'parked');
+  step(state,rover,observer,true,[],1);
+  assert.equal(state.repairActive,true);
+  assert.ok(rover.damage.wheel_fl>40);
+  assert.ok(rover.damage.wheel_fr>60);
+  assert.ok(rover.damage.cabin_roof>50);
+
+  // Advance steps until fully repaired
+  for(let i=0;i<300;i++)step(state,rover,observer,true,[],1);
+  assert.equal(rover.damage.wheel_fl,100);
+  assert.equal(rover.damage.wheel_fr,100);
+  assert.equal(rover.damage.cabin_roof,100);
+  assert.equal(rover.damage.solar_array,100);
+  assert.equal(state.repairActive,false);
 });

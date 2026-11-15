@@ -1,6 +1,6 @@
 import {boxObstacle,overlapBody,type CollisionObstacle,type CollisionDisc} from './collision.ts';
 import {GARAGE_SITE} from './garageSite.ts';
-import {ROVER_NOMINAL_RANGE_KM,ROVER_WHEEL_OUTER_RADIUS,solveRockerBogieSuspension,type RoverVehicle} from './roverVehicle.ts';
+import {ROVER_NOMINAL_RANGE_KM,ROVER_WHEEL_OUTER_RADIUS,solveRockerBogieSuspension,type RoverVehicle,type RoverDamageState} from './roverVehicle.ts';
 
 export type GaragePhase='parked'|'opening-out'|'rolling-out'|'closing-out'|'outside'|'opening-in'|'rolling-in'|'closing-in';
 export type GarageState=ReturnType<typeof createGarageState>;
@@ -27,6 +27,8 @@ export function createGarageState() {
     inverterEfficiency:0.96,
     chargerActive:false,
     chargerWatts:0,
+    chargingSource:'none' as 'none'|'base-solar'|'base-inverter',
+    repairActive:false,
     body:{x:0,z:0,halfX:1.74,halfZ:2.525,radius:3.07,yaw:Math.PI} as CollisionDisc,
   };
 }
@@ -100,11 +102,32 @@ export function stepGarage(state:GarageState,rover:RoverVehicle,seconds:number,e
     rover.garageCharging=true;
     rover.solarCharging=false;
     rover.estimatedRangeKm=(rover.battery/100)*ROVER_NOMINAL_RANGE_KM;
+    state.chargingSource=sunlight>0.05&&state.solarWatts>=200?'base-solar':'base-inverter';
   }else{
     state.chargerActive=false;
     state.chargerWatts=0;
     rover.garageCharging=false;
+    state.chargingSource='none';
   }
+
+  // Automatic repair in the garage maintenance bay for damaged components:
+  let repairActive=false;
+  if(roverInGarage&&rover.damage){
+    const partKeys:(keyof RoverDamageState)[]=[
+      'wheel_fl','wheel_fr','wheel_ml','wheel_mr','wheel_rl','wheel_rr','cabin_roof','solar_array'
+    ];
+    for(const key of partKeys){
+      const current=rover.damage[key];
+      if(current!==undefined&&current<100){
+        rover.damage[key]=Math.min(100,current+25*dt);
+        repairActive=true;
+      }
+    }
+    if(repairActive&&rover.damage.cabin_roof!==undefined){
+      rover.damage.solar_array=rover.damage.cabin_roof;
+    }
+  }
+  state.repairActive=repairActive;
 
   const chargerGridLoad=state.chargerWatts>0?state.chargerWatts/(state.inverterEfficiency||0.96):0;
   const baseInternalLoad=(state.lightsOn?170:10)+(motor&&motorAvailable?650:0);

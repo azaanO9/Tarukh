@@ -166,6 +166,19 @@ export default function MarsWorld(props: Props) {
   const [roverBattery, setRoverBattery] = useState(100);
   const [roverSolarCharging, setRoverSolarCharging] = useState(false);
   const [roverGarageCharging, setRoverGarageCharging] = useState(false);
+  const [garageDockPopup, setGarageDockPopup] = useState<{
+    visible: boolean;
+    chargingSource: "base-solar" | "base-inverter" | "none";
+    repairActive: boolean;
+  }>({
+    visible: false,
+    chargingSource: "none",
+    repairActive: false,
+  });
+  const [garageDockDismissed, setGarageDockDismissed] = useState(false);
+  const garageDockDismissedRef = useRef(false);
+  garageDockDismissedRef.current = garageDockDismissed;
+  const lastGaragePhaseRef = useRef<string>("parked");
   const [roverRangeDisplay, setRoverRangeDisplay] = useState("85.0 KM");
   const [roverMud, setRoverMud] = useState(false);
   const [roverHandbrake, setRoverHandbrake] = useState(false);
@@ -745,6 +758,9 @@ export default function MarsWorld(props: Props) {
       let lastRoverBattery = 100;
       let lastRoverSolarCharging = false;
       let lastRoverGarageCharging = false;
+      let lastGaragePopupVisible = false;
+      let lastGaragePopupSource = "none";
+      let lastGaragePopupRepair = false;
       let lastRoverRange = "85.0 KM";
       let lastRoverMud = false;
       let lastRoverHandbrake = false;
@@ -1513,6 +1529,57 @@ export default function MarsWorld(props: Props) {
               setRoverDamage({ ...rover.damage });
             }
           }
+
+          const battNow = Math.round(rover.battery);
+          if (battNow !== lastRoverBattery) {
+            lastRoverBattery = battNow;
+            setRoverBattery(rover.battery);
+          }
+          const solarNow = Boolean(rover.solarCharging);
+          if (solarNow !== lastRoverSolarCharging) {
+            lastRoverSolarCharging = solarNow;
+            setRoverSolarCharging(solarNow);
+          }
+          const garageChargeNow = Boolean(rover.garageCharging);
+          if (garageChargeNow !== lastRoverGarageCharging) {
+            lastRoverGarageCharging = garageChargeNow;
+            setRoverGarageCharging(garageChargeNow);
+          }
+          const rangeStr = rover.estimatedRangeKm >= 1.0
+            ? `${rover.estimatedRangeKm.toFixed(1)} KM`
+            : `${Math.round(rover.estimatedRangeKm * 1000)} M`;
+          if (rangeStr !== lastRoverRange) {
+            lastRoverRange = rangeStr;
+            setRoverRangeDisplay(rangeStr);
+          }
+
+          // Garage Dock & Maintenance Bay Popup synchronization:
+          if (garageState.phase === "parked" && lastGaragePhaseRef.current !== "parked") {
+            setGarageDockDismissed(false);
+            garageDockDismissedRef.current = false;
+          }
+          lastGaragePhaseRef.current = garageState.phase;
+
+          const isParkedInGarage = garageState.phase === "parked";
+          const popupShouldShow = isParkedInGarage && !garageDockDismissedRef.current;
+          const popupSource = garageState.chargingSource ?? "none";
+          const popupRepair = Boolean(garageState.repairActive);
+
+          if (
+            popupShouldShow !== lastGaragePopupVisible ||
+            popupSource !== lastGaragePopupSource ||
+            popupRepair !== lastGaragePopupRepair
+          ) {
+            lastGaragePopupVisible = popupShouldShow;
+            lastGaragePopupSource = popupSource;
+            lastGaragePopupRepair = popupRepair;
+            setGarageDockPopup({
+              visible: popupShouldShow,
+              chargingSource: popupSource,
+              repairActive: popupRepair,
+            });
+          }
+
           if (rover.driving) {
             const spd = Math.round(Math.abs(rover.speed) * 3.6);
             if (spd !== lastRoverSpeed) {
@@ -1528,28 +1595,6 @@ export default function MarsWorld(props: Props) {
             if (isBoost !== lastRoverBoost) {
               lastRoverBoost = isBoost;
               setRoverBoost(isBoost);
-            }
-            const battNow = Math.round(rover.battery);
-            if (battNow !== lastRoverBattery) {
-              lastRoverBattery = battNow;
-              setRoverBattery(rover.battery);
-            }
-            const solarNow = Boolean(rover.solarCharging);
-            if (solarNow !== lastRoverSolarCharging) {
-              lastRoverSolarCharging = solarNow;
-              setRoverSolarCharging(solarNow);
-            }
-            const garageChargeNow = Boolean(rover.garageCharging);
-            if (garageChargeNow !== lastRoverGarageCharging) {
-              lastRoverGarageCharging = garageChargeNow;
-              setRoverGarageCharging(garageChargeNow);
-            }
-            const rangeStr = rover.estimatedRangeKm >= 1.0
-              ? `${rover.estimatedRangeKm.toFixed(1)} KM`
-              : `${Math.round(rover.estimatedRangeKm * 1000)} M`;
-            if (rangeStr !== lastRoverRange) {
-              lastRoverRange = rangeStr;
-              setRoverRangeDisplay(rangeStr);
             }
             const mudNow = rover.mudDepth > 0.32;
             if (mudNow !== lastRoverMud) {
@@ -2045,6 +2090,9 @@ export default function MarsWorld(props: Props) {
           element.dataset.garageInverterWatts = String(garageState.inverterWatts ?? 0);
           element.dataset.garageInverterStatus = garageState.inverterStatus ?? "STANDBY";
           element.dataset.garageBatteryWh = garageState.batteryWh.toFixed(1);
+          element.dataset.garageRepairActive = garageState.repairActive ? "true" : "false";
+          element.dataset.garageChargingSource = garageState.chargingSource ?? "none";
+          element.dataset.garageDockPopup = (garageState.phase === "parked" && !garageDockDismissedRef.current) ? "true" : "false";
           element.dataset.crewRoverX = rover.x.toFixed(3);
           element.dataset.crewRoverZ = rover.z.toFixed(3);
           element.dataset.crewRoverYaw = rover.yaw.toFixed(4);
@@ -2534,6 +2582,7 @@ export default function MarsWorld(props: Props) {
          </rect>
         </svg>
         <span className="sv-schematic-title">DAMAGE</span>
+        {garageDockPopup.repairActive && <span className="sv-schematic-auto-repair">🔧 AUTO-REPAIRING IN GARAGE</span>}
        </div>
        <div className="sv-rover-gearbox" data-gear={roverGear} aria-label={`Transmission gear ${roverGear === "B" ? "BOOST" : roverGear}`}>
         <div className="sv-gear-rail" aria-hidden="true">
@@ -2560,7 +2609,9 @@ export default function MarsWorld(props: Props) {
          <span className="sv-battery-title">⚡ BATTERY</span>
          <span className={`sv-battery-value ${roverBattery < 20 ? "low" : roverBattery < 40 ? "warning" : "nominal"}`}>
           {roverGarageCharging ? (
-            <span style={{ color: "#38bdf8", marginRight: 4, fontWeight: 800 }}>⚡BASE</span>
+            <span style={{ color: "#38bdf8", marginRight: 4, fontWeight: 800 }}>
+              {garageDockPopup.chargingSource === "base-solar" ? "☀️BASE SOLAR" : "⚡BASE"}
+            </span>
           ) : roverSolarCharging ? (
             <span style={{ color: "#4ade80", marginRight: 4, fontWeight: 800 }}>+⚡</span>
           ) : null}
@@ -2582,29 +2633,75 @@ export default function MarsWorld(props: Props) {
          className={`sv-rover-solar-status ${roverGarageCharging ? "garage-charging" : roverSolarCharging ? "charging" : "dormant"}`}
          title={
            roverGarageCharging
-             ? "Base Inverter Dock Active: charging from base solar array and battery storage"
+             ? garageDockPopup.chargingSource === "base-solar"
+               ? "Base Solar Array Active: charging rover battery from base solar panels (1,200W)"
+               : "Base Inverter Dock Active: charging rover battery from base energy storage"
              : roverSolarCharging
                ? "Solar arrays active: regenerating onboard battery"
                : "Solar arrays dormant"
          }
          aria-label={
            roverGarageCharging
-             ? "Base inverter charging rover"
+             ? garageDockPopup.chargingSource === "base-solar"
+               ? "Charging via base solar panels"
+               : "Base inverter charging rover"
              : roverSolarCharging
                ? "Solar panels generating charge"
                : "Solar panels dormant"
          }
        >
-        <span className="sv-solar-icon" aria-hidden="true">{roverGarageCharging ? "⚡" : "☀️"}</span>
+        <span className="sv-solar-icon" aria-hidden="true">
+          {roverGarageCharging ? (garageDockPopup.chargingSource === "base-solar" ? "☀️" : "⚡") : "☀️"}
+        </span>
         <div className="sv-solar-meta">
-         <span className="sv-solar-title">{roverGarageCharging ? "BASE INVERTER" : "SOLAR"}</span>
-         <small className="sv-solar-state">{roverGarageCharging ? "+BASE CHARGE" : roverSolarCharging ? "+CHARGING" : "STANDBY"}</small>
+         <span className="sv-solar-title">
+           {roverGarageCharging ? (garageDockPopup.chargingSource === "base-solar" ? "BASE SOLAR" : "BASE INVERTER") : "SOLAR"}
+         </span>
+         <small className="sv-solar-state">
+           {roverGarageCharging ? (garageDockPopup.chargingSource === "base-solar" ? "+BASE SOLAR" : "+BASE CHARGE") : roverSolarCharging ? "+CHARGING" : "STANDBY"}
+         </small>
         </div>
        </div>
        <button type="button" className="sv-rover-exit-btn" onClick={() => toggleRoverAction.current()}>
         <span className="sv-key-badge">F</span> Exit Rover
        </button>
       </div>)}
+      {/* Garage Docking & Maintenance Bay Popup Banner */}
+      {garageDockPopup.visible && (
+        <aside className="mars-garage-dock-popup" role="status" aria-live="polite">
+          <div className={`mars-garage-dock-pulse ${garageDockPopup.chargingSource === "base-solar" ? "solar" : "inverter"}`} aria-hidden="true" />
+          <div className="mars-garage-dock-content">
+            <div className="mars-garage-dock-header">
+              <span className="mars-garage-dock-badge">GARAGE DOCK & MAINTENANCE BAY</span>
+              <button
+                type="button"
+                className="mars-garage-dock-close"
+                onClick={() => setGarageDockDismissed(true)}
+                title="Dismiss notification"
+                aria-label="Dismiss garage notification"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mars-garage-dock-body">
+              <strong>
+                {garageDockPopup.chargingSource === "base-solar"
+                  ? "☀️ Charging via Base Solar Panels (1,200W Array)"
+                  : garageDockPopup.chargingSource === "base-inverter"
+                    ? "⚡ Charging via Base Battery Inverter"
+                    : "⚡ Base Dock Connected"}
+              </strong>
+              <span>
+                {garageDockPopup.repairActive
+                  ? `🔧 Auto-repairing damaged rover components · Battery: ${Math.round(roverBattery)}%`
+                  : roverBattery < 99.9
+                    ? `⚡ Recharging rover battery: ${Math.round(roverBattery)}% (+0.35%/s) · All systems nominal`
+                    : "✓ Rover 100% Charged & Fully Repaired"}
+              </span>
+            </div>
+          </div>
+        </aside>
+      )}
       {/* Solar Energetic Particle Alert Banner */}
       {spaceWeather.sepFluxPFU >= 10 && !isShielded && (
         <aside className="mars-sep-alert-banner" role="alert" aria-live="assertive">
