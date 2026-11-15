@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createElysiumState,reduceElysium} from '../game/elysiumMission.ts';
+import {createElysiumState,reduceElysium,missionProgress,availableMissions,activityAvailable,actionAllowed} from '../game/elysiumMission.ts';
 import {ELYSIUM_SAVE_KEY,parseElysiumSave,loadElysiumSave,saveElysiumSave,clearElysiumSave} from '../game/elysiumSave.ts';
+import content from '../content/elysiumMissions.json' with {type:'json'};
+import {solvedTraining} from './trainingFixtures.mjs';
 
 function arrival(){
   let s=reduceElysium(createElysiumState(45),{type:'begin'});
@@ -54,4 +56,26 @@ test('storage errors are reported and invalid saves preserve the last valid save
   storage.setItem(ELYSIUM_SAVE_KEY,'broken');assert.ok(loadElysiumSave(storage).error);assert.equal(storage.getItem(ELYSIUM_SAVE_KEY),'broken');
   const blocked={getItem(){throw new Error('blocked');},setItem(){throw new Error('quota');},removeItem(){throw new Error('blocked');}};
   assert.ok(loadElysiumSave(blocked).error);assert.equal(saveElysiumSave(valid,blocked).ok,false);assert.equal(clearElysiumSave(blocked).ok,false);
+});
+
+test('legacy completed solar missions stay unlocked while partially repaired saves retain their credited work',()=>{
+  const partial=arrival();partial.visited.push('solar');partial.tasks.push('solar-trace','solar-connect');partial.choices.grid='balanced';
+  const restoredPartial=parseElysiumSave(JSON.stringify(partial));assert.deepEqual(restoredPartial,partial);
+  assert.equal(activityAvailable(restoredPartial,'solar-connect'),false,'an old repair must not award reserve points again');
+  assert.ok(activityAvailable(restoredPartial,'solar-clean'));
+  assert.equal(missionProgress(restoredPartial,'m2').readyToLog,false);
+  const cleaning={type:'complete-activity',taskId:'solar-clean',proof:{kind:'panel-cleaning',strokes:Array.from({length:11},(_,row)=>[{x:0,y:row/10},{x:1,y:row/10}])}};
+  const cleaned=reduceElysium(restoredPartial,cleaning);assert.deepEqual(cleaned.resources,partial.resources);
+  assert.ok(missionProgress(cleaned,'m2').readyToLog);assert.deepEqual(parseElysiumSave(JSON.stringify(cleaned)),cleaned);
+  assert.equal('proof' in cleaned,false,'transient activity evidence is not stored in the mission save');
+
+  const legacy=structuredClone(partial);legacy.completed.push('m2');
+  legacy.logs.push({missionId:'m2',choiceId:0,text:content.missions.find(m=>m.id==='m2').logOptions[0],sol:legacy.sol});
+  const restored=parseElysiumSave(JSON.stringify(legacy));assert.deepEqual(restored,legacy);
+  assert.deepEqual(availableMissions(restored),['m3','m4','m5']);
+  assert.equal(missionProgress(restored,'m2').complete,true);
+  assert.ok(missionProgress(restored,'m2').objectives.every(o=>o.done));
+  assert.ok(actionAllowed(restored,solvedTraining('grid-plan','reserve')));
+  assert.equal(activityAvailable(restored,'solar-clean'),false,'old completed missions use reward-free practice');
+  assert.equal(reduceElysium(restored,cleaning),restored);
 });

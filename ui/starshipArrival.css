@@ -1,5 +1,9 @@
 .starship-arrival{position:absolute;inset:0;z-index:90;overflow:hidden;isolation:isolate;background:linear-gradient(#667e91,#d0d7d5);color:#f6f3ea;font:16px/1.5 system-ui,sans-serif}
 .starship-arrival-world,.starship-arrival-cut{position:absolute;inset:0}.starship-arrival-world canvas{display:block;width:100%;height:100%}.starship-arrival-cut{background:#10191f;opacity:0;pointer-events:none}
+.starship-arrival[data-environment="mars"]{background:transparent}
+.starship-arrival[data-environment="mars"] .starship-arrival-world{visibility:hidden}
+.sv-world[data-arrival-covered="true"]>:not(canvas){visibility:hidden}
+.roam-root:has(.starship-arrival)>.roam-header,.roam-root:has(.starship-arrival)>.roam-info{visibility:hidden}
 .starship-arrival:after{content:"";position:absolute;inset:0;background:linear-gradient(#101b2499,transparent 24%);pointer-events:none;z-index:1}
 .starship-arrival-header{position:absolute;inset:0 0 auto;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:22px 28px;gap:18px}
 .starship-arrival-header b{font-size:17px;letter-spacing:.12em}.starship-arrival-header b span{color:#efcfa5;font-size:13px;letter-spacing:.08em}.starship-arrival-header>div{display:flex;gap:10px}

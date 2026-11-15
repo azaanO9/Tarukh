@@ -66,6 +66,8 @@ import {
   type RoverPartId,
 } from "../game/roverVehicle";
 import { createShuttleLanding } from "./world/createShuttleLanding";
+import {createMarsCatchSite} from './world/createMarsCatchSite';
+import {STARSHIP_RETURN_CUT,type ArrivalPlayback} from '../game/starshipArrival';
 import {
   SpaceWeatherService,
   type SpaceWeatherTelemetry,
@@ -145,6 +147,7 @@ type Props = {
   onTouchControlsChange?: (active: boolean) => void;
   playLandingIntro?: boolean;
   coveredByArrival?: boolean;
+  arrivalPlayback?: ArrivalPlayback;
   onRestart?: () => void;
 };
 function MarsWorld(props: Props) {
@@ -538,6 +541,7 @@ function MarsWorld(props: Props) {
       const baseRoverHeight = model.roverHeightAt;
       setLoadingStage("Preparing the outpost, garage and greenhouses…");
       const outpost = createMarsOutpost(scene, OUTPOST_GROUND_HEIGHT, model.obstacles);
+      const catchSite = createMarsCatchSite(scene,model.obstacles,mobileMars||props.initialQuality==='performance');
       const greenhouses = createGreenhouseFarm(scene, model.obstacles);
       const garageState = createGarageState();
       const garage = createRoverGarage(scene, garageState, OUTPOST_GROUND_HEIGHT, model.obstacles);
@@ -547,7 +551,7 @@ function MarsWorld(props: Props) {
         if (preparationDisposed) return;
         preparationDisposed = true;
         storyMarkers?.dispose();
-        outpost.dispose(); greenhouses.dispose(); garage.dispose(); model.disposeTracks?.();
+        catchSite.dispose();outpost.dispose(); greenhouses.dispose(); garage.dispose(); model.disposeTracks?.();
         model.root.traverse(object => {
           if (object instanceof T.Mesh) {
             object.geometry.dispose();
@@ -1444,16 +1448,40 @@ function MarsWorld(props: Props) {
       let deathCollapse = 0;
       const sevObstacles: CollisionObstacle[] = [], dynamicObstacles: CollisionObstacle[] = [], curiosityObstacles: CollisionObstacle[] = [];
       const lidarObstacles: CollisionObstacle[] = [];
+      let previousArrivalTime=0;
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
         if (current.current.coveredByArrival) {
+          const arrival=current.current.arrivalPlayback;
+          if(!document.hidden&&arrival?.active&&arrival.time>=STARSHIP_RETURN_CUT){
+            const step=Math.max(0,Math.min(.1,arrival.time-previousArrivalTime));
+            previousArrivalTime=arrival.time;
+            catchSite.cinematic(arrival.time,step,camera,reduced.matches);
+            // Use the daylight environment immediately; the normal gameplay loop has not run yet.
+            light.intensity=3.4;ambient.intensity=.65;scene.environmentIntensity=.85;
+            ambient.color.copy(dayAmbient);ambient.groundColor.copy(dayGround);light.color.copy(dayLight);
+            (scene.fog as import('three').FogExp2).density=.0018;
+            (scene.fog as import('three').FogExp2).color.copy(dayFog);
+            (scene.background as import('three').Color).copy(daySky);
+            if(marsSky)marsSky.uniforms.night.value=0;
+            starField.visible=false;earth.visible=false;
+            if(dust)dust.visible=false;
+            outpost.update(0,OUTPOST_SITE.x,OUTPOST_GROUND_HEIGHT+45,OUTPOST_SITE.z,true,false);
+            outpost.updateVisibility(camera);
+            greenhouses.updateVisibility(camera,OUTPOST_SITE.x,OUTPOST_SITE.z,lastQuality==='performance');
+            viewFrame++;renderer.info.reset();renderer.render(scene,camera);
+            arrival.marsRendered=true;
+            element.dataset.arrivalScene='mars';
+            element.dataset.arrivalTime=arrival.time.toFixed(2);
+          }
           last = time;
           metricStart = 0;
           metricFrames = 0;
           keys.clear();
           return;
         }
+        catchSite.settle();
         if (document.hidden) {
           last = time;
           metricStart = 0;
@@ -2398,6 +2426,7 @@ function MarsWorld(props: Props) {
       }
       dispose = () => {
         storyMarkers?.dispose();
+        catchSite.dispose();
         scene.onBeforeRender = previousSceneRender;
         detailCulling?.dispose();
         outpost.dispose();
@@ -2683,6 +2712,8 @@ function MarsWorld(props: Props) {
         element.dataset.calibrationTarget = String(AUTO_TARGET_FPS);
       }
       current.current.onTerrainMode?.(!!streaming);
+      catchSite.settle();
+      element.dataset.catchSite='ready';
       element.dataset.terrainMode = "bounded-mola";
       frame = requestAnimationFrame(animate);
       setLoadingStage("Launching exploration…");

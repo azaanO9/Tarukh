@@ -5,7 +5,7 @@ import {STARBASE as D,type RigPose,type VehicleView} from '../../game/starbaseRi
 const UP=new T.Vector3(0,1,0),DEG=Math.PI/180;
 
 /** Original procedural geometry; no downloaded models, maps, or scene dependencies. */
-export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}) {
+export function createStarbase(scene:T.Object3D,options:{shipCatchPins?:boolean;ground?:boolean}={}) {
   const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();
   const own=<G extends T.BufferGeometry>(g:G)=>{geometries.add(g);return g;};
   const material=(color:string,metalness:number,roughness:number,extra:T.MeshStandardMaterialParameters={})=>{
@@ -29,6 +29,7 @@ export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}
     }
     const brushed=new T.CanvasTexture(canvas);brushed.wrapS=brushed.wrapT=T.RepeatWrapping;brushed.repeat.set(4,24);textures.add(brushed);
     steel.bumpMap=bright.bumpMap=brushed;steel.bumpScale=bright.bumpScale=.013;
+    if(options.ground!==false){
     const surface=document.createElement('canvas');surface.width=surface.height=512;
     const groundCtx=surface.getContext('2d')!,pixels=groundCtx.createImageData(512,512);
     let seed=34891;
@@ -58,6 +59,7 @@ export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}
     const soilMap=new T.CanvasTexture(soilCanvas);soilMap.colorSpace=T.SRGBColorSpace;
     soilMap.wrapS=soilMap.wrapT=T.RepeatWrapping;soilMap.repeat.set(240,240);soilMap.anisotropy=4;textures.add(soilMap);
     soil.map=soilMap;soil.bumpMap=soilMap;soil.bumpScale=.08;
+    }
   }
   const unitBox=own(new T.BoxGeometry(1,1,1));
   const unitCylinder=own(new T.CylinderGeometry(1,1,1,12));
@@ -112,6 +114,7 @@ export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}
   }
 
   const groundPad=group(scene,'groundPad');
+  if(options.ground!==false){
   box(groundPad,soil,0,-1.1,0,5000,2,5000).castShadow=false;
   for(let i=0;i<20;i++){
     const berm=mesh(groundPad,unitSphere,soil);berm.position.set(-160+i*31,-2,-120-Math.sin(i*1.7)*30);
@@ -151,6 +154,7 @@ export function createStarbase(scene:T.Scene,options:{shipCatchPins?:boolean}={}
   }
   const padSign=label(groundPad,'CATCH ZONE',18,3,'#d8d5c5');padSign.rotation.x=-Math.PI/2;padSign.position.set(12,.48,40);
   batch(groundPad);
+  }
 
   const orbitalLaunchMount=group(scene,'orbitalLaunchMount');
   const shape=new T.Shape();shape.absarc(0,0,9.3,0,Math.PI*2,false);

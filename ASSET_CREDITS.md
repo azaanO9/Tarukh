@@ -85,4 +85,12 @@ Three.js 0.180, OrbitControls, RoomEnvironment and geometry utilities are bundle
 
 The optional Elysium storyline adds original canvas-drawn station signs, ground rings and a small procedural field-sensor mast. Its route planner reuses the shipped NASA MOLA map described above. No additional downloaded models, textures, voices or third-party art are used. Story text describes a fictional expedition; its science references and simulation assumptions are listed separately in `docs/SOURCES.md` and `docs/ASSUMPTIONS.md`.
 
+The Story circuit-repair and solar-brushing workbenches use original SVG/CSS hardware illustrations and canvas-generated panel cells, dust and brush marks. No third-party artwork, model, font, audio or downloaded texture is added for these activities.
+
+The other Story workbenches add original SVG/CSS drawings of supplies, pipe joints, gauges, sample rocks, water molecules, plant trays and shelter layers. The rover-route tablet reuses the bundled NASA MOLA relief image with the same compressed route coordinates. No Among Us artwork, sounds, characters or interface assets are used; the interactions are independently implemented.
+
 Three.js modeling, environment and post-processing utilities retain the dependency's MIT license. The vendored Draco decoder is distributed unchanged with its existing notices. Keep `vendor/shadcn-tailwind-4.13.0.LICENSE.md` and `scripts/vite/sites-vite-plugin.LICENSE` with their associated sources.
+
+## Earth-to-Mars departure and persistent catch site
+
+The coastal Earth surface, ocean colours, cloud banks, orbital atmosphere and star field are original procedural geometry in ui/starbase/earthDeparture.ts. The Mars catch site reuses the project's existing procedural Starbase rig, on the game's graded Mars ground, with the actual campus visible behind it. No additional downloaded images, models, voices or services are used. The Mars catch infrastructure and compressed travel are fictional expedition art, not a reconstruction of an existing Mars launch site. See docs/ARRIVAL.md.

@@ -1,24 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createElysiumState,reduceElysium,availableMissions,missionProgress,forecastGreenhouses,readinessSummary,overnightDemand,worldBindings,actionAllowed} from '../game/elysiumMission.ts';
+import {createElysiumState,reduceElysium,availableMissions,missionProgress,forecastGreenhouses,readinessSummary,overnightDemand,worldBindings,actionAllowed,activityAvailable,actionSite,trainingForAction} from '../game/elysiumMission.ts';
+import {solvedTraining} from './trainingFixtures.mjs';
 import content from '../content/elysiumMissions.json' with {type:'json'};
 
 function apply(state,action){assert.ok(actionAllowed(state,action),JSON.stringify(action));return reduceElysium(state,action);}
 const visit=(state,siteId,extras={})=>apply(state,{type:'visit',siteId,...extras});
-const task=(state,taskId)=>apply(state,{type:'task',taskId});
-const choose=(state,group,choiceId)=>apply(state,{type:'choose',group,choiceId});
+const wireProof=()=>({kind:'wire-repair',isolated:true,connections:['A','B','C','D'].map(id=>({from:id,to:id}))});
+const cleanProof=()=>({kind:'panel-cleaning',strokes:Array.from({length:11},(_,row)=>[{x:0,y:row/10},{x:1,y:row/10}])});
+const activity=(taskId)=>({type:'complete-activity',taskId,proof:taskId==='solar-connect'?wireProof():cleanProof()});
+const task=(state,taskId)=>apply(state,['solar-connect','solar-clean','clear-panels'].includes(taskId)?activity(taskId):solvedTraining(taskId));
+const choose=(state,group,choiceId)=>apply(state,solvedTraining(trainingForAction({type:'choose',group,choiceId}),choiceId));
 const log=(state,missionId)=>apply(state,{type:'log',missionId,choiceId:0});
 function gridReady(seed=1){
   let s=apply(createElysiumState(seed),{type:'begin'});
   for(const site of ['airlock','command','garage','greenhouse1'])s=visit(s,site);
-  s=log(s,'m1');s=visit(s,'solar');s=task(s,'solar-trace');s=task(s,'solar-connect');
+  s=log(s,'m1');s=visit(s,'solar');s=task(s,'solar-trace');s=task(s,'solar-connect');s=task(s,'solar-clean');
   s=choose(s,'grid','balanced');s=log(s,'m2');return apply(s,{type:'advance-sol'});
 }
 function prepared(seed=1,strategy='comfortable',order=['m3','m4','m5']){
   let s=gridReady(seed);s=visit(s,'lab');s=task(s,'water-compare');s=task(s,'water-calibrate');
   s=choose(s,'water',strategy==='shared'?'aggressive':'standard');s=choose(s,'oxygen','standard');s=choose(s,'scrubber','scheduled');
   s=choose(s,'greenhouse',strategy);s=task(s,'forecast-review');s=choose(s,'route','direct');
-  s=visit(s,'field-sensor',{roverDriving:true});s=choose(s,'sensor','sand');s=task(s,'sensor-restore');s=task(s,'sample-collect');
+  s=visit(s,'field-sensor',{roverDriving:true});s=task(s,'sensor-restore');s=task(s,'sample-collect');
   s=visit(s,'lab');s=task(s,'sample-analyse');
   s=apply(s,{type:'sync-world',roverCharge:s.resources.roverCharge,garagePhase:'parked'});
   for(const id of order)s=log(s,id);
@@ -28,10 +32,10 @@ function prepared(seed=1,strategy='comfortable',order=['m3','m4','m5']){
 }
 function resolve(state){
   if(state.test.fault==='pump'){
-    state=visit(state,'lab');state=apply(state,{type:'resolve-fault',choiceId:'restart-pump'});
-    return apply(state,{type:'resolve-fault',choiceId:'cut-crop-water'});
+    state=visit(state,'lab');state=apply(state,solvedTraining('fault-pump'));
+    return apply(state,solvedTraining('fault-water'));
   }
-  return apply(state,{type:'resolve-fault',choiceId:state.test.fault==='heater'?'cut-crops':'regenerate'});
+  return apply(state,solvedTraining(state.test.fault==='heater'?'fault-heater':'fault-scrubber',state.test.fault==='heater'?'cut-crops':'regenerate'));
 }
 
 test('arrival requires all four physical visits and logs cannot skip or double-complete missions',()=>{
@@ -64,14 +68,14 @@ test('Act II missions run in any order and each successful plan keeps its own en
 
 test('route planning honors battery gates and requires crew-rover evidence before field work',()=>{
   let s=gridReady();assert.deepEqual(availableMissions(s),['m3','m4','m5']);
-  assert.equal(actionAllowed(s,{type:'choose',group:'route',choiceId:'valley'}),false);
+  assert.equal(actionAllowed(s,solvedTraining('route-plan','valley')),false);
   s=choose(s,'route','direct');s=visit(s,'field-sensor');
-  assert.equal(actionAllowed(s,{type:'choose',group:'sensor',choiceId:'sand'}),false);
+  assert.equal(actionAllowed(s,solvedTraining('sensor-restore')),false);
   s=apply(s,{type:'sync-world',revision:s.roverRevision,roverCharge:55,roverDriving:true,siteId:'field-sensor',roverSpeed:12,garagePhase:'outside'});
   assert.ok(s.tasks.includes('field-arrival'));assert.equal(s.roverDocked,false);
-  const revision=s.roverRevision;s=choose(s,'sensor','electronics');
-  assert.equal(actionAllowed(s,{type:'task',taskId:'sensor-restore'}),false);assert.match(s.lastOutcome.outcome,/sand/);
-  s=choose(s,'sensor','sand');s=task(s,'sensor-restore');assert.equal(s.resources.roverCharge,47);assert.equal(s.roverRevision,revision+1);
+  const revision=s.roverRevision;
+  assert.equal(actionAllowed(s,{type:'choose',group:'sensor',choiceId:'electronics'}),false);
+  s=task(s,'sensor-restore');assert.equal(s.choices.sensor,'sand');assert.equal(s.resources.roverCharge,47);assert.equal(s.roverRevision,revision+1);
   assert.equal(reduceElysium(s,{type:'task',taskId:'sensor-restore'}),s);
   s=apply(s,{type:'advance-sol'});assert.equal(s.resources.roverCharge,47,'a parked field rover cannot recharge remotely');
 });
@@ -107,9 +111,9 @@ test('the three seeded faults are reproducible and the pump needs a fresh physic
     const base=prepared(seed),a=apply(base,{type:'start-test'}),b=apply(base,{type:'start-test'});
     assert.equal(a.test.fault,b.test.fault);faults.add(a.test.fault);
     assert.equal(worldBindings(a).night,true);
-    if(a.test.fault==='pump')assert.equal(actionAllowed(a,{type:'resolve-fault',choiceId:'restart-pump'}),false);
+    if(a.test.fault==='pump')assert.equal(actionAllowed(a,solvedTraining('fault-pump')),false);
     const resolved=resolve(a);assert.equal(resolved.test.stage,'resolved');
-    assert.equal(actionAllowed(resolved,{type:'resolve-fault',choiceId:'regenerate'}),false);
+    assert.equal(actionAllowed(resolved,solvedTraining('fault-scrubber','regenerate')),false);
     assert.equal(actionAllowed(resolved,{type:'advance-sol'}),false);
   }
   assert.deepEqual([...faults].sort(),['heater','pump','scrubber']);
@@ -227,7 +231,7 @@ test('repairing solar restores configured reliable capacity once without instant
 test('rough driving spends configured energy and its overnight maintenance load lasts until physical docking',()=>{
   let s=gridReady();s=choose(s,'route','direct');
   s=apply(s,{type:'sync-world',roverCharge:60,roverDriving:true,roverSpeed:35,siteId:'field-sensor',garagePhase:'outside'});
-  s=visit(s,'field-sensor');s=choose(s,'sensor','sand');s=task(s,'sensor-restore');
+  s=visit(s,'field-sensor');s=task(s,'sensor-restore');
   assert.equal(s.resources.roverCharge,60-content.simulation.routes.direct.energyCost-content.simulation.routeMaintenance.energyCost);
   assert.ok(readinessSummary(s).roverMaintenance);
   assert.equal(overnightDemand(s).maintenancePower,content.simulation.routeMaintenance.nightPowerPenalty);
@@ -239,18 +243,49 @@ test('rough driving spends configured energy and its overnight maintenance load 
   assert.equal(s.roverRevision,revision);assert.deepEqual(s.completed,progress);
 });
 
-test('ridge dust lowers the next-sol yield until the physical solar task clears it, without instant energy rewards',()=>{
-  let s=gridReady();assert.equal(actionAllowed(s,{type:'task',taskId:'clear-panels'}),false);
-  s=choose(s,'route','ridge');s=visit(s,'field-sensor',{roverDriving:true});s=choose(s,'sensor','sand');s=task(s,'sensor-restore');
+test('ridge dust lowers the next-sol yield until the physical solar activity clears it, without instant energy rewards',()=>{
+  let s=gridReady();assert.equal(activityAvailable(s,'clear-panels'),false);
+  s=choose(s,'route','ridge');s=visit(s,'field-sensor',{roverDriving:true});s=task(s,'sensor-restore');
   assert.ok(s.tasks.includes('solar-dust'));assert.equal(readinessSummary(s).nextSolDustLoss,content.simulation.solar.dustPowerPenalty);
   s={...s,resources:{...s.resources,power:50}};
   const before={...s.resources},cleared=task(s,'clear-panels');
   assert.deepEqual(cleared.resources,before,'cleaning restores yield, not stored charge');
-  assert.equal(readinessSummary(cleared).solarDust,false);assert.equal(actionAllowed(cleared,{type:'task',taskId:'clear-panels'}),false);
+  assert.equal(readinessSummary(cleared).solarDust,false);assert.equal(activityAvailable(cleared,'clear-panels'),false);
   const dustySol=apply(s,{type:'advance-sol'}),cleanSol=apply(cleared,{type:'advance-sol'});
   assert.equal(cleanSol.resources.power-dustySol.resources.power,content.simulation.solar.dustPowerPenalty);
   assert.equal(cleanSol.resources.dose,dustySol.resources.dose);assert.deepEqual(cleanSol.completed,dustySol.completed);
   assert.ok(cleared.lastOutcome.decision);assert.ok(cleared.lastOutcome.outcome);assert.ok(cleared.lastOutcome.why);
+  const dustyAgain={...cleared,tasks:[...cleared.tasks,'solar-dust']};
+  assert.ok(activityAvailable(dustyAgain,'clear-panels'),'later dust is cleanable even when the earlier cleanup is recorded');
+  const cleanedAgain=task(dustyAgain,'clear-panels');assert.deepEqual(cleanedAgain.resources,dustyAgain.resources);
+  assert.equal(readinessSummary(cleanedAgain).solarDust,false);
+});
+
+test('solar repair and initial cleaning require valid activities before a new power plan can be logged',()=>{
+  let s=apply(createElysiumState(),{type:'begin'});
+  const initial=s;
+  assert.equal(activityAvailable(s,'solar-connect'),false);assert.equal(reduceElysium(s,activity('solar-connect')),s);
+  for(const site of ['airlock','command','garage','greenhouse1'])s=visit(s,site);
+  s=log(s,'m1');assert.equal(activityAvailable(s,'solar-connect'),false);
+  s=visit(s,'solar');assert.equal(activityAvailable(s,'solar-connect'),false);
+  s=task(s,'solar-trace');assert.ok(activityAvailable(s,'solar-connect'));assert.ok(activityAvailable(s,'solar-clean'));
+  for(const taskId of ['solar-connect','solar-clean','clear-panels'])assert.equal(reduceElysium(s,{type:'task',taskId}),s);
+  const before=JSON.stringify(s);
+  for(const proof of [null,{kind:'wire-repair',isolated:false,connections:wireProof().connections},
+    {kind:'wire-repair',isolated:true,connections:[]},{kind:'panel-cleaning',strokes:[]},
+    {kind:'panel-cleaning',strokes:[[{x:.5,y:.5},{x:.5,y:.5}]]}]) {
+    for(const taskId of ['solar-connect','solar-clean'])assert.equal(reduceElysium(s,{type:'complete-activity',taskId,proof}),s);
+  }
+  assert.equal(JSON.stringify(s),before,'abandoned or invalid work awards nothing and leaves no transient save state');
+  s=task(s,'solar-connect');assert.equal(s.resources.power,initial.resources.power+content.simulation.solar.repairReserveGain);
+  assert.equal(actionAllowed(s,solvedTraining('grid-plan','balanced')),false);
+  assert.equal(missionProgress(s,'m2').readyToLog,false);
+  const resources={...s.resources};s=task(s,'solar-clean');assert.deepEqual(s.resources,resources);
+  s=choose(s,'grid','balanced');assert.equal(missionProgress(s,'m2').readyToLog,true);
+  for(const taskId of ['solar-connect','solar-clean'])assert.equal(reduceElysium(s,activity(taskId)),s);
+  assert.equal(actionSite(activity('solar-connect')),'solar');
+  assert.equal(actionSite({type:'complete-activity',taskId:'fake',proof:wireProof()}),null);
+  s=log(s,'m2');assert.deepEqual(availableMissions(s),['m3','m4','m5']);
 });
 
 test('optional survey knowledge narrows the planning forecast once and heritage notes preserve mission progress',()=>{

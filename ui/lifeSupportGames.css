@@ -1,0 +1,103 @@
+.life-game{--lg-cream:#f4eedb;--lg-ink:#163640;--lg-cyan:#a5e6ec;--lg-gold:#efbf73;color:var(--lg-cream);font-size:16px;line-height:1.5;max-width:860px;margin-inline:auto}
+.life-game *{box-sizing:border-box}
+.life-game button,.life-game input{font:inherit}
+.life-game button{min-height:44px;border:1px solid #718d99;border-radius:10px;background:#18303e;color:var(--lg-cream);padding:9px 13px;cursor:pointer;touch-action:manipulation}
+.life-game button:hover:not(:disabled){background:#244d5b;border-color:var(--lg-cyan)}
+.life-game button:focus-visible,.life-game input:focus-visible{outline:3px solid #ffe0a6;outline-offset:4px}
+.life-game button:disabled{opacity:.52;cursor:default}
+.life-game button[aria-pressed=true]{border:2px solid var(--lg-gold);background:#405256;box-shadow:inset 0 0 0 2px #172e38}
+.lg-heading h3{font-size:clamp(23px,3vw,30px);line-height:1.15;margin:5px 0 10px;color:#fff4dc}
+.lg-heading p{max-width:70ch;margin:0 0 18px}
+.lg-eyebrow{font-size:16px;letter-spacing:.1em;color:#a5e6ec;font-weight:700}
+.lg-workbench{background:linear-gradient(145deg,#203b48,#14232f);border:1px solid #567781;border-radius:18px;padding:18px;box-shadow:inset 0 1px 0 #86aeb330}
+.lg-help,.lg-science{font-size:16px;margin:12px 0 0;color:#dae6e8;overflow-wrap:anywhere}
+.lg-science{border-left:3px solid var(--lg-gold);padding:7px 12px;background:#090f1829}
+.lg-parts{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px;justify-content:center}
+.life-game .lg-token{position:relative;display:flex;align-items:center;gap:9px;min-width:112px;flex:1 1 140px;max-width:250px;min-height:64px;text-align:left;background:#e9dfc5;color:#23353c;border:2px solid #c0b99f;touch-action:none}
+.life-game .lg-token[aria-pressed=true]{background:#fff2cc;border:2px solid #f6b854;box-shadow:0 0 0 3px #f6b85438}
+.life-game .lg-token:hover:not(:disabled){background:#fff1d0;color:#23353c}
+.life-game .lg-token--placed{background:#c9d8cf;border-color:#a2c3bc}
+.lg-token-symbol{flex:0 0 34px;display:grid;place-items:center;width:34px;height:34px;border:2px solid currentColor;border-radius:50%;font-size:23px;font-weight:750}
+.lg-tick{margin-left:auto;font-weight:bold;font-size:22px}
+.lg-destinations{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.life-game .lg-destination{display:flex;flex:1 1 135px;align-items:center;flex-direction:column;justify-content:space-between;gap:8px;min-height:145px;border:2px dashed #6b99a7;background:#0f2531;padding:15px 10px;text-align:center}
+.life-game .lg-destination--ready{border-color:var(--lg-gold)}
+.lg-target-fill{display:flex;flex-wrap:wrap;gap:6px;min-height:38px;align-items:center;justify-content:center;color:var(--lg-cyan);font-size:26px;font-weight:700}
+.lg-target-fill>span:not(.lg-target-empty){display:inline-grid;place-items:center;min-width:32px;min-height:32px;background:#38606a;border-radius:8px}
+.lg-target-empty{font-weight:300;font-size:34px;color:#789ca8}
+.lg-target-caption{font-size:16px;color:#bfd1d8}
+.lg-token-board--oxygen-plan .lg-token{flex:1 1 90px;max-width:150px;flex-direction:column;text-align:center;font-size:16px}
+.lg-token-board--oxygen-plan .lg-token-symbol{width:45px;height:45px;font-size:26px;flex-basis:45px}
+.lg-token-board--oxygen-plan .lg-destination{border-radius:28px 28px 12px 12px;background:linear-gradient(90deg,#16323f,#285564,#16323f);border-style:solid}
+.lg-token-board--oxygen-plan .lg-tick{position:absolute;top:2px;right:7px;font-size:16px}
+.lg-token-board--water-plan .lg-destination{position:relative;border-style:solid;border-radius:14px 14px 35px 35px}
+.lg-token-board--water-plan .lg-destination:not(:last-child)::after{content:'→';position:absolute;right:-18px;top:52px;z-index:1;color:var(--lg-cyan);font-size:27px}
+.lg-token-board--air-plan .lg-token-symbol,.lg-token-board--fault-scrubber .lg-token-symbol{border-radius:8px}
+.lg-token-board--archive-review .lg-destination{background:repeating-linear-gradient(0deg,#66513e,#66513e 20px,#3c3432 22px);border-style:solid;border-color:#bf9871}
+.lg-oxygen-machine{margin:0 0 18px;padding:12px;border:1px solid #567781;border-radius:14px;background:#102a36;text-align:center}
+.lg-oxygen-machine svg{display:block;width:100%;max-height:210px;margin:auto}
+.lg-oxygen-machine figcaption{font-weight:700;color:#eae9cf}
+.lg-why{font-size:16px;border-left:3px solid var(--lg-gold);padding:4px 12px;margin-top:14px;background:#090f1829}
+.lg-why summary{cursor:pointer;min-height:44px;padding-block:10px}
+.lg-why summary:focus-visible{outline:3px solid #ffe0a6;outline-offset:3px}
+.lg-why p{margin:5px 0 12px;color:#d7e3e4}
+.lg-dial{margin-top:16px;padding:13px;border:1px solid #52717f;background:#112a37;border-radius:12px}
+.lg-dial label{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}
+.lg-dial output{color:var(--lg-gold);font-weight:750;min-width:2ch;font-variant-numeric:tabular-nums}
+.lg-target-mark{font-size:16px;color:#c2e6e2}
+.lg-dial-track{display:flex;align-items:center;gap:10px;margin-top:8px}
+.lg-dial-track button{flex:0 0 44px;width:44px;padding:0;font-size:23px}
+.lg-dial input[type=range]{width:100%;height:44px;min-width:0;margin:0;accent-color:#f1c078;cursor:pointer}
+.lg-dial-labels{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lg-dial-labels button{flex:1 1 95px;font-size:16px}
+.lg-energy-supply{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:16px;border-radius:12px;background:#c6a367;color:#152f3b}
+.lg-energy-supply>span{font-size:40px;line-height:1}
+.lg-energy-supply p{margin:0}
+.lg-energy-supply .lg-cells{margin-left:auto}
+.lg-cells{display:flex;gap:5px;flex-wrap:wrap;min-height:31px;justify-content:center}
+.lg-cells i{width:19px;height:30px;border:2px solid #8bacae;border-radius:4px;background:#153544}
+.lg-cells i[data-filled=true]{background:repeating-linear-gradient(0deg,#f6d28c,#f6d28c 7px,#b68846 8px);border-color:#fbe3ac}
+.lg-energy-stations{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:16px}
+.lg-energy-station{display:flex;align-items:center;flex-direction:column;gap:7px;text-align:center;padding:14px 7px;border:1px solid #56727d;border-radius:12px;background:#142e3b}
+.lg-hardware-symbol{font-size:35px;line-height:1;color:var(--lg-cyan)}
+.lg-fixed{font-size:16px;color:#c7d5d7}
+.lg-cell-buttons{display:flex;gap:8px}.lg-cell-buttons button{width:46px;font-size:22px;padding:2px}
+.lg-step-machine{margin-top:18px}
+.lg-step-track{display:flex;gap:10px;flex-wrap:wrap}
+.life-game .lg-machine-step{display:flex;flex:1 1 150px;align-items:center;gap:12px;text-align:left;min-height:80px;background:#28424b}
+.lg-step-symbol{font-size:32px;color:var(--lg-gold);min-width:32px;text-align:center}
+.lg-sequence-slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lg-sequence-slots span{flex:1 1 120px;font-size:16px;padding:8px;border:1px dashed #788b8d;border-radius:7px;background:#0c202d;color:#d0e1e5}
+.lg-archive-banner{display:flex;align-items:center;gap:18px;padding:12px 16px;margin-bottom:12px;background:#5e4d39;border:1px solid #b69c71;border-radius:10px}
+.lg-archive-banner>span:first-child{font-size:45px;color:#f5d297}
+.lg-shelter-art{display:block;width:100%;max-height:210px;margin:8px auto}
+.lg-test-button{width:100%;margin-top:16px;font-weight:700}
+.lg-comparison{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.lg-comparison span{flex:1 1 150px;padding:8px 12px;border:1px solid #748a8f;border-radius:8px}
+.lg-comparison span[data-done=true]{background:#38545c;border-color:var(--lg-cyan)}
+.lg-trial-plants{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.lg-plant-trial{min-width:0;padding:14px;background:#162d31;border:1px solid #698d82;border-radius:14px}
+.lg-plant-trial h4{margin:0;font-size:20px;color:#f3e7c9}
+.lg-plant{display:block;width:100%;max-height:170px;margin:auto}
+.lg-plant-status{min-height:48px;margin:0 0 8px;color:#e7e4c5}
+.lg-trial-plants>.lg-science{grid-column:1/-1}
+.lg-growing-tray{display:grid;grid-template-columns:minmax(100px,1fr) 2fr;align-items:center;gap:16px;margin-top:14px}
+.lg-growing-tray>.lg-plant{max-height:230px}
+.lg-garden-plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 0;padding:14px;border:1px solid #698d82;border-radius:12px}
+.lg-garden-plans legend{padding:0 7px;font-weight:700}
+.lg-garden-plans button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:4px}
+.lg-garden-plans button>span:last-child{font-size:16px;color:#d6e2df}
+.lg-plan-pots{font-size:30px;color:#d1e6a5}
+.lg-selected-plan{display:flex;align-items:center;gap:14px;border:1px solid #ba9765;border-radius:12px;margin-top:16px;padding:12px 16px;background:#3f3e35}
+.lg-selected-plan>span{font-size:30px;color:var(--lg-gold)}
+.lg-selected-plan div{display:flex;flex-direction:column}.lg-selected-plan div>span{font-size:16px;color:#dfcfb7}
+.lg-progress{height:8px;border-radius:4px;background:#273c49;margin-top:19px;overflow:hidden}
+.lg-progress>span{display:block;width:var(--lg-progress);height:100%;background:var(--lg-cyan);transition:width .15s}
+.lg-feedback{margin:10px 0 16px;min-height:24px;color:#f4e6c7}
+.life-game .lg-footer{display:flex;flex-wrap:wrap;gap:10px;padding-top:4px;font-size:16px}
+.life-game .lg-footer button{flex:1 1 155px;font-size:16px}
+.life-game .lg-finish{background:#e9ba71;color:#172c37;border-color:#f6d69e;font-weight:750}
+.life-game .lg-finish:hover:not(:disabled){background:#ffdaa1;color:#172c37}
+@media(max-width:540px){.lg-workbench{padding:12px}.lg-energy-stations{grid-template-columns:repeat(2,1fr)}.lg-trial-plants{grid-template-columns:1fr}.lg-growing-tray{grid-template-columns:1fr}.lg-growing-tray>.lg-plant{max-height:135px}.lg-garden-plans{grid-template-columns:1fr}.lg-destinations{gap:8px}.life-game .lg-destination{min-height:125px;flex-basis:110px}.lg-token-board--oxygen-plan .lg-token{flex-basis:85px}.lg-energy-supply{gap:10px;padding:12px}.lg-energy-supply .lg-cells{margin-left:0}.lg-dial{padding:9px}.lg-step-track{gap:8px}.lg-footer{flex-direction:column}.lg-footer button{flex-basis:auto}.lg-token-board--water-plan .lg-destination:not(:last-child)::after{display:none}}
+@media(max-height:520px){.lg-shelter-art{max-height:145px}.lg-plant{max-height:115px}.lg-workbench{padding:12px}.life-game .lg-destination{min-height:115px}.lg-token-board--oxygen-plan .lg-token{min-height:55px}.lg-growing-tray>.lg-plant{max-height:120px}}
+@media(prefers-reduced-motion:reduce){.life-game *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}

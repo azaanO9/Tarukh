@@ -1,4 +1,6 @@
 import content from '../content/elysiumMissions.json' with { type: 'json' };
+import { isActivityTaskId, validateActivityProof, type ActivityProof, type ActivityTaskId } from './missionActivities.ts';
+import { isTrainingId, trainingDefinition, evaluateTraining, type TrainingId, type TrainingProof } from './trainingActivities.ts';
 
 export const MISSION_IDS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7'] as const;
 export type MissionId = typeof MISSION_IDS[number];
@@ -41,6 +43,8 @@ export type ElysiumAction =
   | {type:'begin'}
   | {type:'visit';siteId:SiteId;roverDriving?:boolean}
   | {type:'task';taskId:string}
+  | {type:'complete-activity';taskId:ActivityTaskId;proof:ActivityProof}
+  | {type:'complete-training';activityId:TrainingId;proof:TrainingProof}
   | {type:'choose';group:ChoiceGroup;choiceId:string}
   | {type:'greenhouse-settings';index:0|1;light:number;water:number}
   | {type:'log';missionId:MissionId;choiceId:number}
@@ -100,7 +104,7 @@ export function missionProgress(state:ElysiumState,id:MissionId) {
   const choice=(key:ChoiceGroup,label:string)=>({id:key,label,done:state.choices[key]!==null});
   const requirements:Record<MissionId,{id:string;label:string;done:boolean}[]>={
     m1:[site('airlock','Enter the habitat airlock'),site('command','Read the command terminal'),site('garage','Visit the crew rover garage'),site('greenhouse1','Visit Greenhouse 1')],
-    m2:[task('solar-trace','Trace the Cluster C wiring'),task('solar-connect','Reconnect the loose connector'),choice('grid','Choose the shared power plan')],
+    m2:[task('solar-trace','Trace the Cluster C wiring'),task('solar-connect','Reconnect the loose connector'),{id:'solar-clean',label:'Brush dust from the solar panels',done:has(state,'solar-clean')||done(state,'m2')},choice('grid','Choose the shared power plan')],
     m3:[task('water-compare','Compare the water-loop readings'),choice('water','Set water recovery'),choice('oxygen','Set oxygen production'),choice('scrubber','Schedule CO₂ filter regeneration')],
     m4:[site('greenhouse1','Visit the growing trays'),choice('greenhouse','Choose a greenhouse strategy'),task('forecast-review','Compare the seven-sol forecast')],
     m5:[choice('route','Plan the rover route'),task('field-arrival','Reach the field sensor in the crew rover'),task('sensor-restore','Restore the buried sensor'),task('sample-collect','Collect a labelled sample'),task('sample-analyse','Return and analyse it in the lab')],
@@ -116,6 +120,7 @@ const taskRules:Record<string,{mission:MissionId;site:SiteId;requires?:string[]}
   'cargo-read':{mission:'m1',site:'command'},
   'solar-trace':{mission:'m2',site:'solar'},
   'solar-connect':{mission:'m2',site:'solar',requires:['solar-trace']},
+  'solar-clean':{mission:'m2',site:'solar',requires:['solar-trace']},
   'clear-panels':{mission:'m2',site:'solar',requires:['solar-dust']},
   'water-compare':{mission:'m3',site:'lab'},
   'water-calibrate':{mission:'m3',site:'lab',requires:['water-compare']},
@@ -137,11 +142,23 @@ const groupRules:Record<ChoiceGroup,{mission:MissionId;site:SiteId}>={
 };
 const missionUnlocked=(state:ElysiumState,id:MissionId)=>done(state,id)||availableMissions(state).includes(id);
 
+/** Opening an activity is separate from validating its eventual completion evidence. */
+export function activityAvailable(state:ElysiumState,taskId:unknown):boolean {
+  if(!isActivityTaskId(taskId)||state.phase==='briefing'||state.test.stage==='fault'||state.test.stage==='resolved')return false;
+  const rule=taskRules[taskId];
+  if(!missionUnlocked(state,rule.mission)||!visited(state,rule.site)||!rule.requires?.every(id=>has(state,id)))return false;
+  if(taskId==='clear-panels')return has(state,'solar-dust');
+  // Existing completed missions remain valid; practice never awards progress or resources.
+  return !done(state,'m2')&&!has(state,taskId);
+}
+
 export function actionSite(action:ElysiumAction):SiteId|null {
+  if(action.type==='complete-training')return isTrainingId(action.activityId)?trainingDefinition(action.activityId).site as SiteId:null;
   if(action.type==='recover-rover')return 'garage';
   if(action.type==='run-drill')return 'shelter';
   if(action.type==='visit')return action.siteId;
   if(action.type==='task')return taskRules[action.taskId]?.site??null;
+  if(action.type==='complete-activity')return isActivityTaskId(action.taskId)?'solar':null;
   if(action.type==='choose')return groupRules[action.group]?.site??null;
   if(action.type==='greenhouse-settings')return action.index===0?'greenhouse1':'greenhouse2';
   if(action.type==='resolve-fault'&&action.choiceId==='restart-pump')return 'lab';
@@ -149,7 +166,7 @@ export function actionSite(action:ElysiumAction):SiteId|null {
   return null;
 }
 
-export function actionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
+function coreActionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
   if(!action||typeof action!=='object')return false;
   if(action.type==='begin')return state.phase==='briefing';
   if(state.phase==='briefing')return false;
@@ -158,7 +175,9 @@ export function actionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
     &&(action.revision===undefined||action.revision===state.roverRevision)
     &&(action.dose===undefined||(Number.isFinite(action.dose)&&action.dose>=0&&action.dose<=100000));
   if(action.type==='visit')return (SITE_IDS as readonly string[]).includes(action.siteId);
+  if(action.type==='complete-activity')return activityAvailable(state,action.taskId)&&validateActivityProof(action.taskId,action.proof);
   if(action.type==='task'){
+    if(isActivityTaskId(action.taskId))return false;
     const rule=taskRules[action.taskId];
     if(!rule||has(state,action.taskId)||!missionUnlocked(state,rule.mission)||!visited(state,rule.site)||(rule.requires&&!rule.requires.every(id=>has(state,id))))return false;
     if(action.taskId==='sensor-restore'&&state.choices.sensor!=='sand')return false;
@@ -168,7 +187,7 @@ export function actionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
   if(action.type==='choose'){
     const rule=groupRules[action.group],ids=CHOICE_IDS[action.group] as readonly string[]|undefined;
     if(!rule||!ids?.includes(action.choiceId)||!missionUnlocked(state,rule.mission)||!visited(state,rule.site))return false;
-    if(action.group==='grid'&&!has(state,'solar-connect'))return false;
+    if(action.group==='grid'&&(!has(state,'solar-connect')||(!done(state,'m2')&&!has(state,'solar-clean'))))return false;
     if(['water','oxygen','scrubber'].includes(action.group)&&!has(state,'water-compare'))return false;
     if(action.group==='route')return !has(state,'field-arrival')&&state.resources.roverCharge>=simulation.routes[action.choiceId as keyof typeof simulation.routes].minimumCharge;
     if(action.group==='sensor'&&!has(state,'field-arrival'))return false;
@@ -194,6 +213,68 @@ export function actionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
       :action.choiceId==='cut-crop-water'&&state.test.pumpRestarted;
   }
   return false;
+}
+
+const trainingGroups:Partial<Record<ChoiceGroup,TrainingId>>={grid:'grid-plan',water:'water-plan',oxygen:'oxygen-plan',scrubber:'air-plan',greenhouse:'plant-plan',route:'route-plan',sensor:'sensor-restore',shielding:'shield-plan',contingency:'backup-plan'};
+export function trainingForAction(action:ElysiumAction):TrainingId|null {
+  if(!action||typeof action!=='object')return null;
+  if(action.type==='task')return isTrainingId(action.taskId)?action.taskId:null;
+  if(action.type==='choose')return trainingGroups[action.group]??null;
+  if(action.type==='resolve-fault'){
+    if(['cut-heater','cut-crops'].includes(action.choiceId))return 'fault-heater';
+    if(['regenerate','reduce-ventilation'].includes(action.choiceId))return 'fault-scrubber';
+    if(action.choiceId==='restart-pump')return 'fault-pump';
+    if(action.choiceId==='cut-crop-water')return 'fault-water';
+  }
+  return null;
+}
+
+function trainingActions(id:TrainingId,choice:string|null):ElysiumAction[] {
+  if(id==='sensor-restore')return [{type:'choose',group:'sensor',choiceId:'sand'},{type:'task',taskId:'sensor-restore'}];
+  if(id==='fault-pump')return [{type:'resolve-fault',choiceId:'restart-pump'}];
+  if(id==='fault-water')return [{type:'resolve-fault',choiceId:'cut-crop-water'}];
+  if(id==='fault-heater'||id==='fault-scrubber')return [{type:'resolve-fault',choiceId:choice??''}];
+  const group=(Object.keys(trainingGroups) as ChoiceGroup[]).find(group=>trainingGroups[group]===id);
+  return group?[{type:'choose',group,choiceId:choice??''}]:[{type:'task',taskId:id}];
+}
+
+/** Once-only task credit comes from existing flags, keeping previous saves compatible. */
+export function trainingCompleted(state:ElysiumState,id:TrainingId):boolean {
+  return !!taskRules[id]&&has(state,id);
+}
+
+function trainingPlanAllowed(state:ElysiumState,id:TrainingId,choice:string|null):boolean {
+  let draft=state;
+  for(const action of trainingActions(id,choice)){
+    if(!coreActionAllowed(draft,action))return false;
+    draft=reduceCore(draft,action);
+  }
+  return true;
+}
+
+export function trainingAllowedChoices(state:ElysiumState,id:TrainingId):string[] {
+  if(!isTrainingId(id))return [];
+  const definition=trainingDefinition(id);
+  if(state.phase==='briefing'||!visited(state,definition.site as SiteId))return [];
+  return definition.choices.filter(choice=>trainingPlanAllowed(state,id,choice.id)).map(choice=>choice.id);
+}
+
+export function trainingAvailable(state:ElysiumState,id:unknown):boolean {
+  if(!isTrainingId(id)||state.phase==='briefing'||trainingCompleted(state,id))return false;
+  const definition=trainingDefinition(id);
+  if(!visited(state,definition.site as SiteId)||!missionUnlocked(state,definition.mission))return false;
+  return definition.choices.length?trainingAllowedChoices(state,id).length>0:trainingPlanAllowed(state,id,null);
+}
+
+export function actionAllowed(state:ElysiumState,action:ElysiumAction):boolean {
+  if(!action||typeof action!=='object')return false;
+  if(action.type==='complete-training'){
+    if(!trainingAvailable(state,action.activityId))return false;
+    const result=evaluateTraining(action.activityId,action.proof);
+    return result.complete&&trainingPlanAllowed(state,action.activityId,result.choice);
+  }
+  if(trainingForAction(action)!==null)return false;
+  return coreActionAllowed(state,action);
 }
 
 export function forecastGreenhouses(state:ElysiumState) {
@@ -276,8 +357,8 @@ function resourceDelta(state:ElysiumState,delta:Partial<ElysiumResources>){
 }
 
 /** Decisions advance the planning model; wall-clock time never consumes mission reserves. */
-export function reduceElysium(state:ElysiumState,action:ElysiumAction):ElysiumState {
-  if(!actionAllowed(state,action))return state;
+function reduceCore(state:ElysiumState,action:ElysiumAction):ElysiumState {
+  if(!coreActionAllowed(state,action))return state;
   if(action.type==='sync-world'){
     const arrived=action.roverDriving&&action.siteId==='field-sensor'&&!!state.choices.route&&!has(state,'field-arrival');
     const rough=action.roverDriving&&state.choices.route==='direct'&&(action.roverSpeed??0)>30&&!has(state,'rough-driving');
@@ -309,7 +390,7 @@ export function reduceElysium(state:ElysiumState,action:ElysiumAction):ElysiumSt
       addTask(next,'landmark-survey');
       outcome(next,'Record the terrain survey','Your observed ridges narrow the planning forecast. The note is saved in the journal.','Combining site measurements and terrain observations reduces uncertainty. The effect is a labelled planning simulation.');
     }
-  }else if(action.type==='task'){
+  }else if(action.type==='task'||action.type==='complete-activity'){
     addTask(next,action.taskId);authoredOutcome(next,authored.tasks[action.taskId],action.taskId);
     if(action.taskId==='clear-panels')next.tasks=next.tasks.filter(id=>id!=='solar-dust');
     if(action.taskId==='solar-connect'){
@@ -406,5 +487,15 @@ export function reduceElysium(state:ElysiumState,action:ElysiumAction):ElysiumSt
   }else if(action.type==='final-log'){
     next.finalLog=authored.finalLogOptions?.[action.choiceId]??FINAL_LOGS[action.choiceId];
   }
+  return next;
+}
+
+/** Apply a validated workbench as one transaction; cancelled or incomplete evidence changes nothing. */
+export function reduceElysium(state:ElysiumState,action:ElysiumAction):ElysiumState {
+  if(!actionAllowed(state,action))return state;
+  if(action.type!=='complete-training')return reduceCore(state,action);
+  const result=evaluateTraining(action.activityId,action.proof);
+  let next=state;
+  for(const step of trainingActions(action.activityId,result.choice))next=reduceCore(next,step);
   return next;
 }

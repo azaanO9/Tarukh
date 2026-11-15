@@ -1,10 +1,11 @@
 "use client";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ElysiumWorldBridge } from "../game/elysiumWorld";
 import ExplorationMinimap from "./ExplorationMinimap";
 import MarsAtlas from "./MarsAtlas";
 import {PERSEVERANCE_LANDING} from '../content/marsLandingSites';
 import StarshipArrival from "./StarshipArrival";
+import {createArrivalPlayback} from '../game/starshipArrival';
 import MarsWorld, { type View } from "./MarsWorld";
 import { isCoarsePointerDevice, tryEnterLandscape } from "./mobileDevice";
 import { RotateToLandscapeGate } from "./RotateToLandscapeGate";
@@ -22,6 +23,7 @@ export interface StoryPresentation {
 }
 
 export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
+  const arrivalPlayback=useMemo(()=>createArrivalPlayback(),[]);
   const storyRef = useRef(story);
   useEffect(() => {storyRef.current = story;},[story]);
   const [storyRequested,setStoryRequested] = useState(false);
@@ -99,11 +101,11 @@ export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase={story?'story':'explore'}>
-    <MarsWorld key={attempt} story={story?.world} coveredByArrival={!sceneReady || showArrival} enabled={storyReady && !modal && !story?.modalOpen && !story?.world.ending && !blocked} onReady={ready} onTerrainMode={setStreamed}
+    <MarsWorld key={attempt} story={story?.world} arrivalPlayback={arrivalPlayback} coveredByArrival={!sceneReady || showArrival} enabled={storyReady && !modal && !story?.modalOpen && !story?.world.ending && !blocked} onReady={ready} onTerrainMode={setStreamed}
       showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={changeTouchControls}
       initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={receiveView} onUnavailable={unavailable}
       onRestart={handleRestart} />
-    {showArrival && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} />}
+    {showArrival && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} playback={arrivalPlayback} />}
     {!modal && !story?.modalOpen && storyReady && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
     <header className="roam-header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="CapsLock" onClick={openAtlas}>Atlas</button>}<button disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>Pause</button></header>
     {!modal && <aside className="roam-info">{streamed ? "Mars MOLA region" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
