@@ -65,6 +65,7 @@ import {
   SpaceWeatherService,
   type SpaceWeatherTelemetry,
   calculateExposureDelta,
+  isBaseShelter,
   getEnvironmentalShielding,
   calculateRadiationDrain,
 } from "../game/spaceWeatherService";
@@ -564,22 +565,6 @@ function MarsWorld(props: Props) {
         model.obstacles.push(boxObstacle(0, 12, 4.5, 3.5, "arrival-shuttle"));
         model.obstacles.push(boxObstacle(0, 15.7, .7, .5, "arrival-steps"));
 
-        // Regolith Water Bunker / Lava Tube Shelter Zone
-        const bunkerGroup = new T.Group();
-        bunkerGroup.name = "Regolith Water Bunker";
-        bunkerGroup.position.set(-24, model.heightAt(-24, 24), 24);
-        const domeGeo = new T.SphereGeometry(3.6, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5);
-        const domeMat = new T.MeshStandardMaterial({ color: 0x47392f, roughness: 0.9, metalness: 0.1 });
-        const bunkerDome = new T.Mesh(domeGeo, domeMat);
-        bunkerDome.position.y = -0.4;
-        bunkerGroup.add(bunkerDome);
-        const beaconGeo = new T.CylinderGeometry(0.12, 0.16, 0.9, 8);
-        const beaconMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x10b981, emissiveIntensity: 0.8 });
-        const beacon = new T.Mesh(beaconGeo, beaconMat);
-        beacon.position.set(0, 3.5, 0);
-        bunkerGroup.add(beacon);
-        scene.add(bunkerGroup);
-        model.obstacles.push({ x: -24, z: 24, radius: 3.6, id: "regolith-bunker" });
       }
       if (landingIntro) {
         scene.add(landingIntro.root);
@@ -888,7 +873,6 @@ function MarsWorld(props: Props) {
             cameraYaw = rover.yaw;
             characterYaw = rover.yaw;
             lastMouseMoveTime = performance.now();
-            triggerRoverShieldRef.current();
           }
         }
         else {
@@ -910,7 +894,6 @@ function MarsWorld(props: Props) {
           walker.vz = 0;
           keys.clear();
           setRoverDriving(false);
-          clearRoverShieldRef.current();
         }
       };
       let lastQuality = "";
@@ -1711,17 +1694,10 @@ function MarsWorld(props: Props) {
           const playerPosX = inRover ? rover.x : walker.x;
           const playerPosZ = inRover ? rover.z : walker.z;
 
-          // Habitat Base Interior State Check (100% Mitigation):
-          // Player is sheltered inside Outpost campus, Greenhouse biodomes, Rover Garage,
-          // Landing Habitat at (0, 12), or Regolith Bunker at (-24, 24)
-          const distToShuttle = Math.hypot(playerPosX - 0, playerPosZ - 12);
-          const distToBunker = Math.hypot(playerPosX - (-24), playerPosZ - 24);
-          const inBase = !inRover && (
+          const inBase = !inRover && isBaseShelter(playerPosX, playerPosZ,
             outpost.indoors(playerPosX, playerPosZ) ||
             greenhouses.indoors(playerPosX, playerPosZ) ||
-            garageIndoors(playerPosX, playerPosZ) ||
-            distToShuttle <= 10.5 ||
-            distToBunker <= 8.5
+            garageIndoors(playerPosX, playerPosZ)
           );
 
           // Handle Base Shielding Transition & 5s Popup
@@ -2892,7 +2868,7 @@ function MarsWorld(props: Props) {
             </strong>
             <span>
               {spaceWeather.activeEvent ? `${spaceWeather.activeEvent.name} [${spaceWeather.activeEvent.flareClass}] — ` : ""}
-              SEEK HABITAT OR REGOLITH SHELTER IMMEDIATELY
+              SEEK OUTPOST OR HABITAT SHELTER IMMEDIATELY
             </span>
           </div>
         </aside>
@@ -3723,8 +3699,8 @@ function MarsWorld(props: Props) {
              </div>
              <div className="mars-sep-shelter-item">
                <span>🏛️</span>
-               <div><b>Regolith Water Bunker</b> — Cyan beacon protected dome</div>
-               <span className="mars-sep-shelter-coord">(-24, 24) m</span>
+               <div><b>Outpost Campus</b> — Enter through the main airlock</div>
+               <span className="mars-sep-shelter-coord">(0, −65) m</span>
              </div>
            </div>
            <p style={{ marginTop: "4px" }}>

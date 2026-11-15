@@ -1653,6 +1653,7 @@
   .mars-shield-popup,
   .mars-shield-popup.rover.fade-minimize,
   .sv-rover-shield-status,
+  .sv-rover-shield-status .sv-shield-icon,
   .mars-shield-popup-pulse {
     animation: none !important;
     transition: none !important;

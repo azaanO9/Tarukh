@@ -83,6 +83,15 @@ export interface EnvironmentalShieldingState {
   readonly label: string;
 }
 
+/** Existing landing-habitat zone plus the actual outpost, greenhouse or garage interior. */
+export function isBaseShelter(x: number, z: number, insideFacility: boolean): boolean {
+  return insideFacility || x * x + (z - 12) * (z - 12) <= 10.5 * 10.5;
+}
+
+const BASE_SHIELD: EnvironmentalShieldingState = Object.freeze({inBase:true, inRover:false, mitigationMultiplier:0, label:"100% (HABITAT)"});
+const ROVER_SHIELD: EnvironmentalShieldingState = Object.freeze({inBase:false, inRover:true, mitigationMultiplier:.5, label:"50% (ROVER)"});
+const SURFACE_SHIELD: EnvironmentalShieldingState = Object.freeze({inBase:false, inRover:false, mitigationMultiplier:1, label:"0% (UNSHIELDED)"});
+
 /**
  * Determines environmental radiation shielding status based on player location.
  * - Habitat Base Interior: 100% mitigation (0x radiation damage, completely safe)
@@ -90,28 +99,7 @@ export interface EnvironmentalShieldingState {
  * - Martian Surface EVA: 0% mitigation (1.0x radiation damage, unshielded)
  */
 export function getEnvironmentalShielding(inBase: boolean, inRover: boolean): EnvironmentalShieldingState {
-  if (inBase) {
-    return {
-      inBase: true,
-      inRover: false,
-      mitigationMultiplier: 0,
-      label: "100% (HABITAT)",
-    };
-  }
-  if (inRover) {
-    return {
-      inBase: false,
-      inRover: true,
-      mitigationMultiplier: 0.5,
-      label: "50% (ROVER)",
-    };
-  }
-  return {
-    inBase: false,
-    inRover: false,
-    mitigationMultiplier: 1.0,
-    label: "0% (UNSHIELDED)",
-  };
+  return inBase ? BASE_SHIELD : inRover ? ROVER_SHIELD : SURFACE_SHIELD;
 }
 
 /**

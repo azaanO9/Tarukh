@@ -3,11 +3,32 @@ import assert from "node:assert/strict";
 import {
   getStormScale,
   calculateExposureDelta,
+  isBaseShelter,
   getEnvironmentalShielding,
   calculateRadiationDrain,
   HISTORICAL_SEP_EVENTS,
   SpaceWeatherService,
 } from "../game/spaceWeatherService.ts";
+
+test("removed bunker ground is exposed while existing habitats still provide shelter", () => {
+  assert.equal(isBaseShelter(-24, 24, false), false);
+  assert.equal(isBaseShelter(-20, 24, false), false);
+  assert.equal(isBaseShelter(0, 12, false), true);
+  assert.equal(isBaseShelter(10.5, 12, false), true);
+  assert.equal(isBaseShelter(10.51, 12, false), false);
+  assert.equal(isBaseShelter(0, -65, true), true);
+  assert.equal(isBaseShelter(0, -65, false), false);
+  const outside = getEnvironmentalShielding(isBaseShelter(-24, 24, false), false);
+  assert.ok(calculateExposureDelta(100, outside.inBase, 1, outside.mitigationMultiplier) > 0);
+});
+
+test("radiation shielding reuses immutable states in the frame loop", () => {
+  for (const [base, rover] of [[true, false], [false, true], [false, false]]) {
+    const state = getEnvironmentalShielding(base, rover);
+    assert.equal(getEnvironmentalShielding(base, rover), state);
+    assert.ok(Object.isFrozen(state));
+  }
+});
 
 test("getStormScale maps proton flux to NOAA solar radiation scales accurately", () => {
   assert.equal(getStormScale(0.2), "S0 NOMINAL");

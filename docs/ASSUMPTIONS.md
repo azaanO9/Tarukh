@@ -31,7 +31,7 @@ The opening is a 32-second, SpaceX-inspired Earth recovery montage before Mars e
 Real-world Mars surface radiation doses accumulate over months to years (typically ~0.21 mSv/day quiet GCR background, climbing during rare SEP events). For real-time interactive gameplay and demonstrations, radiation accumulation is time-compressed:
 - Baseline EVA exposure rate: `+0.05 mSv/s` (representing unshielded ambient cosmic radiation).
 - Active SEP storm exposure rate (`sepFluxPFU >= 10`): `0.6 + Math.log10(sepFluxPFU) * 1.4 mSv/s` (scaling logarithmically with proton flux up to extreme storm levels).
-- Habitat and bunker shielding: inside the landing shuttle (`(0, 12)`) or the regolith water bunker (`(-24, 24)`), incoming SEP protons are completely blocked (`0 mSv/s`) and the astronaut undergoes medical decontamination/recovery at `-1.5 mSv/s` down to 0 mSv.
+- Habitat shielding: the landing-habitat zone (`(0, 12)`, 10.5-metre radius), outpost interiors, greenhouses and garage use 100% simulated protection. The crew rover uses 50% protection. These fixed percentages and the sheltered exposure-meter recovery of `-1.5 mSv/s` are gameplay rules, not calculated shielding performance or removal of a real accumulated radiation dose. The former standalone bunker has been removed, including its shelter zone.
 - Acute Radiation Sickness (ARS) symptoms: vision blur (`backdrop-filter: blur()`), red peripheral vignette, CMOS sensor static snow, audio Geiger clicks, 30% movement speed penalty (`radiationExposure >= 70 mSv`), and progressive health degradation above 75 mSv. These represent acute deterministic radiation sickness thresholds in a compressed interactive format rather than a certified medical simulation.
 
 ## Separate Starbase preview
