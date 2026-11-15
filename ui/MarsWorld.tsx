@@ -229,7 +229,6 @@ function MarsWorld(props: Props) {
   const isShieldedRef = useRef(false);
   isShieldedRef.current = isShielded;
   const [geigerMuted, setGeigerMuted] = useState(false);
-  const snowCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Environmental Radiation Shielding States & Notifications
   const [baseShieldPopup, setBaseShieldPopup] = useState<{ visible: boolean; fading: boolean }>({ visible: false, fading: false });
@@ -349,18 +348,6 @@ function MarsWorld(props: Props) {
 
   const toggleSpaceWeatherAction = useRef(toggleSpaceWeatherMode);
   toggleSpaceWeatherAction.current = toggleSpaceWeatherMode;
-
-  useEffect(() => {
-    const canvas = snowCanvasRef.current;
-    if (!canvas) return;
-    const updateSize = () => {
-      canvas.width = Math.min(window.innerWidth, 1920);
-      canvas.height = Math.min(window.innerHeight, 1080);
-    };
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
-  }, []);
 
   const [loadingStage, setLoadingStage] = useState("Loading explorers and rovers…");
   const [loadingProgress, setLoadingProgress] = useState(10);
@@ -1766,33 +1753,6 @@ function MarsWorld(props: Props) {
                 prevStormActive.current = false;
               }
             }
-
-            // Draw CMOS sensor radiation snow
-            const canvas = snowCanvasRef.current;
-            if (canvas) {
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                if (telemetry.sepFluxPFU < 5 || shieldedNow) {
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                } else {
-                  ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
-                  ctx.fillRect(0, 0, canvas.width, canvas.height);
-                  const hitCount = Math.min(45, Math.floor(Math.log10(telemetry.sepFluxPFU) * 8 + Math.random() * 4));
-                  for (let i = 0; i < hitCount; i++) {
-                    const sx = Math.random() * canvas.width;
-                    const sy = Math.random() * canvas.height;
-                    ctx.fillStyle = Math.random() > 0.35 ? "rgba(255, 255, 255, 0.95)" : "rgba(167, 243, 208, 0.9)";
-                    if (Math.random() > 0.6) {
-                      const len = 3 + Math.random() * 5;
-                      const ang = Math.random() * Math.PI * 2;
-                      ctx.fillRect(sx, sy, Math.cos(ang) * len, Math.sin(ang) * len);
-                    } else {
-                      ctx.fillRect(sx, sy, 1.5, 1.5);
-                    }
-                  }
-                }
-              }
-            }
           }
         }
         const insideOutpost = !rover.driving && outpost.indoors(walker.x,walker.z);
@@ -2604,7 +2564,6 @@ function MarsWorld(props: Props) {
       }}
       aria-hidden="true"
     />
-    <canvas ref={snowCanvasRef} className="mars-radiation-snow" aria-hidden="true" />
    {performanceMeter !== "off" && true && (debug || (props.enabled && !introActive)) &&
       <pre key={performanceMeter} ref={debugPanel} className="mars-debug" data-mode={performanceMeter} aria-label="Graphics performance diagnostics">Measuring FPS…</pre>}
    {!loaded && (<div className="sv-loading" role="status">
@@ -3868,7 +3827,7 @@ function MarsWorld(props: Props) {
            </p>
            <p>
              • High-energy protons penetrate the suit and cause <b>Acute Radiation Sickness (ARS)</b>.<br />
-             • Triggers <b>CMOS sensor static (&quot;radiation snow&quot;)</b> and <b>progressive vision blur / red tunnel vision</b>.<br />
+             • Triggers biological exposure and <b>progressive vision blur / red tunnel vision</b>.<br />
              • At <b>≥70 mSv</b>, causes <b>30% sprint fatigue</b>; above <b>75 mSv</b>, causes <b>Health degradation</b> until fatal.
            </p>
          </div>
