@@ -509,17 +509,21 @@
   white-space: nowrap;
 }
 .roam-root[data-controls="mobile"] .roam-minimap {
-  width: 138px;
-  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 100px);
+  width: 126px;
+  top: calc(max(6px, env(safe-area-inset-top)) + 38px);
+  bottom: auto;
+  left: max(10px, env(safe-area-inset-left));
+  z-index: 22;
 }
 
 .roam-root[data-controls="mobile"] .roam-minimap[data-driving="true"] {
-  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 76px);
+  top: calc(max(6px, env(safe-area-inset-top)) + 38px);
+  bottom: auto;
 }
 
 .roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg {
-  width: 128px;
-  height: 94px;
+  width: 116px;
+  height: 80px;
 }
 
 .roam-root[data-controls="mobile"] .roam-map-legend {
@@ -527,8 +531,12 @@
 }
 
 .roam-root[data-controls="mobile"] .roam-info {
-  left: 154px;
-  max-width: calc(100vw - 260px);
+  top: calc(max(6px, env(safe-area-inset-top)) + 38px);
+  left: calc(max(10px, env(safe-area-inset-left)) + 134px);
+  max-width: calc(100vw - 320px);
+  padding: 3px 8px;
+  font-size: 10px;
+  border-radius: 12px;
 }
 
 .roam-root[data-controls="mobile"]:has(.roam-minimap[data-driving="true"]) .roam-info {
@@ -1271,4 +1279,17 @@
   .gta-atlas-tabs {
     display: none;
   }
+}
+
+
+.roam-root[data-controls="mobile"] .roam-header {
+  top: max(6px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  font-size: 11px;
+}
+.roam-root[data-controls="mobile"] .roam-header b,
+.roam-root[data-controls="mobile"] .roam-header button {
+  padding: 4px 8px;
+  font-size: 11px;
 }

@@ -242,6 +242,21 @@ function MarsWorld(props: Props) {
   const roverShieldFadeTimeoutRef = useRef<number | null>(null);
   const prevInRoverRef = useRef<boolean>(false);
 
+  const [sepAlertDismissedTime, setSepAlertDismissedTime] = useState<number>(0);
+
+  const dismissBaseShieldPopup = useCallback(() => {
+    if (baseShieldTimeoutRef.current) window.clearTimeout(baseShieldTimeoutRef.current);
+    if (baseShieldFadeTimeoutRef.current) window.clearTimeout(baseShieldFadeTimeoutRef.current);
+    setBaseShieldPopup({ visible: false, fading: false });
+  }, []);
+
+  const dismissRoverShieldPopup = useCallback(() => {
+    if (roverShieldTimeoutRef.current) window.clearTimeout(roverShieldTimeoutRef.current);
+    if (roverShieldFadeTimeoutRef.current) window.clearTimeout(roverShieldFadeTimeoutRef.current);
+    setRoverShieldPopup({ visible: false, fading: false });
+    setRoverShieldHudActive(true);
+  }, []);
+
   const triggerBaseShieldPopup = useCallback(() => {
     if (baseShieldTimeoutRef.current) window.clearTimeout(baseShieldTimeoutRef.current);
     if (baseShieldFadeTimeoutRef.current) window.clearTimeout(baseShieldFadeTimeoutRef.current);
@@ -2544,7 +2559,7 @@ function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
@@ -2827,7 +2842,7 @@ function MarsWorld(props: Props) {
         </aside>
       )}
       {/* Solar Energetic Particle Alert Banner */}
-      {spaceWeather.sepFluxPFU >= 10 && !isShielded && (
+      {spaceWeather.sepFluxPFU >= 10 && !isShielded && (Date.now() - sepAlertDismissedTime > 60000) && (
         <aside className="mars-sep-alert-banner" role="alert" aria-live="assertive">
           <div className="mars-sep-alert-pulse" aria-hidden="true" />
           <div className="mars-sep-alert-text">
@@ -2839,6 +2854,15 @@ function MarsWorld(props: Props) {
               SEEK OUTPOST OR HABITAT SHELTER IMMEDIATELY
             </span>
           </div>
+          <button
+            type="button"
+            className="mars-popup-close-btn"
+            onClick={() => setSepAlertDismissedTime(Date.now())}
+            aria-label="Dismiss storm alert"
+            title="Dismiss alert"
+          >
+            ✕
+          </button>
         </aside>
       )}
 
@@ -2867,6 +2891,15 @@ function MarsWorld(props: Props) {
               <span>Habitat radiation deflection engaged · Complete environmental isolation</span>
             </div>
           </div>
+          <button
+            type="button"
+            className="mars-popup-close-btn"
+            onClick={dismissBaseShieldPopup}
+            aria-label="Dismiss habitat shield notification"
+            title="Dismiss notification"
+          >
+            ✕
+          </button>
         </aside>
       )}
 
@@ -2893,12 +2926,45 @@ function MarsWorld(props: Props) {
               <span>Pressurized chassis deflection engaged · Minimizing to cockpit HUD</span>
             </div>
           </div>
+          <button
+            type="button"
+            className="mars-popup-close-btn"
+            onClick={dismissRoverShieldPopup}
+            aria-label="Dismiss rover shield notification"
+            title="Dismiss notification"
+          >
+            ✕
+          </button>
         </aside>
       )}
 
-{/* SpaceX / NASA Minimalist Icon-Driven Mars Telemetry Communicator */}
+{/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
+      {touchControlsActive && !phoneOpen && (
+        <button
+          type="button"
+          className="mars-phone-mobile-pill"
+          onClick={() => setPhoneOpen(true)}
+          aria-label="Open Mars Telemetry Communicator"
+          title="Open Mars Communicator"
+        >
+          <span className="mars-mobile-pill-icon">📱</span>
+          <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
+          <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
+        </button>
+      )}
+
+      {/* Mobile Backdrop when Phone is open */}
+      {touchControlsActive && phoneOpen && (
+        <div
+          className="mars-phone-mobile-backdrop"
+          onClick={() => setPhoneOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* SpaceX / NASA Minimalist Icon-Driven Mars Telemetry Communicator */}
       <div
-        className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${roverDriving ? " driving" : ""}`}
+        className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}
         role="region"
         aria-label="Mars Communicator Display"
         onClick={() => {
@@ -2931,6 +2997,20 @@ function MarsWorld(props: Props) {
               </span>
               <span className="mars-battery-pct">100%</span>
             </span>
+            {phoneOpen && (
+              <button
+                type="button"
+                className="mars-phone-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPhoneOpen(false);
+                }}
+                aria-label="Close Mars Communicator"
+                title="Close phone"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
