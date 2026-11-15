@@ -99,3 +99,36 @@ test('stripLegacySolarGeometry removes legacy mounting frames and support poles 
   assert.equal(geom.index.getX(1), 1);
   assert.equal(geom.index.getX(2), 2);
 });
+
+test('stripLegacySolarGeometry removes legacy triangles when campus hierarchy is translated to world position', () => {
+  const geom = new THREE.BufferGeometry();
+  const positions = new Float32Array([
+    // Triangle 1 (outside bounds in campus local space)
+    0, 0, 0,
+    1, 0, 0,
+    0, 1, 0,
+    // Triangle 2 (inside solar legacy bounds in campus local space: x = -10, y = 1.0, z = 13.0)
+    -10, 1, 13,
+    -11, 1, 13,
+    -10, 1.5, 13,
+  ]);
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geom.setIndex([0, 1, 2, 3, 4, 5]);
+
+  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial());
+  mesh.name = '02__CREW_LIVING__frame_seams';
+  const campusScene = new THREE.Group();
+  campusScene.name = 'Scene';
+  campusScene.add(mesh);
+
+  const root = new THREE.Group();
+  root.name = 'TARUKH Elysium Outpost';
+  root.position.set(0, 0.1, -65);
+  root.add(campusScene);
+  root.updateMatrixWorld(true);
+
+  // Both with explicit campusScene and with automatic hierarchy fallback
+  const stripped = stripLegacySolarGeometry(mesh, campusScene);
+  assert.equal(stripped, 1, 'Should strip 1 triangle using campusScene space despite root z = -65 translation');
+  assert.equal(geom.index.count, 3, 'Should retain triangle outside bounds');
+});

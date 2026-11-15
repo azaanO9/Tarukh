@@ -20,13 +20,28 @@ export const SOLAR_LEGACY_BOUNDS = new T.Box3(new T.Vector3(-20, -1, 11), new T.
  * Strips legacy solar panel support frames, backplates and mounting poles from campus hull seam meshes.
  * This completely removes the overriding legacy structures so the 2K 3D model stands on its own stand.
  */
-export function stripLegacySolarGeometry(mesh: T.Mesh): number {
+export function stripLegacySolarGeometry(mesh: T.Mesh, campusScene?: T.Object3D): number {
   const geom = mesh.geometry;
   const pos = geom.attributes.position;
   const idx = geom.index;
   if (!idx || !pos) return 0;
   mesh.updateMatrixWorld(true);
-  const m = mesh.matrixWorld;
+  const m = mesh.matrixWorld.clone();
+  if (campusScene) {
+    campusScene.updateMatrixWorld(true);
+    const invCampus = campusScene.matrixWorld.clone().invert();
+    m.premultiply(invCampus);
+  } else if (mesh.parent) {
+    let top: T.Object3D = mesh;
+    while (top.parent && top.parent.type !== 'Scene' && top.parent.name !== 'TARUKH Elysium Outpost') {
+      top = top.parent;
+    }
+    if (top !== mesh) {
+      top.updateMatrixWorld(true);
+      const invTop = top.matrixWorld.clone().invert();
+      m.premultiply(invTop);
+    }
+  }
   const v = new T.Vector3();
   const newIndices: number[] = [];
   let stripped = 0;
@@ -125,7 +140,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
         // Remove legacy low-res photovoltaic array meshes and strip their support frames/poles
         if(/photovoltaic/i.test(o.name)){o.visible=false;toRemoveMeshes.push(o);return;}
         if(o.name === '02__CREW_LIVING__frame_seams' || o.name === '01__bolted_vertical_seams_and_belt_rails_2'){
-          stripLegacySolarGeometry(o);
+          stripLegacySolarGeometry(o, gltf.scene);
         }
         // Interior furnishings are lit locally; they do not need another full
         // rendering pass into the outdoor sun shadow map.
