@@ -241,9 +241,10 @@ test("onboard battery drains while driving and drains 3x faster in boost mode", 
   standard.battery = 100;
   boosted.battery = 100;
 
+  // Run at night (solarIntensity = 0) to measure pure battery drain
   for (let i = 0; i < 40; i++) {
-    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05);
-    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05);
+    standard = stepRoverVehicle(standard, new Set(["w"]), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 0 });
+    boosted = stepRoverVehicle(boosted, new Set(["w", "shift"]), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 0 });
   }
 
   const standardDrain = 100 - standard.battery;
@@ -272,4 +273,22 @@ test("internal power cell trickle recharges rover battery while parked", () => {
   }
 
   assert.ok(parked.battery > 50, "battery should replenish while resting");
+});
+
+test("solar panels regenerate rover battery during daytime and stay dormant at night", () => {
+  let roverDay = spawnRoverVehicle(0, 0, 0);
+  roverDay.battery = 50;
+  for (let i = 0; i < 40; i++) {
+    roverDay = stepRoverVehicle(roverDay, new Set(), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 1.0 });
+  }
+  assert.ok(roverDay.battery > 50, "battery should regenerate from solar in daylight");
+  assert.equal(roverDay.solarCharging, true);
+
+  let roverNight = spawnRoverVehicle(0, 0, 0);
+  roverNight.battery = 50;
+  for (let i = 0; i < 40; i++) {
+    roverNight = stepRoverVehicle(roverNight, new Set(), 0.05, [], () => 0, () => 0, undefined, { solarIntensity: 0 });
+  }
+  assert.equal(roverNight.battery, 50, "battery does not regenerate at night without sunlight");
+  assert.equal(roverNight.solarCharging, false);
 });

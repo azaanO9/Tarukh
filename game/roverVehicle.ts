@@ -28,7 +28,7 @@ export const ROVER_BASE_DRAIN_RATE = 0.005; // % per second base avionics & life
 export const ROVER_DRIVE_DRAIN_RATE = 0.075; // % per second standard cruise consumption at full throttle
 export const ROVER_BOOST_DRAIN_MULT = 3.0; // 3x battery consumption multiplier during Boost Mode
 export const ROVER_PARKED_RECHARGE_RATE = 0.035; // % per second rest replenishment from internal power cell
-export const ROVER_SOLAR_MAX_RATE = 0; // Deprecated: solar panels removed from rover
+export const ROVER_SOLAR_MAX_RATE = 0.085; // % per second peak solar charging rate at high noon from installed photovoltaic arrays
 
 // Component Damage & EVA Maintenance
 export type RoverPartId =
@@ -73,8 +73,8 @@ export const ROVER_PART_LABELS: Record<RoverPartId, string> = {
   wheel_mr: "Mid-Right Wheel",
   wheel_rl: "Rear-Left Wheel",
   wheel_rr: "Rear-Right Wheel",
-  cabin_roof: "Cabin Roof & Avionics",
-  solar_array: "Cabin Roof & Avionics",
+  cabin_roof: "Cabin Roof & Solar Array",
+  solar_array: "Cabin Roof & Solar Array",
 };
 
 export const ROVER_PART_WHEEL_INDICES: Record<string, number> = {
@@ -430,9 +430,24 @@ export function stepRoverVehicle(
     ? { ...rover.damage }
     : { ...INITIAL_ROVER_DAMAGE };
 
-  // Rover internal power cell: rest replenishment when parked (solar panels removed)
-  const solarRate = 0;
-  const solarCharging = false;
+  // Active Solar Regeneration from Sol Clock & Installed Photovoltaic Array
+  let solarIntensity = options?.solarIntensity;
+  if (solarIntensity === undefined && options?.daylightElapsed !== undefined) {
+    // 600s daylight cycle, daylightAngle: 0=noon, pi=midnight
+    const angle = ((Math.max(0, options.daylightElapsed) % 600) / 600) * Math.PI * 2;
+    const cosSun = Math.cos(angle);
+    solarIntensity = Math.max(0, cosSun);
+  } else if (solarIntensity === undefined) {
+    // Default to daylight when unspecified (e.g. unit tests)
+    solarIntensity = 1.0;
+  }
+
+  // Roof tilt efficiency relative to sky and solar array component health
+  const roofTiltEfficiency = Math.max(0, Math.cos(rover.pitch) * Math.cos(rover.roll));
+  const solarHealth = damage.solar_array ?? damage.cabin_roof ?? 100;
+  const solarHealthRatio = clamp(solarHealth / 100, 0, 1);
+  const solarRate = ROVER_SOLAR_MAX_RATE * solarIntensity * roofTiltEfficiency * solarHealthRatio;
+  const solarCharging = solarRate > 0.008 && solarIntensity > 0.05;
 
   if (!rover.driving) {
     // When parked, friction holds the rover stationary and suspension settles on terrain
@@ -449,8 +464,9 @@ export function stepRoverVehicle(
       mudAt,
       dt,
     );
-    // Parked passive replenishment from internal power cell (zero motor drain)
-    const parkedBattery = clamp(currentBattery + ROVER_PARKED_RECHARGE_RATE * dt, 0, 100);
+    // Parked passive solar replenishment in daylight, with internal cell trickle fallback
+    const parkedRecharge = solarRate > 0.008 ? solarRate : (solarIntensity > 0 ? ROVER_PARKED_RECHARGE_RATE * solarIntensity : 0);
+    const parkedBattery = clamp(currentBattery + parkedRecharge * dt, 0, 100);
     const nominalRange = (parkedBattery / 100) * ROVER_NOMINAL_RANGE_KM;
     return {
       ...rover,
@@ -469,8 +485,8 @@ export function stepRoverVehicle(
       mudDepth: settled.mudDepth,
       battery: parkedBattery,
       boostActive: false,
-      solarCharging: false,
-      solarRate: 0,
+      solarCharging,
+      solarRate,
       powerDrainRate: 0,
       estimatedRangeKm: nominalRange,
       slopeAngle: settled.pitch,
