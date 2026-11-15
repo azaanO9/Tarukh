@@ -100,7 +100,7 @@ The coastal Earth surface, ocean colours, cloud banks, orbital atmosphere and st
 
 ## Flight console
 
-The Flight console's segmented dial, instrument rings and hover treatments are original CSS/React artwork using the existing Lucide icon library. The menu references radial game interfaces and aerospace display conventions. No third-party interface art, brand marks or fonts were added.
+The Flight console's annular dial, illuminated selection arc, instrument rings, translucent pause overlay and transitions are original SVG/CSS/React artwork using the existing Lucide icon library and system fonts. The blur is applied to the actual paused game view. The menu references radial game interfaces and aerospace display conventions. No third-party interface art, brand marks or fonts were added.
 
 ## Field phone
 

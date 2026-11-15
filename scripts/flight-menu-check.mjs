@@ -26,7 +26,7 @@ async function start(context) {
 }
 
 async function capture(page, name) {
-  await page.screenshot({ path: path.join(output, name + '.png') });
+  await page.screenshot({ path: path.join(output, name + '.png'), animations: 'disabled' });
   report.screenshots.push(name + '.png');
 }
 
@@ -115,6 +115,28 @@ try {
   check(`Fullscreen return works; Resume mouse look ${mouseCaptured ? 'captures the mouse' : 'shows the browser fallback'}`);
   await page.evaluate(() => document.exitPointerLock());
   await page.waitForFunction(() => !document.pointerLockElement);
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await consoleDialog.waitFor();
+  const presentation = await consoleDialog.evaluate(element => ({
+    motion: getComputedStyle(element).animationName,
+    blur: getComputedStyle(element, '::backdrop').backdropFilter,
+    width: element.getBoundingClientRect().width,
+    viewport: innerWidth,
+  }));
+  assert.equal(presentation.motion, 'flight-console-in');
+  assert.match(presentation.blur, /blur\(/);
+  assert.ok(presentation.width >= presentation.viewport * .9, 'Pause overlay fills the view');
+  await capture(page, 'desktop-paused');
+  await consoleDialog.getByRole('button', { name: 'Resume game', exact: true }).click();
+  await consoleDialog.waitFor({ state: 'detached' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  assert.equal(await consoleDialog.evaluate(element => getComputedStyle(element).animationName), 'none');
+  await consoleDialog.getByRole('button', { name: 'Resume game', exact: true }).click();
+  await consoleDialog.waitFor({ state: 'detached' });
+  check('Full-view blur, animated open/close and reduced-motion resume work');
 
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.getByRole('button', { name: 'Main menu', exact: true }).click();

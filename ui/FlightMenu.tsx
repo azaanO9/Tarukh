@@ -29,6 +29,14 @@ const meters = [
 
 const dialDirections: Record<string, number | undefined> = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 };
 
+// Four annular segments share the same viewBox; the HTML buttons own all input.
+function ringSegment(start: number, end: number, inner = 130, outer = 234) {
+  const point = (angle: number, radius: number) => `${250 + Math.cos(angle * Math.PI / 180) * radius},${250 + Math.sin(angle * Math.PI / 180) * radius}`;
+  return `M${point(start, outer)} A${outer},${outer} 0 0 1 ${point(end, outer)} L${point(end, inner)} A${inner},${inner} 0 0 0 ${point(start, inner)} Z`;
+}
+const ringSegments = stations.map((station, index) => ({ id: station.id, path: ringSegment(-133 + index * 90, -47 + index * 90) }));
+const sectionCaptions: Record<Station, string> = { resume: "Mars expedition", camera: "Your perspective", graphics: "Display configuration", exit: "Leave session" };
+
 interface FlightMenuProps {
   mobile: boolean;
   story: boolean;
@@ -52,6 +60,8 @@ export default function FlightMenu(props: FlightMenuProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const dial = useRef<HTMLElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [closing, setClosing] = useState(false);
   const [section, setSection] = useState<Station>("resume");
   const [preview, setPreview] = useState<Station | null>(null);
   const highlighted = preview ?? section;
@@ -65,11 +75,21 @@ export default function FlightMenu(props: FlightMenuProps) {
     if (!element) return;
     element.showModal();
     closeButton.current?.focus();
-    return () => element.close();
+    return () => {
+      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+      element.close();
+    };
   }, []);
 
+  function closeMenu(action = props.onResume) {
+    if (closeTimer.current !== null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { action(); return; }
+    setClosing(true);
+    closeTimer.current = setTimeout(action, 180);
+  }
+
   function selectStation(id: Station) {
-    if (id === "resume") props.onResume();
+    if (id === "resume") closeMenu();
     else setSection(id);
   }
 
@@ -89,8 +109,10 @@ export default function FlightMenu(props: FlightMenuProps) {
 
   return (
     <dialog className="flight-menu" ref={dialog} aria-labelledby="flight-menu-title" data-ui-zone="flight-menu"
-      onCancel={event => { event.preventDefault(); props.onResume(); }}
+      data-closing={closing} data-mobile={props.mobile} data-light={props.quality === "performance" || props.quality === "auto" && props.autoLabel === "Performance"}
+      onCancel={event => { event.preventDefault(); closeMenu(); }}
       onKeyDown={event => {
+        if (closing) { event.preventDefault(); return; }
         if (event.key !== "Tab") return;
         const controls = dialog.current?.querySelectorAll<HTMLElement>("button, input");
         const first = controls?.[0], last = controls?.[controls.length - 1];
@@ -98,26 +120,36 @@ export default function FlightMenu(props: FlightMenuProps) {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }}>
       <header className="flight-menu-header">
-        <div><p>TARUKH / {props.story ? "Elysium Outpost" : "Free Exploration"}</p><h2 id="flight-menu-title">Flight console</h2></div>
-        <button ref={closeButton} className="flight-menu-close" type="button" aria-label="Close flight console" onClick={props.onResume}><X size={20} aria-hidden="true" /></button>
+        <div className="flight-menu-heading">
+          <p className="flight-menu-brand">TARUKH <span>{props.story ? "Elysium Outpost" : "Free Exploration"}</span></p>
+          <h2 id="flight-menu-title"><span className="flight-menu-sr">Flight console</span><span aria-hidden="true">Paused<span className="flight-menu-title-dot">.</span></span></h2>
+        </div>
+        <button ref={closeButton} className="flight-menu-close" type="button" aria-label="Close flight console" onClick={() => closeMenu()}><span aria-hidden="true">Back to Mars</span><X size={22} aria-hidden="true" /></button>
       </header>
 
       <div className="flight-menu-body">
         <nav ref={dial} className="flight-menu-dial" aria-label="Flight console sections" data-highlight={highlighted} onKeyDown={handleDialKeys}>
           <div className="flight-menu-ring" aria-hidden="true" />
-          <div className="flight-menu-hub" aria-hidden="true"><Indicator size={25} /><span>{currentStation.label}</span></div>
+          <svg className="flight-menu-wheel" viewBox="0 0 500 500" aria-hidden="true">
+            {ringSegments.map(segment => <path key={segment.id} data-segment={segment.id} d={segment.path} />)}
+            <circle className="flight-menu-inner-ring" cx="250" cy="250" r="118" />
+          </svg>
+          <svg className="flight-menu-selection" viewBox="0 0 500 500" aria-hidden="true"><path d="M81.9,73.1 A244,244 0 0 1 418.1,73.1" /><circle cx="250" cy="6" r="3.5" /></svg>
+          <div className="flight-menu-hub" aria-hidden="true"><span className="flight-menu-hub-caption">Flight console</span><Indicator size={36} strokeWidth={1.25} /><span className="flight-menu-hub-label">{currentStation.label}</span></div>
           <div className="flight-menu-sectors">{stations.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" className="flight-menu-sector" data-sector={id}
               aria-pressed={id === "resume" ? undefined : section === id}
               onPointerEnter={event => { if (event.pointerType === "mouse") setPreview(id); }}
               onPointerLeave={() => setPreview(null)} onFocus={() => setPreview(id)} onBlur={() => setPreview(null)}
               onClick={() => selectStation(id)}>
-              <span className="flight-menu-sector-label"><Icon size={21} aria-hidden="true" /><span>{label}</span></span>
+              <span className="flight-menu-sector-label"><Icon size={25} strokeWidth={1.4} aria-hidden="true" /><span>{label}</span></span>
             </button>
           ))}</div>
+          <p className="flight-menu-dial-hint" aria-hidden="true">{props.mobile ? "Tap a section" : "Hover to explore · Click to select"}</p>
         </nav>
 
         <section className="flight-menu-panel" aria-labelledby="flight-panel-title" key={section}>
+          <p className="flight-menu-kicker">{sectionCaptions[section]}</p>
           {section === "resume" && <>
             <h3 id="flight-panel-title">Expedition paused</h3>
             <dl className="flight-menu-readouts">
@@ -127,7 +159,7 @@ export default function FlightMenu(props: FlightMenuProps) {
             <p className="flight-menu-note">{props.mobile
               ? "Move with the left stick. Swipe to look; tap an action when it appears. Open Atlas to find your way."
               : "WASD move · Space jump · V camera · F rover · Caps Lock map. Drag to look if mouse capture is unavailable."}</p>
-            <button className="flight-menu-primary" type="button" onClick={props.onResume}><Play size={18} aria-hidden="true" /> Resume game <ChevronRight className="flight-menu-trailing" size={18} aria-hidden="true" /></button>
+            <button className="flight-menu-primary" type="button" onClick={() => closeMenu()}><Play size={18} aria-hidden="true" /> Resume game <ChevronRight className="flight-menu-trailing" size={20} aria-hidden="true" /></button>
             {props.onFullscreen && <button className="flight-menu-action" type="button" onClick={props.onFullscreen}><Maximize2 size={18} aria-hidden="true" /> Return to fullscreen</button>}
           </>}
 
@@ -153,7 +185,7 @@ export default function FlightMenu(props: FlightMenuProps) {
               <legend>Quality preset</legend>
               <div className="flight-menu-presets">
                 {presets.map(preset => <button key={preset.id} type="button" aria-pressed={props.quality === preset.id} onClick={() => props.onQuality(preset.id)}>
-                  <strong>{preset.label}</strong><span>{preset.id === "auto" && props.autoReport ? props.autoLabel : preset.detail}</span>
+                  <strong>{preset.label}</strong><span>{preset.id === "auto" && props.autoReport ? props.autoLabel : preset.detail}</span><i className="flight-menu-choice-mark" aria-hidden="true" />
                 </button>)}
               </div>
             </fieldset>
@@ -169,12 +201,12 @@ export default function FlightMenu(props: FlightMenuProps) {
           {section === "exit" && <>
             <h3 id="flight-panel-title">Return to main menu?</h3>
             <p className="flight-menu-note">{props.story ? "Resume from your latest saved Story progress next time." : "Free Exploration starts a new session when you come back."}</p>
-            <button className="flight-menu-depart" type="button" onClick={props.onMainMenu}><House size={18} aria-hidden="true" /> Return to main menu</button>
-            <button className="flight-menu-action" type="button" onClick={props.onResume}>Keep playing</button>
+            <button className="flight-menu-depart" type="button" onClick={() => closeMenu(props.onMainMenu)}><House size={18} aria-hidden="true" /> Return to main menu</button>
+            <button className="flight-menu-action" type="button" onClick={() => closeMenu()}>Keep playing</button>
           </>}
         </section>
       </div>
-      {!props.mobile && <footer className="flight-menu-footer"><span><kbd>Tab</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span><kbd>Esc</kbd> Resume</span></footer>}
+      <footer className="flight-menu-footer"><p><span className="flight-menu-status-dot" /> Session paused<span className="flight-menu-footer-mode"> / {props.story ? "Story" : "Free Exploration"}</span></p>{!props.mobile && <div><span><kbd>Tab</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span><kbd>Esc</kbd> Resume</span></div>}</footer>
     </dialog>
   );
 }
