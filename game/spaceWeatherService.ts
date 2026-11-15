@@ -83,9 +83,9 @@ export interface EnvironmentalShieldingState {
   readonly label: string;
 }
 
-/** Existing landing-habitat zone plus the actual outpost, greenhouse or garage interior. */
-export function isBaseShelter(x: number, z: number, insideFacility: boolean): boolean {
-  return insideFacility || x * x + (z - 12) * (z - 12) <= 10.5 * 10.5;
+/** Only occupied facility interiors provide habitat shielding. */
+export function isBaseShelter(insideOutpost: boolean, insideGreenhouse: boolean, insideGarage: boolean): boolean {
+  return insideOutpost || insideGreenhouse || insideGarage;
 }
 
 const BASE_SHIELD: EnvironmentalShieldingState = Object.freeze({inBase:true, inRover:false, mitigationMultiplier:0, label:"100% (HABITAT)"});

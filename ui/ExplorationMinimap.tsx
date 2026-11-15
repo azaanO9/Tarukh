@@ -21,7 +21,7 @@ const ZOOM_CYCLE: MinimapZoomPreset[] = [120, 220, 450, "overview"];
 /**
  * Minimal GTA 5 style Mars Field Map.
  * - Clean HD zoomed-in view of the authentic NASA MOLA map centered on the player.
- * - Subtle, minimal LiDAR rock pips and minimal vehicle/base blips (Lander, Crew, Curiosity).
+ * - Subtle, minimal LiDAR rock pips and vehicle/base blips.
  * - Real-time player tracking with heading chevron and smooth map scrolling.
  * - One-click zoom cycling: 120m (close), 220m (medium), 450m (wide), Full Region.
  */
@@ -165,11 +165,6 @@ export default function ExplorationMinimap({
                 <circle cx="0.8" cy="-3.6" r="0.9" fill="#f59e0b" />
               </g>
 
-              {/* 3. MINIMAL LANDING SHUTTLE / BASE ICON (Compact 8px amber diamond) */}
-              <g id="icon-landing-shuttle">
-                <polygon points="0,-4.5 4.5,0 0,4.5 -4.5,0" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
-                <circle cx="0" cy="0" r="1.2" fill="#09111c" />
-              </g>
             </defs>
 
             {/* Radar Bezel Frame */}
@@ -205,16 +200,6 @@ export default function ExplorationMinimap({
                   {/* Regional GPS Grid */}
                   <line x1="100" y1="31" x2="100" y2="169" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="0.75" />
                   <line x1="6" y1="100" x2="194" y2="100" stroke="rgba(255, 255, 255, 0.16)" strokeWidth="0.75" />
-
-                  {/* Landing Shuttle Base */}
-                  {(() => {
-                    const homePos = toRegion(0, 12);
-                    return (
-                      <g transform={`translate(${homePos.x} ${homePos.y})`}>
-                        <use href="#icon-landing-shuttle" />
-                      </g>
-                    );
-                  })()}
 
                   {/* Crew Rover */}
                   {!driving && (() => {
@@ -364,16 +349,6 @@ export default function ExplorationMinimap({
                         )}
                       </g>
                     ))}
-
-                  {/* Minimal Landing Shuttle Base */}
-                  {(() => {
-                    const homePin = mapPoint(0, 12, x, z, activeRange);
-                    return (
-                      <g transform={`translate(${homePin.x} ${homePin.y})`}>
-                        <use href="#icon-landing-shuttle" />
-                      </g>
-                    );
-                  })()}
 
                   {/* Minimal Parked Crew Rover */}
                   {!driving && (() => {
@@ -552,7 +527,6 @@ export default function ExplorationMinimap({
           {/* 3. MINIMAL FOOTER: LEGEND + ATLAS SHORTCUT */}
           <div className="roam-gta-footer">
             <div className="roam-map-legend" aria-label="Minimap legend">
-              <span className="roam-legend-item"><span className="roam-legend-dot dot-shuttle" /> Lander</span>
               <span className="roam-legend-item"><span className="roam-legend-dot dot-crew" /> Crew</span>
               <span className="roam-legend-item"><span className="roam-legend-dot dot-scout" /> Curiosity</span>
             </div>

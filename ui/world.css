@@ -1667,7 +1667,7 @@
 }
 
 /* ==========================================================================
-   SpaceX & NASA Minimalist Icon-Driven Mars Telemetry Communicator (Bottom-Right HUD)
+   Spaceflight Minimalist Icon-Driven Mars Telemetry Communicator (Bottom-Right HUD)
    ========================================================================== */
 
 /* Aerospace Communicator Display Housing (20% Peeking when closed, slides fully open) */
@@ -1895,21 +1895,12 @@
   z-index: 1;
 }
 
-/* Top Header Row (NASA Meatball & TARUKH) */
+/* TARUKH phone header */
 .mars-phone-brand-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 0 1px;
-}
-
-.mars-nasa-wrap {
-  display: flex;
-  align-items: center;
-}
-
-.mars-nasa-logo {
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
 }
 
 .mars-tarukh-wrap {
