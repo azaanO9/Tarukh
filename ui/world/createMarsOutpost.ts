@@ -7,6 +7,7 @@ import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor,
 import type {CollisionObstacle} from '../../game/collision.ts';
 import {createInstanceVisibility} from './instanceVisibility.ts';
 import {createInteriorLighting} from './interiorLighting.ts';
+import {loadSolarPanelAsset, createOutpostSolarMesh} from './createSolarPanels.ts';
 
 const roomLights = [
   [0,0],[-19,0],[18,0],[-11,-22],[12,-22],[0,-13],[-8.5,0],[9,0],[0,-8],
@@ -56,7 +57,8 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       if(!response.ok)throw new Error('Outpost floor plan could not load');
       return response.json() as Promise<OutpostLayout>;
     }),
-  ]).then(([gltf,layout])=>{
+    loadSolarPanelAsset(),
+  ]).then(([gltf,layout,solarAsset])=>{
     if(disposed){freeResources();return;}
     // The review's refractive glass makes Three render the entire Mars world a
     // second time. Reflective alpha glazing retains visibility into the rooms
@@ -87,6 +89,8 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
     gltf.scene.traverse(o=>{
       if(o.userData.outpostSector)sectors.push({object:o,bounds:new T.Box3().setFromObject(o),interior:Boolean(o.userData.interior)});
       if(o instanceof T.Mesh){
+        // Hide legacy low-res photovoltaic array meshes; replaced by 2K instanced model
+        if(/photovoltaic/i.test(o.name)){o.visible=false;return;}
         // Interior furnishings are lit locally; they do not need another full
         // rendering pass into the outdoor sun shadow map.
         let parent:T.Object3D|null=o,interior=false,sector:T.Object3D|null=null;
@@ -104,6 +108,11 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
         }
       }
     });
+    const crewSector = gltf.scene.getObjectByName('OUTPOST__shell__crew');
+    const solarMesh = createOutpostSolarMesh(solarAsset);
+    if (crewSector) crewSector.add(solarMesh);
+    else root.add(solarMesh);
+    remember(solarMesh);
     obstacles.push(...state.obstacles);
     for(const obstacle of state.obstacles)cameraBoxes.push({obstacle,box:new T.Box3(
       new T.Vector3(obstacle.x-obstacle.halfX!,baseY+.72,obstacle.z-obstacle.halfZ!),
