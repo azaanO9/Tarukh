@@ -51,14 +51,14 @@ export default function StarshipArrival({ready,onComplete,performance=false}:{re
     return ()=>{cancelled=true;window.removeEventListener('keydown',keys,true);controller.current?.dispose();controller.current=null;};
   },[performance]);
   const skip=()=>{skipPending.current=true;controller.current?.skip();setPaused(false);if(ready)onComplete();};
-  return <section ref={section} className="starship-arrival" aria-label="Starship arrival cinematic" data-world-ready={ready}>
+  return <section ref={section} className="starship-arrival" aria-label="Earth Starship launch and recovery cinematic" data-world-ready={ready}>
     <div ref={host} className="starship-arrival-world"/>
     <div ref={fade} className="starship-arrival-cut" aria-hidden="true"/>
-    <header className="starship-arrival-header"><b>TARUKH <span>· STARSHIP RETURN</span></b><div>
+    <header className="starship-arrival-header"><b>TARUKH <span>· EARTH LAUNCH & RECOVERY</span></b><div>
       <button onClick={()=>setPaused(controller.current?.togglePause()??false)} aria-pressed={paused}>{paused?'Resume':'Pause'}</button>
       <button onClick={skip}>{ready?'Skip to Mars':'Skip animation'}</button>
     </div></header>
-    <div className="starship-arrival-caption"><p>SEPARATE · RETURN · CATCH</p><h1 ref={phase} role="status" aria-live="polite">Preparing the flight</h1><p ref={detail}>A SpaceX-inspired recovery sequence</p>
+    <div className="starship-arrival-caption"><p>EARTH · SEPARATE · RETURN · CATCH</p><h1 ref={phase} role="status" aria-live="polite">Preparing the flight</h1><p ref={detail}>A SpaceX-inspired recovery sequence</p><p>This tower catch takes place on Earth, not on Mars. The expedition continues after the flight study.</p>
       <div className="starship-arrival-track" aria-hidden="true"><div ref={bar}/></div>
       <p className="starship-arrival-loading" role="status">{ready?'Mars is ready · enter when you’re ready':'Preparing Mars while the flight continues…'}</p>
     </div>

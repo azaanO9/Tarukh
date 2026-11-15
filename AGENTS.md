@@ -6,7 +6,7 @@ Read `README.md`, `docs/INTERFACE.md` and `ASSET_CREDITS.md` before editing.
 
 - `app/page.tsx` loads `ui/MarsFreeRoam.tsx`. Legacy mode query strings reach the same exploration setup.
 - Preserve current gameplay, assets, controls, UI, physics, animations and visuals unless the user explicitly requests a behavior change.
-- Only Mars free exploration ships. Mission, quiz, survival, story, lunar, Sage, cave/portal and weather-terminal systems were retired. Do not restore them without an explicit user request.
+- Mars Free Exploration and the explicitly requested Elysium Outpost story share the current world. Keep the retired quiz, lunar, AI-companion and cave/portal modes removed. Story information uses neutral terminals, human Mission Control transmissions, Kaelen's logs and science notes; never introduce an AI companion.
 - Keep simulation and state rules in `game/`, authored content and references in `content/`, and rendering/interface code in `ui/`.
 - Distinguish scientific sources from gameplay assumptions. Keep references in `docs/SOURCES.md`, numerical simplifications in `docs/ASSUMPTIONS.md` and attribution in `ASSET_CREDITS.md`. Do not imply NASA endorsement.
 

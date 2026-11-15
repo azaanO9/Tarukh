@@ -2,6 +2,12 @@
 
 ## Entry points and ownership
 
+Elysium Story is a lazy-loaded optional controller in `ui/ElysiumStory.tsx`. It reuses `MarsFreeRoam` and the same `MarsWorld` instance through dialogs and the Earth prologue. `content/elysiumMissions.json` owns authored dialogue, choices and explanations; `game/elysiumMission.ts` owns deterministic transitions, resource coupling and seeded readiness faults. `elysiumSave.ts` validates a versioned local save. Story saves do not contain free-text input, account data or telemetry, and do not overwrite the autonomous rover save.
+
+`game/elysiumWorld.ts` defines the optional scene bridge. Explicit resource commands carry a revision; the scene applies rover charge once and reports the applied revision with actual vehicle telemetry. Stale telemetry cannot undo a choice. Story charging obeys the selected allocation, while existing vehicle physics and Free Exploration charging remain unchanged. Mission station interactions use the real player position; doors retain priority and story panels also offer accessible station buttons. Small procedural signs and a destination pin identify the authored locations in `elysiumSites.ts`. No extra scene lights or external assets are introduced.
+
+Story mode disables the Free Exploration radiation damage/live-polling loop and its separate phone interface. The commissioning drill uses labelled archived observations and separate cumulative simulation estimates. Resource and readiness stages advance only through deliberate actions; retries retain completed missions and logs. Story mode and the bundled mission JSON do not load during Free Exploration.
+
 `app/page.tsx` lazily loads `MarsFreeRoam`. `static-app/main.tsx` uses the same entry for GitHub Pages. All query strings enter the same current exploration game.
 
 | Area | Owner and contract |

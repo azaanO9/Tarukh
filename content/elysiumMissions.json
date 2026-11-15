@@ -1,0 +1,1099 @@
+{
+  "schemaVersion": 1,
+  "title": "Elysium Outpost",
+  "simulationNotice": "Fictional expedition. Resource rates, route lengths, growth forecasts and shelter estimates are simulation values for planning. NASA sources explain the science; they do not validate this outpost or endorse the game.",
+  "prologue": {
+    "title": "Earth · Mission briefing",
+    "briefing": [
+      "Cape Canaveral. Kaelen Reeves, 24, is the youngest astronaut chosen for this fictional commissioning team.",
+      "Robotic builders spent 14 months assembling Elysium Outpost. Its buildings stand ready. Now someone must prove that the systems can work together."
+    ],
+    "flightDirector": "Robotic teams built it. Your job is to prove it works. Explore the region. Test the systems. Show us your plan. The next crew's expedition gets approved when that outpost is ready.",
+    "launchNote": "Earth flight and tower recovery sequence. This is not a Mars landing. The interplanetary journey is not shown.",
+    "timeJump": "Seven months later · Elysium Outpost, Mars",
+    "skipLabel": "Skip prologue",
+    "tutorial": [
+      "WASD or the touch stick moves Kaelen. Space jumps.",
+      "Drag or swipe to look around. V changes the camera.",
+      "E interacts with a nearby station. F boards the deployed crew rover.",
+      "Caps Lock or Atlas opens the map. Follow the mission location marker.",
+      "Take your time. You can pause, explore or retry. No countdown can end your expedition."
+    ]
+  },
+  "sources": {
+    "eclss": {
+      "title": "NASA · Environmental Control and Life Support Systems",
+      "url": "https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/",
+      "claim": "Water recovery treats wastewater. Electrolysis separates water into hydrogen and oxygen. Air revitalization removes cabin carbon dioxide."
+    },
+    "cdra": {
+      "title": "NASA · Carbon Dioxide technical brief",
+      "url": "https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/",
+      "claim": "ISS scrubber beds alternate capture and regeneration. One bed can clean air while another is heated and exposed to vacuum."
+    },
+    "plants": {
+      "title": "NASA · Growing Plants in Space",
+      "url": "https://www.nasa.gov/exploration-research-and-technology/growing-plants-in-space/",
+      "claim": "Veggie supports plant experiments including lettuce. The Advanced Plant Habitat has grown dwarf wheat; light and water require careful control."
+    },
+    "radishes": {
+      "title": "NASA · Astronauts Harvest Radish Crop",
+      "url": "https://www.nasa.gov/missions/station/astronauts-harvest-radish-crop-on-international-space-station/",
+      "claim": "The Advanced Plant Habitat radish experiment used a 27-day growth period. A seven-sol game forecast is not a real harvest schedule."
+    },
+    "curiositySol": {
+      "title": "NASA · Sol 3056–3057: Perched on top…",
+      "url": "https://science.nasa.gov/blog/sol-3056-3057-perched-on-top/",
+      "claim": "The March 10, 2021 update describes the Nontron drilling plan and observations near Mont Mercou in Gale Crater."
+    },
+    "curiosityNavigation": {
+      "title": "NASA · Curiosity at Cooperstown",
+      "url": "https://science.nasa.gov/resource/curiositys-view-of-cooperstown-outcrop-on-route-to-mount-sharp/",
+      "claim": "Curiosity can select paths between designated waypoints using its onboard navigation cameras. People on Earth plan its mission."
+    },
+    "perseveranceLanding": {
+      "title": "NASA · Octavia E. Butler Landing",
+      "url": "https://science.nasa.gov/resource/welcome-to-octavia-e-butler-landing/",
+      "claim": "Perseverance landed in Jezero Crater on February 18, 2021. The game's marker represents that historical event, not a live location."
+    },
+    "communications": {
+      "title": "NASA · Mars Relay Network",
+      "url": "https://science.nasa.gov/mars/mars-relay-network/",
+      "claim": "Earth–Mars distance changes with their orbits. One-way radio travel time is roughly 3 to 22 minutes, depending on their positions."
+    },
+    "sep2017Mars": {
+      "title": "NASA/JPL · September 2017 Mars solar storm",
+      "url": "https://www.jpl.nasa.gov/news/large-solar-storm-sparks-global-aurora-and-doubles-radiation-levels-on-the-martian-surface/",
+      "claim": "NASA reported a September 11, 2017 event with enhanced Mars auroras and unusually high surface radiation measured by Curiosity."
+    },
+    "donki2017Earth": {
+      "title": "NASA CCMC DONKI · September 2017 archive notification",
+      "url": "https://kauai.ccmc.gsfc.nasa.gov/DONKI/view/Alert/13118/1",
+      "claim": "The notification identifies 2017-09-10T16:45:00-SEP-001 as a GOES13 near-Earth >10 MeV particle event. It is not a Mars surface dose record."
+    },
+    "shielding": {
+      "title": "NASA · Protecting astronauts from space radiation",
+      "url": "https://www.nasa.gov/science-research/heliophysics/real-martians-how-to-protect-astronauts-from-space-radiation-on-mars/",
+      "claim": "Shielding protection depends on the radiation, material and amount of matter. Adding appropriate shielding can reduce exposure; it is not complete protection."
+    },
+    "marsTrek": {
+      "title": "NASA · Mars Trek",
+      "url": "https://trek.nasa.gov/mars/",
+      "claim": "Mars Trek supports exploration of real planetary surface data. Fictional mission routes and local sensors are game additions."
+    }
+  },
+  "missions": [
+    {
+      "id": "m1",
+      "title": "Welcome to Elysium",
+      "act": "Act I · Arrival and discovery",
+      "briefing": [
+        "The buildings are ready. The shared systems are not.",
+        "Enter the airlock and read the command terminal. Visit the habitat, garage and greenhouse. Look for the cargo manifest."
+      ],
+      "wakeText": "First morning. The habitat is using reserves. Check what the builders left behind.",
+      "objectives": [
+        "Enter the habitat airlock.",
+        "Read the command terminal and cargo manifest.",
+        "Visit the garage and a greenhouse."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Science Note · Connected systems",
+          "text": "The habitat needs clean water, oxygen and carbon dioxide removal. These are separate jobs that share power and equipment.",
+          "sourceIds": [
+            "eclss"
+          ]
+        }
+      ],
+      "logOptions": [
+        "The buildings look finished. Testing them together is my job.",
+        "I checked the reserves before switching anything on.",
+        "Someone wrote 'Good luck up there' on the manifest. I kept the note."
+      ],
+      "taskIds": [
+        "cargo-read"
+      ],
+      "choiceGroups": []
+    },
+    {
+      "id": "m2",
+      "title": "Wake the Grid",
+      "act": "Act I · Arrival and discovery",
+      "briefing": [
+        "Cluster C is losing power. Trace the cable before replacing anything.",
+        "Reconnect the loose connector. Then choose how to share the recovered power. Every plan has a trade-off."
+      ],
+      "wakeText": "Morning check. The solar fault is still limiting reliable supply. The rover and crops need the same power.",
+      "objectives": [
+        "Trace the solar wiring and repair Cluster C.",
+        "Choose a power allocation at the command terminal.",
+        "Review the overnight reserve forecast."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Mission Notes · Power balance",
+          "text": "A battery stores energy for later. If charging, lighting and life support use more than the array supplies, the battery reserve falls. These capacity numbers are simulation values.",
+          "sourceIds": []
+        }
+      ],
+      "logOptions": [
+        "I traced the cable instead of guessing at the fault.",
+        "I left room in the battery for things I could not predict.",
+        "I chose what to power first, and recorded what would have to wait."
+      ],
+      "taskIds": [
+        "solar-trace",
+        "solar-connect"
+      ],
+      "choiceGroups": [
+        "grid"
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Every Drop, Every Breath",
+      "act": "Act II · The systems",
+      "briefing": [
+        "Three systems work together here: water recovery, oxygen generation and carbon dioxide removal.",
+        "Compare the humidity sensor with the checked reference. Then set the water and oxygen rates, and plan a scrubber regeneration."
+      ],
+      "wakeText": "Morning check. Compare the water reserve, oxygen supply and carbon dioxide trend separately.",
+      "objectives": [
+        "Compare the faulty humidity sensor with the reference and calibrate it.",
+        "Set water recovery and oxygen generation separately.",
+        "Schedule carbon dioxide scrubber regeneration."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Science Note · Water recovery",
+          "text": "Used water and moisture from cabin air can be collected and treated. Recovery saves supplies; it does not create unlimited water.",
+          "sourceIds": [
+            "eclss"
+          ]
+        },
+        {
+          "title": "Science Note · Oxygen generation",
+          "text": "An electrolyser uses electricity to split water into oxygen and hydrogen. Making more oxygen needs more water and power.",
+          "sourceIds": [
+            "eclss"
+          ]
+        },
+        {
+          "title": "Science Note · Carbon dioxide removal",
+          "text": "Scrubber material captures carbon dioxide from the air. Real ISS beds take turns cleaning and regenerating. Reduced capacity here represents a fictional maintenance condition.",
+          "sourceIds": [
+            "cdra"
+          ]
+        }
+      ],
+      "logOptions": [
+        "I checked a second reading before trusting the sensor.",
+        "Making oxygen and removing carbon dioxide are different jobs.",
+        "I matched the water plan to the people, crops and oxygen unit."
+      ],
+      "taskIds": [
+        "water-compare",
+        "water-calibrate"
+      ],
+      "choiceGroups": [
+        "water",
+        "oxygen",
+        "scrubber"
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "The First Harvest",
+      "act": "Act II · The systems",
+      "briefing": [
+        "The trays contain lettuce, radishes and dwarf wheat. They need balanced care, not the biggest settings.",
+        "Choose the light and water plan. Compare the next seven simulated sols before committing resources. Crops will supplement the stored rations."
+      ],
+      "wakeText": "Morning check. Review yesterday's light and water settings before changing the crop plan.",
+      "objectives": [
+        "Visit Greenhouse 1 and inspect the labelled trays.",
+        "Choose a crop-care plan and review the seven-sol forecast.",
+        "Compare growth, water use and power demand."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Science Note · Growing food",
+          "text": "NASA has grown lettuce in Veggie and radishes and dwarf wheat in the Advanced Plant Habitat. Real crops take weeks. This forecast accelerates growth and cannot replace a complete food supply.",
+          "sourceIds": [
+            "plants",
+            "radishes"
+          ]
+        }
+      ],
+      "logOptions": [
+        "That never gets old.",
+        "More light did not help when the roots needed water.",
+        "A small crop with a steady supply can be a useful start."
+      ],
+      "taskIds": [
+        "forecast-review"
+      ],
+      "choiceGroups": [
+        "greenhouse"
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Beyond the Base",
+      "act": "Act II · The systems",
+      "briefing": [
+        "A field sensor has gone silent. Plan a route, check the rover charge and leave enough for the return.",
+        "At the sensor, inspect before choosing a repair. Collect a labelled sample and bring it back to the lab."
+      ],
+      "wakeText": "Morning check. The rover charge and condition decide what journey is sensible today.",
+      "objectives": [
+        "Choose a route and check the shared rover battery.",
+        "Drive to the field sensor and diagnose its fault.",
+        "Restore the sensor, collect a sample and analyse it at the lab."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Mission Notes · Route scale",
+          "text": "The 2.1, 3.4 and 4.8 km route labels are fictional planning distances. The playable routes are shortened to about 280, 600 and 730 metres. They are not measured NASA traverses.",
+          "sourceIds": [
+            "marsTrek"
+          ]
+        },
+        {
+          "title": "Science Note · Curiosity heritage",
+          "text": "Curiosity explores Gale Crater. It can navigate between waypoints, while people on Earth plan its work. The Sol 3057 marker refers to a 2021 observation period near Mont Mercou. Its nearby game placement is fictional.",
+          "sourceIds": [
+            "curiositySol",
+            "curiosityNavigation"
+          ]
+        }
+      ],
+      "logOptions": [
+        "I planned the return before driving away.",
+        "The inspection mattered more than my first guess.",
+        "A careful route kept energy available for the habitat."
+      ],
+      "taskIds": [
+        "sensor-restore",
+        "sample-collect",
+        "sample-analyse"
+      ],
+      "choiceGroups": [
+        "route",
+        "sensor"
+      ]
+    },
+    {
+      "id": "m6",
+      "title": "A Message from the Sun",
+      "act": "Act III · Preparation",
+      "briefing": [
+        "This is a preparedness drill. No real emergency is approaching.",
+        "Read the dated September 2017 archive. Check shelter ventilation and power. Then decide whether to move extra shielding with the rover."
+      ],
+      "wakeText": "Morning check. Shelter preparation uses the same power and rover charge as the rest of the plan.",
+      "objectives": [
+        "Review the historical event and identify what was measured at Earth and at Mars.",
+        "Check the shelter's ventilation and power supply.",
+        "Choose shielding and compare the simulation estimates."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Science Note · Archived event",
+          "text": "NASA reported a strong solar event at Mars on September 11, 2017. Curiosity measured increased surface radiation. This drill reuses the historical context, not a live warning or measured dose forecast.",
+          "sourceIds": [
+            "sep2017Mars"
+          ]
+        },
+        {
+          "title": "Science Note · Two locations",
+          "text": "The linked DONKI particle record was observed near Earth by GOES13 on September 10, 2017. An Earth particle-flux reading is not the radiation dose an astronaut would receive on Mars.",
+          "sourceIds": [
+            "donki2017Earth"
+          ]
+        },
+        {
+          "title": "Science Note · Shelter",
+          "text": "Shielding can reduce additional exposure. It does not erase dose already received. Closing an airlock keeps air inside; protection from energetic particles also depends on the surrounding material.",
+          "sourceIds": [
+            "shielding"
+          ]
+        }
+      ],
+      "logOptions": [
+        "A shelter needs air and power as well as thick walls.",
+        "The archive helped me prepare without pretending a drill was an emergency.",
+        "I spent rover energy on shielding and allowed time to recharge."
+      ],
+      "taskIds": [
+        "archive-review",
+        "ventilation-check",
+        "shelter-power"
+      ],
+      "choiceGroups": [
+        "shielding"
+      ]
+    },
+    {
+      "id": "m7",
+      "title": "First Light",
+      "act": "Act IV · The test",
+      "briefing": [
+        "Submit your operating plan: power, water, crops, charging, shelter and a backup for reduced sunlight.",
+        "Mission Control has sent review questions. Radio travel takes time; this interface skips the wait.",
+        "Run one simulated night. Diagnose one fault and explain your response. You can retry without losing your expedition."
+      ],
+      "wakeText": "Morning check. Review what the earlier choices changed. The overnight test starts only when you choose.",
+      "objectives": [
+        "Submit a complete operating plan and acknowledge the review.",
+        "Choose a contingency for reduced solar power.",
+        "Diagnose the overnight fault and keep essential systems supplied."
+      ],
+      "scienceNotes": [
+        {
+          "title": "Science Note · Distant decisions",
+          "text": "Earth and Mars keep moving. Their separation and radio delay change. Signals can take roughly 3 to 22 minutes each way. Kaelen must make local decisions; the game does not make you wait.",
+          "sourceIds": [
+            "communications"
+          ]
+        },
+        {
+          "title": "Mission Notes · Safe test",
+          "text": "The night test advances when you choose the next step. Reserve bars show supplies, not a countdown. A weak plan enters safe mode with an explanation and a retry.",
+          "sourceIds": []
+        }
+      ],
+      "logOptions": [
+        "I explained my decisions instead of only following the checklist.",
+        "My backup plan mattered when one system changed.",
+        "A retry showed me what to improve. It did not erase what I had learned."
+      ],
+      "taskIds": [
+        "plan-submit",
+        "review-ack"
+      ],
+      "choiceGroups": [
+        "contingency"
+      ]
+    }
+  ],
+  "choices": {
+    "grid": [
+      {
+        "id": "fast",
+        "label": "Fast-charge rover + Greenhouse 1",
+        "decision": "Put extra power into rover charging while lighting one greenhouse.",
+        "outcome": "The rover can be ready sooner and seedlings get light, but overnight reserve is thinner.",
+        "why": "Fast charging and crop lights draw from the same supply as essential systems."
+      },
+      {
+        "id": "balanced",
+        "label": "Slow-charge rover + Greenhouse 1 + lab standby",
+        "decision": "Share power across the rover, one greenhouse and a quiet lab.",
+        "outcome": "Charging takes longer while more energy remains available for the night.",
+        "why": "Lower simultaneous demand leaves a larger margin for unexpected needs."
+      },
+      {
+        "id": "greenhouse",
+        "label": "Prioritise both greenhouses",
+        "decision": "Send the available power to both greenhouses before rover charging.",
+        "outcome": "Both crop areas can start, but the rover stays low until you change the plan or advance a charging cycle.",
+        "why": "The same solar energy cannot run every high-demand task at once."
+      },
+      {
+        "id": "reserve",
+        "label": "Keep the largest reserve",
+        "decision": "Prioritise essential habitat systems and store the rest.",
+        "outcome": "The habitat has a wide safety margin. Crop progress and rover readiness must wait.",
+        "why": "Delaying optional loads is a valid plan. You can revise it when you need to travel."
+      }
+    ],
+    "water": [
+      {
+        "id": "conservative",
+        "label": "Conservative recovery",
+        "decision": "Use the lowest-power water recovery setting.",
+        "outcome": "Recovery uses little power, but stored water must cover more of the demand.",
+        "why": "Lower recovery saves energy now while reducing the amount returned to storage."
+      },
+      {
+        "id": "standard",
+        "label": "Standard recovery",
+        "decision": "Balance water recovery with normal habitat demand.",
+        "outcome": "The supply can support the daily plan more steadily.",
+        "why": "Matching recovery to use avoids paying for output the habitat does not need."
+      },
+      {
+        "id": "aggressive",
+        "label": "Aggressive recovery",
+        "decision": "Recover more water using a higher power setting.",
+        "outcome": "More water returns to use, with a larger electricity cost. Giving it all to crops still leaves less for the habitat.",
+        "why": "Recovered water is shared by people, the oxygen unit and plants."
+      }
+    ],
+    "oxygen": [
+      {
+        "id": "minimum",
+        "label": "Minimum oxygen production",
+        "decision": "Use a low electrolyser rate while relying on the oxygen reserve.",
+        "outcome": "Power and water use stay low. The oxygen reserve needs closer review.",
+        "why": "A lower production rate may not replace everything the habitat uses."
+      },
+      {
+        "id": "standard",
+        "label": "Standard oxygen production",
+        "decision": "Match oxygen production to the normal habitat plan.",
+        "outcome": "Oxygen supply and resource use stay balanced in the simulation.",
+        "why": "The electrolyser needs both clean water and electricity."
+      },
+      {
+        "id": "high",
+        "label": "High oxygen production",
+        "decision": "Build oxygen reserve with a higher electrolyser rate.",
+        "outcome": "Oxygen reserve improves, but power and water available to other systems fall.",
+        "why": "Extra oxygen is useful only if the shared water and energy budget can support it."
+      }
+    ],
+    "scrubber": [
+      {
+        "id": "scheduled",
+        "label": "Schedule regeneration with backup capacity",
+        "decision": "Plan a regeneration period while the other bed handles the air.",
+        "outcome": "Carbon dioxide removal continues with a planned margin.",
+        "why": "Alternating beds is how real regenerative systems avoid stopping all air cleaning at once."
+      },
+      {
+        "id": "now",
+        "label": "Regenerate now and review the air trend",
+        "decision": "Start the maintenance cycle immediately.",
+        "outcome": "The bed is refreshed sooner. Watch the reduced-capacity warning in this fictional maintenance case.",
+        "why": "Timing a shared-system task matters as much as choosing the task."
+      }
+    ],
+    "greenhouse": [
+      {
+        "id": "comfortable",
+        "label": "One greenhouse, balanced care",
+        "decision": "Give one greenhouse steady light and water.",
+        "outcome": "A modest crop can develop with a manageable demand on the habitat.",
+        "why": "Plants need a balance of inputs, not the maximum of one input."
+      },
+      {
+        "id": "maximum",
+        "label": "One greenhouse, maximum production",
+        "decision": "Raise the light and irrigation targets in one greenhouse.",
+        "outcome": "The forecast can improve if water recovery supports it. Other systems have less spare capacity.",
+        "why": "High light without enough water slows growth instead of guaranteeing more food."
+      },
+      {
+        "id": "shared",
+        "label": "Two greenhouses, shared resources",
+        "decision": "Spread the available light and water between two crop areas.",
+        "outcome": "More trays can grow, but each receives less. Unrepaired water losses may limit both.",
+        "why": "Twice as many plants also need a reliable shared supply."
+      },
+      {
+        "id": "minimal",
+        "label": "Minimal crops, rely on rations",
+        "decision": "Keep cultivation small and preserve supplies for the habitat.",
+        "outcome": "Stored rations remain the main food source. This is a valid low-demand plan.",
+        "why": "A commissioning mission can prove safe operation without making the base fully food-independent."
+      }
+    ],
+    "route": [
+      {
+        "id": "direct",
+        "label": "Direct · 2.1 km planning route",
+        "planningDistanceKm": 2.1,
+        "playableDistanceM": 280,
+        "decision": "Take the shorter, rocky route.",
+        "outcome": "The predicted energy cost is lowest if the rover avoids damage. Steep ground and rocks need care.",
+        "why": "A shorter path can save energy while increasing the chance of repairs."
+      },
+      {
+        "id": "ridge",
+        "label": "Ridge · 3.4 km planning route",
+        "planningDistanceKm": 3.4,
+        "playableDistanceM": 600,
+        "decision": "Use the exposed ridgeline.",
+        "outcome": "The planning estimate uses moderate energy. Dust exposure can reduce the assumed solar contribution.",
+        "why": "Sunlight and terrain both affect an expedition plan. The dust penalty is simulated."
+      },
+      {
+        "id": "valley",
+        "label": "Valley · 4.8 km planning route",
+        "planningDistanceKm": 4.8,
+        "playableDistanceM": 730,
+        "decision": "Follow the longer, flatter basin route.",
+        "outcome": "The route has the lowest planned damage risk but needs the largest energy allowance and a full charging cycle.",
+        "why": "Gentler ground can reduce risk while extra distance uses more stored energy."
+      }
+    ],
+    "sensor": [
+      {
+        "id": "sand",
+        "label": "Clear the buried sensor head",
+        "decision": "Use the inspection evidence to remove the sand covering the sensor.",
+        "outcome": "The clear sensor can resume measurements after its connection is checked.",
+        "why": "A covered sensor may be working electrically but unable to observe its surroundings."
+      },
+      {
+        "id": "electronics",
+        "label": "Replace electronics first",
+        "decision": "Treat the silence as an electronics fault before clearing the sensor.",
+        "outcome": "The buried head still blocks useful readings. Inspect it again and try the other explanation.",
+        "why": "Replacing a part does not fix a different cause. A second attempt costs no progress."
+      }
+    ],
+    "shielding": [
+      {
+        "id": "full",
+        "label": "Full shelter preparation",
+        "decision": "Check services and haul extra shielding with the rover.",
+        "outcome": "The drill predicts the lowest additional exposure, using rover charge that must later be restored.",
+        "why": "Extra appropriate material can improve protection, but it takes transport resources."
+      },
+      {
+        "id": "partial",
+        "label": "Partial shielding + habitat walls",
+        "decision": "Add some shielding while relying on the existing habitat structure.",
+        "outcome": "The drill predicts intermediate protection with less hauling.",
+        "why": "Protection and transport effort can be balanced. Review the estimate for the chosen scenario."
+      },
+      {
+        "id": "structure",
+        "label": "Existing structure only",
+        "decision": "Use the current shelter without hauling more material.",
+        "outcome": "This costs no rover energy and gives the least protection of these plans. Review it against the drill's event level.",
+        "why": "A low-cost choice can be reasonable for a mild scenario, but it is not complete radiation protection."
+      }
+    ],
+    "contingency": [
+      {
+        "id": "reserve",
+        "label": "Hold a battery reserve",
+        "decision": "Keep stored energy available before starting optional work.",
+        "outcome": "The overnight test starts with a larger margin for essential systems.",
+        "why": "A reserve makes it easier to absorb an unexpected demand."
+      },
+      {
+        "id": "dim-crops",
+        "label": "Dim crop lights first",
+        "decision": "Reduce crop lighting if solar supply is lower than planned.",
+        "outcome": "Crops may grow more slowly while habitat essentials retain power.",
+        "why": "A flexible load can be reduced before a critical life-support load."
+      },
+      {
+        "id": "slow-charge",
+        "label": "Pause fast rover charging",
+        "decision": "Let rover charging wait when reliable supply falls.",
+        "outcome": "The rover becomes ready later while more power remains for the habitat.",
+        "why": "A charging schedule can move without changing the energy required by essential systems."
+      }
+    ]
+  },
+  "tasks": {
+    "clear-panels": {
+      "label": "Clear the wind-blown panel dust",
+      "outcome": "The panel surface is clear. The next sol no longer loses power yield to this dust.",
+      "why": "Dust blocks some sunlight. Cleaning restores available production; it does not instantly fill a battery."
+    },
+    "cargo-read": {
+      "label": "Read cargo manifest",
+      "outcome": "The construction record is saved beside the note: 'Good luck up there.'",
+      "why": "Knowing what was delivered helps explain what still needs testing."
+    },
+    "solar-trace": {
+      "label": "Trace Cluster C wiring",
+      "outcome": "The fault is narrowed to a loose connector.",
+      "why": "Following the power path avoids replacing working equipment."
+    },
+    "solar-connect": {
+      "label": "Reconnect Cluster C",
+      "outcome": "The repaired cluster can contribute to reliable solar supply.",
+      "why": "A complete electrical connection lets generated power reach the shared grid."
+    },
+    "water-compare": {
+      "label": "Compare the two humidity readings",
+      "outcome": "The installed sensor disagrees with the checked reference.",
+      "why": "A second, known reference helps distinguish a sensor error from a real change."
+    },
+    "water-calibrate": {
+      "label": "Use the checked reference",
+      "outcome": "The humidity reading is corrected and avoidable water loss falls.",
+      "why": "Calibrating a faulty sensor improves the decision that depends on its reading."
+    },
+    "forecast-review": {
+      "label": "Review the seven-sol forecast",
+      "outcome": "The light, water and growth estimates are saved for the operating plan.",
+      "why": "A forecast lets you compare choices before committing the shared supplies."
+    },
+    "sensor-restore": {
+      "label": "Restore field sensor",
+      "outcome": "The cleared sensor resumes useful readings after its connection is checked.",
+      "why": "A working observation improves the game's planning confidence; it is not a guarantee of real weather."
+    },
+    "sample-collect": {
+      "label": "Collect and label the sample",
+      "outcome": "The sample is ready for the return trip to the lab.",
+      "why": "A label keeps the observation linked to where the material was found."
+    },
+    "sample-analyse": {
+      "label": "Analyse the returned sample",
+      "outcome": "The field observation and lab result are recorded together.",
+      "why": "Different observations provide stronger evidence than a first guess alone."
+    },
+    "archive-review": {
+      "label": "Review the dated storm archive",
+      "outcome": "The 2017 historical context is saved separately from the drill estimates.",
+      "why": "An archived event teaches a pattern. It is not a live warning."
+    },
+    "ventilation-check": {
+      "label": "Check shelter ventilation",
+      "outcome": "The shelter's air connection has been checked.",
+      "why": "A protective room must still support breathing and air circulation."
+    },
+    "shelter-power": {
+      "label": "Verify shelter power",
+      "outcome": "The shelter's essential electrical supply has been checked.",
+      "why": "Protection is useful only when the space can support its occupants."
+    },
+    "plan-submit": {
+      "label": "Submit operating plan",
+      "outcome": "The power, water, crops, charging, shelter and contingency choices are sent for review.",
+      "why": "An integrated plan shows how one choice affects the other systems."
+    },
+    "review-ack": {
+      "label": "Acknowledge Mission Control review",
+      "outcome": "The review is recorded. The overnight test can start when you choose.",
+      "why": "The response is a delayed transmission in the story; waiting time is skipped in play."
+    }
+  },
+  "faults": [
+    {
+      "id": "heater",
+      "title": "Heater surge",
+      "chain": [
+        "The heater draws more power.",
+        "Battery reserve falls.",
+        "Crop lighting loses its margin and plants receive a cold warning."
+      ],
+      "choices": [
+        {
+          "id": "cut-heater",
+          "label": "Reduce the heater load",
+          "outcome": "Power is freed while the simulated habitat cools gradually.",
+          "why": "Saving power here means accepting less thermal margin. Check essential temperatures before the next step."
+        },
+        {
+          "id": "cut-crops",
+          "label": "Reduce greenhouse lighting",
+          "outcome": "The habitat stays warm while the crops receive less light and may be stressed.",
+          "why": "Reducing a flexible crop load can protect immediate habitat needs."
+        }
+      ]
+    },
+    {
+      "id": "scrubber",
+      "title": "Scrubber filter alert",
+      "chain": [
+        "A scrubber bed needs attention.",
+        "The carbon dioxide trend rises.",
+        "More ventilation increases electrical demand."
+      ],
+      "choices": [
+        {
+          "id": "regenerate",
+          "label": "Regenerate with backup air cleaning",
+          "outcome": "The bed is restored while the backup handles the air.",
+          "why": "Fixing the cause reduces the need to keep raising ventilation power."
+        },
+        {
+          "id": "reduce-ventilation",
+          "label": "Reduce ventilation without fixing the bed",
+          "outcome": "Power demand falls, but the air-quality problem remains. Safe mode explains the issue and allows a retry.",
+          "why": "Saving power is not enough if carbon dioxide removal still cannot meet demand."
+        }
+      ]
+    },
+    {
+      "id": "pump",
+      "title": "Water pump stall",
+      "chain": [
+        "Water recovery slows.",
+        "The oxygen unit loses part of its water supply.",
+        "The reserve indicator shows the shared supply getting smaller."
+      ],
+      "choices": [
+        {
+          "id": "restart-pump",
+          "label": "Restart the pump at the lab",
+          "outcome": "Water can flow again after the physical restart.",
+          "why": "Oxygen generation depends on a working clean-water supply."
+        },
+        {
+          "id": "cut-crop-water",
+          "label": "Protect habitat water after the restart",
+          "outcome": "Less water goes to crops while habitat and oxygen reserves recover.",
+          "why": "Temporarily reducing an optional demand helps the shared supply rebuild."
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "conservative": {
+      "title": "Ready · Conservative plan",
+      "flightDirector": "Elysium is ready. You prioritised margins. That is smart engineering far from the nearest repair shop.",
+      "why": "You kept larger reserves and accepted fewer active systems. Your logs explain what can wait."
+    },
+    "balanced": {
+      "title": "Ready · Balanced plan",
+      "flightDirector": "Elysium is ready. You built a sustainable plan and explained how its systems support one another.",
+      "why": "You matched useful work to dependable supply, with a plan for changes."
+    },
+    "productive": {
+      "title": "Ready · Productive plan",
+      "flightDirector": "Elysium is ready. You expanded what the outpost can do. You understood the extra work and the tighter reserves.",
+      "why": "You supported more active systems and prepared for their larger shared demands."
+    }
+  },
+  "finalLogOptions": [
+    "I know how these systems depend on each other now.",
+    "The next crew will find a plan they can understand and improve.",
+    "Commissioning is complete. There is still a horizon to explore."
+  ],
+  "statusText": {
+    "initial": [
+      "Solar array 73% · Panel Cluster C fault",
+      "Water recovery STANDBY",
+      "Greenhouse 1 STANDBY",
+      "Greenhouse 2 OFFLINE",
+      "Rover 12% charge",
+      "Habitat life support ACTIVE · reserves",
+      "Oxygen generation ACTIVE · minimum",
+      "CO₂ scrubbing ACTIVE · minimum"
+    ],
+    "warning": "Combined demand exceeds reliable supply. Individual tests passed; integrated operation is not verified.",
+    "cargoManifest": "Construction cargo · Habitat panels, seed trays, cables, filters and repair tools. Margin note: Good luck up there.",
+    "reviewQuestions": [
+      "What keeps essential systems supplied when solar power stops?",
+      "Which optional load will you reduce first?",
+      "What evidence supports your water, rover and shelter plan?"
+    ],
+    "reviewNotice": "Mission Control transmission · reply delay skipped. These are human review questions, not a live conversation.",
+    "safeMode": "Test paused in safe mode. Your expedition and logs are saved. Review what happened, adjust the plan and retry. The point is knowing what to do when things are not perfect.",
+    "reserveNotice": "Resource reserve, not a countdown. The test advances only when you choose.",
+    "endingTransmission": "We have reviewed your operating plan, test results and logs. You have shown how this outpost can support its next crew.",
+    "completion": "Commissioning complete. The door is still open if you want to keep exploring.",
+    "outcomeFormat": "Your decision → What happened → Why",
+    "forecastNotice": "Accelerated seven-sol simulation. This is a planning forecast, not a real crop growth schedule.",
+    "routeNotice": "Fictional route estimates. Planning kilometres are shortened for play; the world map uses its own stated regional scale.",
+    "archiveTitle": "Preparedness drill · September 2017 archive",
+    "archiveDate": "Mars event: September 11, 2017. Near-Earth DONKI particle observation: September 10, 2017.",
+    "archiveNotice": "Archived observations, not a current alert. Radiation comparison values are invented estimates over the same drill interval; they are not measured astronaut doses.",
+    "shieldingNotice": "A shelter reduces additional exposure. It does not subtract dose already received. Material and thickness matter; a closed airlock alone is not a radiation shield.",
+    "quietLog": "That never gets old.",
+    "fictionNotice": "Kaelen Reeves and Elysium Outpost are fictional. The commissioning history and seven-month journey belong to this story."
+  },
+  "scienceDiagrams": {
+    "water": {
+      "title": "Water recovery loop",
+      "steps": [
+        "Used water + cabin moisture",
+        "Collection and treatment",
+        "Quality check",
+        "Clean-water storage",
+        "Habitat + oxygen unit + crops"
+      ],
+      "note": "Treatment and a quality check are required before reuse. The faulty humidity sensor is a fictional troubleshooting exercise."
+    },
+    "oxygen": {
+      "title": "Water electrolysis",
+      "steps": [
+        "Clean water + electricity",
+        "Electrolyser",
+        "Oxygen to cabin",
+        "Hydrogen handled separately"
+      ],
+      "equation": "2 H₂O → 2 H₂ + O₂",
+      "note": "Oxygen generation uses water and power. It does not remove cabin carbon dioxide."
+    },
+    "co2": {
+      "title": "Carbon dioxide removal",
+      "steps": [
+        "Cabin air",
+        "Active capture bed",
+        "Cleaned air returns to cabin",
+        "Other bed regenerates",
+        "Beds exchange roles"
+      ],
+      "note": "Regeneration releases captured carbon dioxide so a bed can work again. This is a separate process from making oxygen."
+    },
+    "crops": {
+      "title": "Balanced crop care",
+      "steps": [
+        "Light + water + nutrients",
+        "Growth forecast",
+        "Compare demand with shared supply",
+        "Supplement stored rations"
+      ],
+      "note": "The seven-sol forecast is accelerated and simplified. Turning light to maximum does not guarantee growth."
+    },
+    "shielding": {
+      "title": "Shelter comparison",
+      "steps": [
+        "Same simulated event interval",
+        "Outside exposure estimate",
+        "Habitat estimate",
+        "Prepared shelter estimate"
+      ],
+      "note": "These are simulation estimates, not NASA measurements. Protection reduces new exposure; accumulated dose stays recorded."
+    }
+  },
+  "simulation": {
+    "overnight": {
+      "basePower": 10,
+      "baseWater": 4,
+      "baseOxygen": 3,
+      "greenhousePowerPerLightHour": 0.15,
+      "greenhouseWaterPerDrip": 0.015,
+      "oxygenPower": {
+        "minimum": 0,
+        "standard": 2,
+        "high": 5
+      },
+      "waterPower": {
+        "conservative": 0,
+        "standard": 2,
+        "aggressive": 5
+      },
+      "gridPower": {
+        "fast": 6,
+        "balanced": 3,
+        "greenhouse": 3,
+        "reserve": 0
+      },
+      "contingencyPower": {
+        "reserve": 4,
+        "dim-crops": 6,
+        "slow-charge": 3
+      },
+      "sunrisePower": 6,
+      "sunriseOxygen": 3,
+      "oxygenWater": {
+        "minimum": 1,
+        "standard": 2,
+        "high": 4
+      },
+      "waterRecovery": {
+        "conservative": 0,
+        "standard": 2,
+        "aggressive": 4
+      },
+      "calibrationWaterSaving": 1,
+      "oxygenReserveGain": {
+        "minimum": 0,
+        "standard": 2,
+        "high": 4
+      },
+      "scrubberCo2Change": {
+        "scheduled": -3,
+        "now": 2
+      },
+      "sunriseDemandFraction": 0.25
+    },
+    "initial": {
+      "power": 75,
+      "water": 75,
+      "oxygen": 75,
+      "co2": 8,
+      "food": 35,
+      "roverCharge": 12,
+      "shelter": 0,
+      "dose": 0
+    },
+    "routes": {
+      "direct": {
+        "minimumCharge": 30,
+        "energyCost": 8
+      },
+      "ridge": {
+        "minimumCharge": 50,
+        "energyCost": 13
+      },
+      "valley": {
+        "minimumCharge": 80,
+        "energyCost": 20
+      }
+    },
+    "greenhousePresets": {
+      "minimal": [
+        {
+          "light": 0,
+          "water": 0
+        },
+        {
+          "light": 0,
+          "water": 0
+        }
+      ],
+      "shared": [
+        {
+          "light": 16,
+          "water": 55
+        },
+        {
+          "light": 16,
+          "water": 55
+        }
+      ],
+      "comfortable": [
+        {
+          "light": 16,
+          "water": 60
+        },
+        {
+          "light": 0,
+          "water": 0
+        }
+      ],
+      "maximum": [
+        {
+          "light": 22,
+          "water": 75
+        },
+        {
+          "light": 0,
+          "water": 0
+        }
+      ]
+    },
+    "shielding": {
+      "full": {
+        "readiness": 90,
+        "chargeCost": 20,
+        "dose": 0.18
+      },
+      "partial": {
+        "readiness": 65,
+        "chargeCost": 0,
+        "dose": 0.36
+      },
+      "structure": {
+        "readiness": 35,
+        "chargeCost": 0,
+        "dose": 0.6
+      }
+    },
+    "faults": {
+      "heater": {
+        "power": -8
+      },
+      "scrubber": {
+        "co2": 18
+      },
+      "pump": {
+        "water": -6,
+        "oxygen": -5
+      }
+    },
+    "responses": {
+      "reduce-ventilation": {
+        "co2": 12
+      },
+      "restart-pump": {
+        "water": 7,
+        "oxygen": 4
+      },
+      "regenerate": {
+        "co2": -24,
+        "power": -5
+      },
+      "cut-heater": {
+        "power": 6
+      },
+      "cut-crops": {
+        "power": 9,
+        "food": -3
+      },
+      "cut-crop-water": {
+        "water": 6
+      }
+    },
+    "recovery": {
+      "minimumCharge": 25,
+      "returnCharge": 35,
+      "power": 25,
+      "water": 30,
+      "oxygen": 35,
+      "maxCo2": 40
+    },
+    "readiness": {
+      "minimumPower": 12,
+      "minimumWater": 15,
+      "minimumOxygen": 20,
+      "maxCo2": 65
+    },
+    "waterCalibrationBonus": 8,
+    "sol": {
+      "gridPower": {
+        "reserve": 18,
+        "fast": -16,
+        "balanced": 8,
+        "greenhouse": 8
+      },
+      "cropPowerPerLightHour": 0.3,
+      "waterRecovery": {
+        "conservative": 4,
+        "standard": 10,
+        "aggressive": 16
+      },
+      "oxygenProduction": {
+        "minimum": 3,
+        "standard": 7,
+        "high": 12
+      },
+      "waterPower": {
+        "conservative": 0,
+        "standard": 0,
+        "aggressive": 8
+      },
+      "oxygenPower": {
+        "minimum": 0,
+        "standard": 0,
+        "high": 6
+      },
+      "waterConsumption": 7,
+      "oxygenWaterFactor": 0.35,
+      "cropWaterFactor": 0.035,
+      "calibrationBonus": 6,
+      "oxygenConsumption": 5,
+      "scrubberChange": -5,
+      "unmaintainedCo2": 9,
+      "foodConsumption": 2,
+      "forecastSols": 7,
+      "chargeGain": {
+        "fast": 70,
+        "balanced": 50,
+        "greenhouse": 35,
+        "reserve": 0
+      }
+    },
+    "forecast": {
+      "unverifiedPowerUncertainty": 6,
+      "verifiedPowerUncertainty": 1,
+      "surveyUncertaintyReduction": 1
+    },
+    "solar": {
+      "faultCapacity": 73,
+      "repairedCapacity": 100,
+      "repairReserveGain": 6,
+      "dustPowerPenalty": 5
+    },
+    "routeMaintenance": {
+      "energyCost": 5,
+      "nightPowerPenalty": 3
+    }
+  }
+}

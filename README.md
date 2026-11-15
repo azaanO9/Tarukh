@@ -6,12 +6,13 @@ TARUKH is a browser-based Mars exploration game developed for the NASA Space App
 
 [Play the game](https://azaano9.github.io/Tarukh/)
 
-The game is free exploration. The repository contains the current Mars game and its build, asset-preparation and testing tools. Retired mission, quiz, survival, story and lunar modes have been removed.
+Choose Free Exploration or the Elysium Outpost story. Both use the same Mars world, outpost, greenhouses and rover. In Story, Kaelen Reeves commissions the base through seven connected missions, with neutral terminals, human Mission Control transmissions, science notes and a personal journal. There is no AI companion.
 
 
 ## Features
 
 - A bounded MOLA-based Mars region, with about 1.74 × 1.32 km of playable terrain, seven real landmark locations and an impassable mountain perimeter.
+- Elysium missions connect solar repair, separate water/oxygen/CO₂ systems, greenhouse experiments, rover expeditions, an archived radiation drill and a retryable overnight readiness test. Missions 3–5 can be interleaved; conservative, balanced and productive operating plans can succeed. Resources advance through deliberate planning steps, with no failure countdown.
 - A Starship opening cinematic: stage separation, upper-stage return and landing flip, engine braking, ground dust and a timed chopstick catch. Mars loads concurrently; pause or skip the sequence, with a calm presentation for reduced motion.
 - Walking, sprinting, jumping, mouse look and switchable first- and third-person cameras. Entering the outpost or a greenhouse smoothly selects first person; leaving restores your previous outdoor view.
 - One driveable six-wheel crew rover with a furnished Kepler cockpit, a seated astronaut driver, five live instrument screens, suspension, headlights, terrain contacts, tracks and simulated LiDAR. The screens show vehicle speed, battery/charging, navigation, wheel diagnostics and recent telemetry. It starts inside a solar-powered garage beside the base; a contextual action opens the canopy door and rolls it out. Return to the marked bay and exit to park it automatically.
@@ -29,7 +30,7 @@ The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:
 
 React 19, TypeScript 5.9 and Three.js 0.180 provide the interface, simulation and WebGL rendering. Vite 8 builds the static GitHub Pages version. A separate Vinext/Cloudflare Worker build preserves the existing Sites integration. Styling uses CSS and Tailwind CSS; tests use Node's built-in test runner.
 
-The playable game needs no account or application API key. Models, textures, elevation data and Draco decoding files ship with the app. Curiosity's existing navigation save uses browser-local storage; player position and graphics measurements are not persistent. No gameplay telemetry service is used.
+The playable game needs no account or application API key. Models, textures, elevation data and Draco decoding files ship with the app. Elysium decisions, resources and journal save locally in this browser, with Resume and a separately confirmed restart. Loading a story save returns the explorer safely beside the base; exact world position is not saved. Curiosity navigation also uses browser-local storage. Story science uses bundled, dated sources; Free Exploration retains its live NOAA display. No gameplay telemetry service is used.
 
 ## Run locally
 
@@ -40,7 +41,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed by the development server, normally `http://localhost:5173`. Choose PC or Mobile, then select **Explore Mars**. Keep the terminal running while playing.
+Open the URL printed by the development server, normally `http://localhost:5173`. Choose PC or Mobile, then **Explore Mars** for free exploration or **Elysium Story · New / Resume**. Keep the terminal running while playing.
 
 To preview the static production build:
 
@@ -63,7 +64,7 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 | Q / R | Turn the view |
 | V | Switch first- and third-person views |
 | F | Enter or exit the nearby crew rover |
-| E | Deploy/park the crew rover at the garage, open/close a nearby base gate, or inspect a nearby science rover |
+| E | Deploy/park the crew rover, operate a nearby gate, inspect a science rover, or use a nearby Story station |
 | Caps Lock | Open or close the landmark atlas |
 | Escape | Release mouse capture or close a dismissible dialog |
 | Pause button | Pause, resume or return to controls setup |

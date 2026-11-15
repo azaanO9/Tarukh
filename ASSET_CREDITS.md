@@ -83,4 +83,6 @@ Three.js 0.180, OrbitControls, RoomEnvironment and geometry utilities are bundle
 
 ## Software notices
 
+The optional Elysium storyline adds original canvas-drawn station signs, ground rings and a small procedural field-sensor mast. Its route planner reuses the shipped NASA MOLA map described above. No additional downloaded models, textures, voices or third-party art are used. Story text describes a fictional expedition; its science references and simulation assumptions are listed separately in `docs/SOURCES.md` and `docs/ASSUMPTIONS.md`.
+
 Three.js modeling, environment and post-processing utilities retain the dependency's MIT license. The vendored Draco decoder is distributed unchanged with its existing notices. Keep `vendor/shadcn-tailwind-4.13.0.LICENSE.md` and `scripts/vite/sites-vite-plugin.LICENSE` with their associated sources.

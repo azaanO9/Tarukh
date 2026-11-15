@@ -81,7 +81,7 @@ function inCanopySweep(x:number,z:number,radius:number) {
 /** Advances the existing vehicle, not a decorative duplicate. All motion pauses with the game. */
 export function stepGarage(state:GarageState,rover:RoverVehicle,seconds:number,enabled:boolean,
   walker:CollisionObstacle,obstacles:readonly CollisionObstacle[],heightAt:(x:number,z:number)=>number,
-  sunlight:number,reducedMotion=false) {
+  sunlight:number,reducedMotion=false,allowCharging=true) {
   if(!enabled)return;
   const dt=Math.max(0,Math.min(seconds,.05));
   state.solarWatts=Math.max(0,Math.min(1,sunlight))*1200;
@@ -92,7 +92,7 @@ export function stepGarage(state:GarageState,rover:RoverVehicle,seconds:number,e
   // Base battery inverter & rover charging dock:
   // When the rover is parked inside the garage (phase === 'parked') and not driving:
   const roverInGarage=state.phase==='parked'&&!rover.driving;
-  const roverNeedsCharge=roverInGarage&&(rover.battery??100)<99.99;
+  const roverNeedsCharge=allowCharging&&roverInGarage&&(rover.battery??100)<99.99;
   const basePowerAvailable=state.batteryWh>10||state.solarWatts>=200;
 
   if(roverNeedsCharge&&basePowerAvailable){
