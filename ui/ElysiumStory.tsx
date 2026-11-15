@@ -2,6 +2,8 @@
 
 import {lazy,Suspense,useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import MarsFreeRoam from './MarsFreeRoam';
+import ElysiumGuidanceCard from './ElysiumGuidanceCard';
+import {nextElysiumGuidance} from '../game/elysiumGuidance';
 import type {View} from './MarsWorld';
 import {
   createElysiumState,reduceElysium,availableMissions,missionProgress,
@@ -22,7 +24,7 @@ const MissionActivity=lazy(()=>import('./MissionActivity'));
 const TrainingWorkshop=lazy(()=>import('./TrainingWorkshop'));
 const LifeSupportGames=lazy(()=>import('./LifeSupportGames'));
 type OpenActivity=({family:'solar';taskId:ActivityTaskId}|{family:'training';activityId:TrainingId})&{practice:boolean;returnTo:'site'|'test'};
-type Panel='resume'|'prologue'|'time-jump'|'brief'|'missions'|'site'|'activity'|'science'|'journal'|'log'|'restart'|'test'|'ending'|'heritage'|null;
+type Panel='resume'|'prologue'|'time-jump'|'brief'|'missions'|'site'|'activity'|'science'|'journal'|'log'|'restart'|'test'|'ending'|'heritage'|'handoff'|'guide'|null;
 type ChoiceGroup=keyof typeof content.choices;
 const missionIds:MissionId[]=['m1','m2','m3','m4','m5','m6','m7'];
 const groupNames:Record<ChoiceGroup,string>={grid:'Share the power',water:'Clean water',oxygen:'Make breathing air',scrubber:'Clean the cabin air',greenhouse:'Care for the plants',route:'Plan a rover trip',sensor:'Fix the field sensor',shielding:'Build a shelter',contingency:'Pack a backup'};
@@ -34,17 +36,6 @@ const newExpedition=()=>createElysiumState(globalThis.crypto?.getRandomValues(ne
 
 function MissionActionButton({action,label,enabled,location,onAction}:{action:ElysiumAction;label:string;enabled:boolean;location:SiteId|null;onAction:(action:ElysiumAction)=>void}){
   return <button className="ely-primary" disabled={!enabled} onClick={()=>onAction(action)}>{label}{location&&<small>Walk to {siteName(location)}</small>}</button>;
-}
-
-function nextSite(state:ElysiumState,id:MissionId){
-  if(state.test.stage==='fault'&&state.test.fault==='pump'&&!state.test.pumpRestarted)return 'lab';
-  if(id==='m1')return (['airlock','command','garage','greenhouse1'] as const).find(site=>!state.visited.includes(site))??'command';
-  if(id==='m2')return state.completed.includes('m2')||(state.tasks.includes('solar-connect')&&state.tasks.includes('solar-clean'))?'command':'solar';
-  if(id==='m3')return 'lab';
-  if(id==='m4')return 'greenhouse1';
-  if(id==='m5')return !state.choices.route?'garage':!state.tasks.includes('sample-collect')?'field-sensor':'lab';
-  if(id==='m6')return state.tasks.includes('archive-review')?'shelter':'command';
-  return 'command';
 }
 
 function ResourceReadout({state}:{state:ElysiumState}){
@@ -119,6 +110,7 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
   const [session,setSession]=useState(0);
   const [panel,setPanel]=useState<Panel>(initial.state?'resume':'prologue');
   const [activity,setActivity]=useState<OpenActivity|null>(null);
+  const [completedMission,setCompletedMission]=useState<MissionId|null>(null);
   const [selected,setSelected]=useState<MissionId>(()=>availableMissions(state).find(id=>!state.completed.includes(id))??(state.phase==='ready'?'m7':'m1'));
   const [site,setSite]=useState('command');
   const [view,setView]=useState<View|null>(null);
@@ -128,7 +120,7 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
   const [feedback,setFeedback]=useState(0);
   const [heritage,setHeritage]=useState('curiosity');
   const [tutorial,setTutorial]=useState(!initial.state);
-  const [hudDetails,setHudDetails]=useState(controlMode==='pc');
+  const [hudDetails,setHudDetails]=useState(false);
   const [endingView,setEndingView]=useState(false);
   const [quietView,setQuietView]=useState(false),[quietCaption,setQuietCaption]=useState(false);
   const dialog=useRef<HTMLElement>(null),returnFocus=useRef<HTMLElement|null>(null);
@@ -138,7 +130,8 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
   const summary=readinessSummary(state);
   const ending=content.endings[summary.outcome.toLowerCase() as keyof typeof content.endings];
   const fault=content.faults.find(item=>item.id===state.test.fault);
-  const target=nextSite(state,selected),targetPoint=ELYSIUM_SITES.find(item=>item.id===target);
+  const guidance=useMemo(()=>nextElysiumGuidance(state,{selectedMission:selected,currentSiteId:view?.storySite,x:view?.x,z:view?.z,roverDriving:view?.roverDriving,garagePhase:view?.garagePhase,roverX:view?.roverX,roverZ:view?.roverZ}),[state,selected,view]);
+  const target=guidance.targetSiteId??undefined;
 
   const perform=useCallback((action:ElysiumAction)=>{
     const previous=stateRef.current;
@@ -219,10 +212,12 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
     const fresh=newExpedition();stateRef.current=fresh;setState(fresh);setWorldSeed(fresh.seed);setSelected('m1');setArrival('none');setSession(value=>value+1);setTutorial(true);setEndingView(false);setQuietView(false);setPanel('prologue');
   };
   const recordLog=(choiceId:0|1|2)=>{
+    if(!actionAllowed(stateRef.current,{type:'log',missionId:selected,choiceId}))return;
     perform({type:'log',missionId:selected,choiceId});
+    setCompletedMission(selected);
     const next=availableMissions(stateRef.current)[0];
     if(next)setSelected(next);
-    setPanel(stateRef.current.phase==='ready'?'ending':'missions');
+    setPanel(stateRef.current.phase==='ready'?'ending':'handoff');
   };
   const atAction=(action:ElysiumAction)=>{
     const location=actionSite(action);
@@ -240,6 +235,7 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
     const current=stateRef.current;
     const canPractice=taskId!=='clear-panels'&&(current.tasks.includes(taskId)||current.completed.includes('m2'));
     if(practice?!canPractice:!activityAvailable(current,taskId))return;
+    setSelected('m2');
     setActivity({family:'solar',taskId,practice,returnTo:'site'});setPanel('activity');
   };
   const completeActivity=(proof:ActivityProof)=>{
@@ -253,11 +249,12 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
   };
   const activityButton=(taskId:ActivityTaskId,label:string,practice=false)=>
     <button className="ely-primary" data-activity-task={taskId} disabled={view?.storySite!=='solar'||(!practice&&!activityAvailable(state,taskId))} onClick={()=>startActivity(taskId,practice)}>{label}{view?.storySite!=='solar'&&<small>Walk to {siteName('solar')}</small>}</button>;
-  function startTraining(activityId:TrainingId,practice=false){
+  function startTraining(activityId:TrainingId,practice=false,returnTo?:'site'|'test'){
     const definition=trainingDefinition(activityId);
     if(viewRef.current?.storySite!==definition.site)return;
     if(practice?!trainingCompleted(stateRef.current,activityId):!trainingAvailable(stateRef.current,activityId))return;
-    setActivity({family:'training',activityId,practice,returnTo:panel==='test'?'test':'site'});setPanel('activity');
+    setSelected(definition.mission);
+    setActivity({family:'training',activityId,practice,returnTo:returnTo??(panel==='test'?'test':'site')});setPanel('activity');
   }
   function completeTraining(proof:TrainingProof){
     if(activity?.family!=='training')return;
@@ -275,9 +272,33 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
     const hint=activityId==='route-plan'?(state.tasks.includes('field-arrival')?'This trip’s route is already recorded.':'Charge the rover in its garage first.'):activityId==='sensor-restore'?'Drive your rover to the field sensor first.':activityId==='shield-plan'?'Connect the shelter backup power first.':activityId==='forecast-review'?'Plant a space garden first.':state.test.stage==='fault'||state.test.stage==='resolved'?'Finish the current night repair first.':'Complete the earlier station jobs first.';
     return <button className="ely-primary" data-training-activity={activityId} disabled={!near||!available} onClick={()=>startTraining(activityId,practice)}>{label??`Play · ${definition.title}`}{!near?<small>Walk to {siteName(definition.site)}</small>:!available&&<small>{hint}</small>}</button>;
   }
+  function followGuidance(){
+    if(guidance.missionId)setSelected(guidance.missionId);
+    if(guidance.target&&!guidance.atTarget){setPanel(null);return;}
+    const intent=guidance.intent;
+    if(intent.type==='log'){setSelected(intent.missionId);setPanel('log');return;}
+    if(intent.type==='panel'){setPanel(intent.panel);return;}
+    if(intent.type==='world'){setPanel(null);return;}
+    if(guidance.targetSiteId){
+      if(viewRef.current?.storySite!==guidance.targetSiteId)return;
+      perform({type:'visit',siteId:guidance.targetSiteId,roverDriving:viewRef.current.roverDriving});
+      setSite(guidance.targetSiteId);
+    }
+    if(intent.type==='visit'){setPanel('site');return;}
+    if(intent.type==='training'){startTraining(intent.activityId,false,state.test.stage==='fault'?'test':'site');return;}
+    if(intent.type==='solar'){startActivity(intent.taskId);return;}
+    if(intent.type==='action'){
+      const action:ElysiumAction={type:intent.action};
+      const location=actionSite(action);
+      if(location&&viewRef.current?.storySite!==location)return;
+      perform(action);
+      setPanel(['start-test','advance-test','retry-test'].includes(intent.action)?'test':'site');
+    }
+  }
+  const nextStepCard=<ElysiumGuidanceCard guidance={guidance} yaw={view?.yaw} x={view?.x} z={view?.z} onContinue={followGuidance}/>;
   const finishEnding=useCallback(()=>{setEndingView(false);requestAnimationFrame(()=>document.querySelector<HTMLElement>('.sv-world')?.focus());},[]);
   const world=useMemo<ElysiumWorldBridge>(()=>({
-    sessionId:`elysium-${worldSeed}-${session}`,command:worldBindings(state),
+    sessionId:`elysium-${worldSeed}-${session}`,command:worldBindings(state),simulatedDose:state.resources.dose,
     targetSiteId:target,route:state.choices.route??undefined,onInteract:interact,
     routePoints:state.choices.route?ELYSIUM_ROUTES[state.choices.route]:undefined,
     ending:endingView,onEndingComplete:finishEnding,
@@ -313,24 +334,30 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
     </section>;
   }
   const training=activity?.family==='training'?trainingDefinition(activity.activityId):null;
-  const title=panel==='activity'?(training?.title??(activity?.family==='solar'&&activity.taskId==='solar-connect'?'Match the wires':'Brush the solar panels')):panel==='prologue'?'Elysium Outpost':panel==='resume'?'Your expedition is saved':panel==='time-jump'?'Seven months later':panel==='brief'?mission.title:panel==='missions'?'Your Mars missions':panel==='site'?siteName(site):panel==='science'?'Why it works':panel==='journal'?"Kaelen’s field journal":panel==='log'?'What did you notice?':panel==='restart'?'Restart this expedition?':panel==='test'?'Try a night at the base':panel==='ending'?'Elysium is ready':panel==='heritage'?'Rover discoveries':'';
+  const title=panel==='handoff'?`Mission ${completedMission?.slice(1)??''} complete!`:panel==='guide'?'What do I do next?':panel==='activity'?(training?.title??(activity?.family==='solar'&&activity.taskId==='solar-connect'?'Match the wires':'Brush the solar panels')):panel==='prologue'?'Elysium Outpost':panel==='resume'?'Your expedition is saved':panel==='time-jump'?'Seven months later':panel==='brief'?mission.title:panel==='missions'?'Your Mars missions':panel==='site'?siteName(site):panel==='science'?'Why it works':panel==='journal'?"Kaelen’s field journal":panel==='log'?'What did you notice?':panel==='restart'?'Restart this expedition?':panel==='test'?'Try a night at the base':panel==='ending'?'Elysium is ready':panel==='heritage'?'Rover discoveries':'';
 
   const overlay=<div className="ely-shell" data-story-phase={state.phase}>
-    {state.phase!=='briefing'&&arrival==='none'&&!panel&&!endingView&&!quietView&&<aside className="ely-hud" aria-label="Elysium mission controls"><div><span className="ely-eyebrow">ELYSIUM · SOL {String(state.sol).padStart(2,'0')}</span><button onClick={()=>setPanel('missions')}>Missions</button><button aria-label={hudDetails?'Collapse mission details':'Expand mission details'} aria-expanded={hudDetails} onClick={()=>setHudDetails(value=>!value)}>{hudDetails?'−':'+'}</button></div><strong>{mission.title}</strong><p>{siteName(target)}{view&&targetPoint?` · ${Math.round(Math.hypot(view.x-targetPoint.x,view.z-targetPoint.z))} m`:''}</p>{hudDetails&&<><div className="ely-hud-resources"><span>Power {Math.round(state.resources.power)}%</span><span>O₂ {Math.round(state.resources.oxygen)}%</span><span>Water {Math.round(state.resources.water)}%</span></div><nav aria-label="Mission tools"><button onClick={()=>setPanel('journal')}>Journal</button><button onClick={()=>setPanel('science')}>Why it works</button>{progress.readyToLog&&<button onClick={()=>setPanel('log')}>Write log</button>}</nav></>}
-      {view?.storySite&&<button className="ely-primary" onClick={()=>interact(view.storySite!)}>Use {siteName(view.storySite)}</button>}
-      {(state.test.stage==='fault'||state.test.stage==='resolved'||state.test.stage==='safe')&&<button className="ely-primary" onClick={()=>setPanel('test')}>Readiness test · {state.test.stage==='safe'?'safe mode':'review systems'}</button>}
-      {hudDetails&&tutorial&&<div className="ely-hint"><p>{controlMode==='pc'?'WASD move · E interact · F rover · Caps Lock map. Drag to look if mouse capture is unavailable.':'Use the movement stick and swipe to look. Tap a station button nearby; Atlas opens the field map.'}</p><button onClick={()=>setTutorial(false)}>Got it · skip guide</button></div>}
+    {state.phase!=='briefing'&&arrival==='none'&&!panel&&!endingView&&!quietView&&!view?.phoneOpen&&<aside className="ely-hud" aria-label="Elysium mission controls">
+      <div><span className="ely-eyebrow">MISSION {guidance.missionId?.slice(1)??'✓'} / 7</span><button onClick={()=>setPanel('missions')}>Missions</button><button aria-label={hudDetails?'Collapse mission details':'Expand mission details'} aria-expanded={hudDetails} onClick={()=>setHudDetails(value=>!value)}>{hudDetails?'−':'+'}</button></div>
+      <strong>{guidance.missionId?missionContent(guidance.missionId).title:'Your base is ready'}</strong>
+      <span className="ely-sr-only" role="status" aria-live="polite">{guidance.title}. {guidance.target?.label}</span>
+      <ElysiumGuidanceCard guidance={guidance} yaw={view?.yaw} x={view?.x} z={view?.z} compact buttonLabel={guidance.target&&!guidance.atTarget?'How do I get there?':guidance.action} onContinue={()=>{if(guidance.target&&!guidance.atTarget)setPanel('guide');else followGuidance();}}/>
+      {hudDetails&&<><div className="ely-hud-resources"><span>Power {Math.round(state.resources.power)}%</span><span>O₂ {Math.round(state.resources.oxygen)}%</span><span>Water {Math.round(state.resources.water)}%</span></div><nav aria-label="Mission tools"><button onClick={()=>setPanel('journal')}>Journal</button><button onClick={()=>setPanel('science')}>Why it works</button></nav>
+      {view?.storySite&&<button onClick={()=>interact(view.storySite!)}>All jobs at {siteName(view.storySite)}</button>}
+      {tutorial&&<div className="ely-hint"><p>{controlMode==='pc'?'WASD move · E opens doors and stations · F rover · Caps Lock map. P or ↑ opens your radiation phone. Drag to look.':'Use the movement stick and swipe to look. Tap the door or station button nearby. Atlas opens the map; tap the phone to check radiation.'}</p><button onClick={()=>setTutorial(false)}>Got it · skip guide</button></div>}</>}
     </aside>}
     {endingView&&<aside className="ely-horizon-note"><p>{content.statusText.completion}</p><button onClick={finishEnding}>Finish horizon view · keep exploring</button></aside>}
     {quietView&&<aside className="ely-horizon-note">{quietCaption&&<p className="ely-log-entry">Kaelen · “{content.statusText.quietLog}”</p>}<button onClick={()=>{setQuietView(false);setQuietCaption(false);}}>Continue exploring</button></aside>}
     {saveError&&<p className="ely-save-alert" role="status">Progress is kept in this session, but this browser could not save it: {saveError}</p>}
-    {panel&&<div className="ely-backdrop"><section className="ely-dialog" ref={dialog} role="dialog" aria-modal="true" aria-labelledby="ely-title"><header><p className="ely-eyebrow">TARUKH · ELYSIUM OUTPOST</p><h2 id="ely-title" tabIndex={-1} data-ely-focus>{title}</h2>{!['resume','prologue','time-jump'].includes(panel)&&<button className="ely-close" aria-label="Close mission panel" onClick={close}>×</button>}</header><div className="ely-dialog-body">
+    {panel&&<div className="ely-backdrop"><section className="ely-dialog" ref={dialog} data-ely-panel={panel} role="dialog" aria-modal="true" aria-labelledby="ely-title"><header><p className="ely-eyebrow">TARUKH · ELYSIUM OUTPOST</p><h2 id="ely-title" tabIndex={-1} data-ely-focus>{title}</h2>{!['resume','prologue','time-jump'].includes(panel)&&<button className="ely-close" aria-label="Close mission panel" onClick={close}>×</button>}</header><div className="ely-dialog-body">
+      {panel==='handoff'&&<><p className="ely-complete-mark">✓ {completedMission?missionContent(completedMission).title:''}</p><p>Your journal is saved. Here is your next adventure.</p><h3>Next mission · {guidance.missionId?missionContent(guidance.missionId).title:'Keep exploring'}</h3>{nextStepCard}<button onClick={()=>setPanel('missions')}>See all missions</button></>}
+      {panel==='guide'&&<>{nextStepCard}<p className="ely-caption">The gold diamond marks your destination on the minimap and in the world. The arrow points toward it; use the doors and paths to get there.</p><details className="ely-more"><summary>Show the mission checklist</summary><ul className="ely-checklist">{progress.objectives.map(objective=><li key={objective.id} data-done={objective.done}>{objective.done?'✓':'○'} {objective.label}</li>)}</ul></details></>}
       {panel==='resume'&&<><p>Kaelen Reeves · Sol {state.sol} · {state.completed.length} of 7 missions logged.</p><p>Your operating decisions, resources and journal are stored on this browser. The world starts safely beside the base.</p><ResourceReadout state={state}/><div className="ely-actions"><button className="ely-primary" onClick={()=>setPanel(state.phase==='briefing'?'prologue':state.phase==='ready'?'ending':null)}>Resume expedition</button><button onClick={()=>setPanel('restart')}>Start a new expedition…</button><button onClick={onExit}>Return to mode selection</button></div></>}
-      {panel==='prologue'&&<><p className="ely-location">CAPE CANAVERAL · EARTH</p><h3>Kaelen Reeves · commissioning engineer, 24</h3>{content.prologue.briefing.map(text=><p key={text}>{text}</p>)}<blockquote><span>Flight Director · Mission Control</span>{content.prologue.flightDirector}</blockquote><p className="ely-caption">Fictional expedition. The launch and tower sequence is on Earth; it is not a Mars landing.</p><div className="ely-actions"><button className="ely-primary" onClick={()=>begin(true)}>Begin · watch Earth launch</button><button onClick={()=>begin(false)}>Skip prologue · travel to Mars</button><button onClick={onExit}>Back to mode selection</button></div></>}
+      {panel==='prologue'&&<><p className="ely-location">CAPE CANAVERAL · EARTH</p><h3>Kaelen Reeves · commissioning engineer, 24</h3>{content.prologue.briefing.map(text=><p key={text}>{text}</p>)}<blockquote><span>Flight Director · Mission Control</span>{content.prologue.flightDirector}</blockquote><p className="ely-caption">Fictional expedition. Watch the Earth launch, space journey and arrival beside your Mars base.</p><div className="ely-actions"><button className="ely-primary" onClick={()=>begin(true)}>Begin · watch the journey</button><button onClick={()=>begin(false)}>Skip prologue · travel to Mars</button><button onClick={onExit}>Back to mode selection</button></div></>}
       {panel==='time-jump'&&<div className="ely-title-card"><span>SEVEN MONTHS LATER</span><h3>Elysium Outpost, Mars</h3><p>The robotic builders have finished. Now the systems must work together.</p><button className="ely-primary" onClick={()=>{setSelected('m1');setPanel('brief');}}>Wake up · begin commissioning</button></div>}
-      {panel==='brief'&&<><p className="ely-location">{mission.act} · SOL {state.sol}</p><blockquote className="ely-log-entry">{mission.wakeText}</blockquote>{mission.briefing.map(text=><p key={text}>{text}</p>)}<ul className="ely-checklist">{progress.objectives.map(objective=><li key={objective.id} data-done={objective.done}>{objective.done?'✓':'○'} {objective.label}</li>)}</ul><div className="ely-actions"><button className="ely-primary" onClick={()=>setPanel(null)}>Explore · follow the station marker</button><button onClick={()=>setPanel('science')}>Curious? See why it works</button></div></>}
-      {panel==='missions'&&<><p>Your jobs help the whole base. Come back to explore whenever you like. Try the water lab, greenhouse and rover trip in any order after fixing the power.</p><div className="ely-missions">{missionIds.map(id=>{const p=missionProgress(state,id);return <button key={id} className={id===selected?'selected':''} disabled={!p.available&&!p.complete} onClick={()=>{setSelected(id);setPanel('brief');}}><span>{id.slice(1)} · {p.complete?'Logged':p.available?'Available':'Not open yet'}</span><strong>{missionContent(id).title}</strong><small>{p.objectives.filter(item=>item.done).length}/{p.objectives.length} checks</small></button>;})}</div><ResourceReadout state={state}/><div className="ely-actions"><button onClick={()=>setPanel('journal')}>Open my adventure journal</button><button onClick={()=>setPanel('restart')}>Restart expedition…</button><button onClick={onExit}>Save and return to modes</button></div></>}
-      {panel==='site'&&<><p className="ely-location">STATION {ELYSIUM_SITES.find(item=>item.id===site)?.number} · {siteName(site)}</p>{site==='command'&&!state.completed.includes('m1')&&<section className="ely-task"><h3>Our first base check</h3><p>Some equipment needs your help. Start with the supply locker below.</p><details className="ely-more"><summary>Look at the equipment report</summary><ul>{content.statusText.initial.map(text=><li key={text}>{text}</li>)}</ul><p>{content.statusText.warning}</p></details></section>}<details className="ely-more"><summary>Check base supplies</summary><ResourceReadout state={state}/></details><p className="ely-station-help">Pick a job to open your tool tablet. Move, turn or match the parts. There is no timer.</p>{unlocked.map(id=>missionWork(id,site))}
+      {panel==='brief'&&<>{nextStepCard}<p className="ely-location">{mission.act} · SOL {state.sol}</p><blockquote className="ely-log-entry">{mission.wakeText}</blockquote>{mission.briefing.map(text=><p key={text}>{text}</p>)}<ul className="ely-checklist">{progress.objectives.map(objective=><li key={objective.id} data-done={objective.done}>{objective.done?'✓':'○'} {objective.label}</li>)}</ul><div className="ely-actions"><button className="ely-primary" onClick={()=>setPanel(null)}>Explore · follow the station marker</button><button onClick={()=>setPanel('science')}>Curious? See why it works</button></div></>}
+      {panel==='missions'&&<>{nextStepCard}<p>Your jobs help the whole base. Come back to explore whenever you like. Try the water lab, greenhouse and rover trip in any order after fixing the power.</p><div className="ely-missions">{missionIds.map(id=>{const p=missionProgress(state,id);return <button key={id} className={id===selected?'selected':''} disabled={!p.available&&!p.complete} onClick={()=>{setSelected(id);setPanel('brief');}}><span>{id.slice(1)} · {p.complete?'Logged':p.available?'Available':'Not open yet'}</span><strong>{missionContent(id).title}</strong><small>{p.objectives.filter(item=>item.done).length}/{p.objectives.length} checks</small></button>;})}</div><ResourceReadout state={state}/><div className="ely-actions"><button onClick={()=>setPanel('journal')}>Open my adventure journal</button><button onClick={()=>setPanel('restart')}>Restart expedition…</button><button onClick={onExit}>Save and return to modes</button></div></>}
+      {panel==='site'&&<>{state.lastOutcome&&<aside className="ely-outcome" role="status"><h3 tabIndex={-1} data-ely-feedback>Look what changed!</h3><p>{state.lastOutcome.outcome}</p><details className="ely-more"><summary>Why did that happen?</summary><p>{state.lastOutcome.why}</p></details></aside>}{nextStepCard}<p className="ely-location">STATION {ELYSIUM_SITES.find(item=>item.id===site)?.number} · {siteName(site)}</p>{site==='command'&&!state.completed.includes('m1')&&<section className="ely-task"><h3>Our first base check</h3><p>Some equipment needs your help. Start with the supply locker below.</p><details className="ely-more"><summary>Look at the equipment report</summary><ul>{content.statusText.initial.map(text=><li key={text}>{text}</li>)}</ul><p>{content.statusText.warning}</p></details></section>}<details className="ely-more"><summary>Check base supplies</summary><ResourceReadout state={state}/></details><p className="ely-station-help">Pick a job to open your tool tablet. Move, turn or match the parts. There is no timer.</p>{available.map(id=>missionWork(id,site))}{state.completed.length>0&&<details className="ely-more"><summary>Practice completed missions or change a plan</summary>{state.completed.map(id=>missionWork(id,site))}</details>}
         {site==='command'&&<><section className="ely-work"><h3>Ready for a new Mars day?</h3><p>Rest when you want to try your plan for another day. Park the rover in the garage so it can charge while you rest.</p>{actionButton({type:'advance-sol'},'Rest · start a new Mars day')}</section>{unlocked.includes('m7')&&<button className="ely-primary" onClick={()=>setPanel('test')}>Try a night at the base</button>}</>}
         {site==='garage'&&state.completed.includes('m2')&&<section className="ely-work"><h3>Preparing the rover</h3><p>A longer trip needs more battery. Share power with the rover at the command tablet, then leave it in the garage to charge. You can rest at command to speed up the wait.</p>{actionAllowed(state,{type:'recover-rover'})&&<><p>Low battery? A training reserve can help you recover safely. It adds no mission credit.</p>{actionButton({type:'recover-rover'},'Recover rover · add a safe return reserve')}</>}</section>}
         {site==='solar'&&activityAvailable(state,'clear-panels')&&<section className="ely-work"><h3>Clear the dust</h3><p>Dust came back! Brush it away so sunlight can reach the panels again.</p>{activityButton('clear-panels',content.tasks['clear-panels'].label)}</section>}
@@ -347,7 +374,7 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
         {state.tasks.includes('landmark-survey')&&<article className="ely-science"><h4>Terrain survey observation</h4><p>The field map and distant ground use the same NASA MOLA elevation crop. Shaded relief shows heights, not a photograph. Close rocks and route hazards are game additions; distances are compressed for exploration.</p><p>Your survey helps compare proposed routes and narrows the simulated planning uncertainty. It does not measure real weather on Mars.</p><a href={content.sources.marsTrek.url} target="_blank" rel="noreferrer">NASA · Mars Trek ↗</a></article>}
       </section>}
       {panel==='restart'&&<><p>This replaces your saved Elysium decisions, resources and journal on this browser. Free Exploration is unaffected.</p><div className="ely-actions"><button className="ely-danger" onClick={reset}>Discard expedition · restart</button><button className="ely-primary" onClick={()=>setPanel('missions')}>Keep my progress</button></div></>}
-      {panel==='test'&&<><p>Can your base make it through a pretend night? Open the repair tablet if something needs help. Nothing counts down while you play.</p><details className="ely-more"><summary>Check our supplies</summary><ResourceReadout state={state}/><ReadinessForecast summary={summary}/></details>
+      {panel==='test'&&<>{nextStepCard}<p>Can your base make it through a pretend night? Open the repair tablet if something needs help. Nothing counts down while you play.</p><details className="ely-more"><summary>Check our supplies</summary><ResourceReadout state={state}/><ReadinessForecast summary={summary}/></details>
         {state.test.stage==='idle'&&<><h3>Ready for a practice night?</h3><p>Pack the base plan and a backup, then receive Mission Control’s message at the command tablet.</p>{actionButton({type:'start-test'},'Start the practice night')}</>}
         {state.test.stage==='fault'&&fault&&<section className="ely-fault"><span className="ely-eyebrow">REPAIR TIME · NO RUSH</span><h3>{fault.title}</h3><p>{fault.chain[0]} Let’s fix it together.</p>{trainingButton(state.test.fault==='pump'?(state.test.pumpRestarted?'fault-water':'fault-pump'):state.test.fault==='heater'?'fault-heater':'fault-scrubber')}<details className="ely-more"><summary>What is happening?</summary><ol>{fault.chain.map(item=><li key={item}>{item}</li>)}</ol></details><button onClick={()=>setPanel(null)}>Walk to the equipment</button></section>}
         {state.test.stage==='resolved'&&<><p>Your repair is recorded. Check the supplies, then see how the base does at sunrise.</p>{actionButton({type:'advance-test'},'Advance to sunrise')}</>}
@@ -356,8 +383,8 @@ export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mob
       </>}
       {panel==='ending'&&<><p className="ely-location">MISSION CONTROL · REVIEW RECEIVED AFTER COMMUNICATION DELAY</p><blockquote><span>Flight Director</span>{content.statusText.endingTransmission}</blockquote><h3>{ending.title}</h3><p>{ending.flightDirector}</p><p>{ending.why}</p><h3>Your own evidence</h3>{state.logs.map(entry=><blockquote className="ely-log-entry" key={entry.missionId}>“{entry.text}”<small>Kaelen · Sol {entry.sol}</small></blockquote>)}<h3>One final line</h3>{state.finalLog?<blockquote className="ely-log-entry">{state.finalLog}</blockquote>:content.finalLogOptions.map((text,index)=><button className="ely-choice" key={text} onClick={()=>perform({type:'final-log',choiceId:index as 0|1|2})}>{text}</button>)}<p>{content.statusText.completion}</p><div className="ely-actions"><button className="ely-primary" data-ely-ending disabled={!state.finalLog} onClick={()=>{setEndingView(true);setPanel(null);}}>Take one last look at the horizon</button><button onClick={()=>setPanel(null)}>Keep exploring Elysium</button></div></>}
       {panel==='heritage'&&<><h3>{heritage==='perseverance'?'Perseverance · Jezero crater':'Curiosity · Gale crater'}</h3><p>{heritage==='perseverance'?'This historical reference marks the Perseverance landing site in Jezero crater. It is not a second driveable crew rover.':'Curiosity is an autonomous robotic rover. Its movement near this fictional outpost is an educational representation, not its real location.'}</p><p><a href={heritage==='perseverance'?'https://science.nasa.gov/mission/mars-2020-perseverance/':'https://science.nasa.gov/mission/msl-curiosity/'} target="_blank" rel="noreferrer">NASA mission information ↗</a></p></>}
-      {state.lastOutcome&&['site','test'].includes(panel)&&<aside className="ely-outcome" role="status"><h3 tabIndex={-1} data-ely-feedback>Look what changed!</h3><p>{state.lastOutcome.outcome}</p><details className="ely-more"><summary>Why did that happen?</summary><p>{state.lastOutcome.why}</p></details></aside>}
-    </div><footer><span>Kaelen Reeves · Sol {state.sol} · {saveError?'Session only':'Saved on this browser'}</span>{!['prologue','resume','time-jump'].includes(panel)&&<button onClick={close}>{panel==='activity'?'Return to station':'Continue exploring'}</button>}</footer></section></div>}
+      {state.lastOutcome&&panel==='test'&&<aside className="ely-outcome" role="status"><h3 tabIndex={-1} data-ely-feedback>Look what changed!</h3><p>{state.lastOutcome.outcome}</p><details className="ely-more"><summary>Why did that happen?</summary><p>{state.lastOutcome.why}</p></details></aside>}
+    </div><footer><span>Kaelen Reeves · Sol {state.sol} · {saveError?'Session only':'Saved on this browser'}</span>{['site','test','handoff','guide','brief','missions'].includes(panel)?<button className="ely-primary" data-ely-next-footer aria-label={guidance.target&&!guidance.atTarget?`Continue to ${guidance.target.label}`:guidance.action} onClick={followGuidance}>{guidance.target&&!guidance.atTarget?'Go to next stop →':guidance.action}</button>:!['prologue','resume','time-jump'].includes(panel)&&<button onClick={close}>{panel==='activity'?'Return to station':'Continue exploring'}</button>}</footer></section></div>}
   </div>;
 
   return <MarsFreeRoam key={session} story={{controlMode,modalOpen:panel!==null,world,onView:updateView,onInspect:inspect,onExit,overlay,arrival,onArrivalComplete:finishArrival}}/>;

@@ -31,7 +31,7 @@ The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:
 
 React 19, TypeScript 5.9 and Three.js 0.180 provide the interface, simulation and WebGL rendering. Vite 8 builds the static GitHub Pages version. A separate Vinext/Cloudflare Worker build preserves the existing Sites integration. Styling uses CSS and Tailwind CSS; tests use Node's built-in test runner.
 
-The playable game needs no account or application API key. Models, textures, elevation data and Draco decoding files ship with the app. Elysium decisions, resources and journal save locally in this browser, with Resume and a separately confirmed restart. Loading a story save returns the explorer safely beside the base; exact world position is not saved. Curiosity navigation also uses browser-local storage. Story science uses bundled, dated sources; Free Exploration retains its live NOAA display. No gameplay telemetry service is used.
+The playable game needs no account or application API key. Models, textures, elevation data and Draco decoding files ship with the app. Elysium decisions, resources and journal save locally in this browser, with Resume and a separately confirmed restart. Loading a story save returns the explorer safely beside the base; exact world position is not saved. Curiosity navigation also uses browser-local storage. Story science uses bundled, dated sources. Both modes retain the radiation phone with live NOAA observations and NASA archive replays; these do not drive Story mission outcomes. No gameplay telemetry service is used.
 
 ## Run locally
 
@@ -57,7 +57,7 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 
 | Input | Action |
 | --- | --- |
-| WASD / arrow keys | Walk; accelerate, brake/reverse and steer while driving |
+| WASD | Walk; accelerate, brake/reverse and steer while driving |
 | Shift | Sprint on foot |
 | Space | Jump on foot; handbrake while driving; skip the landing sequence |
 | Drag with the mouse | Look around |
@@ -67,6 +67,7 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 | F | Enter or exit the nearby crew rover |
 | E | Deploy/park the crew rover, operate a nearby gate, inspect a science rover, or use a nearby Story station |
 | Caps Lock | Open or close the landmark atlas |
+| P / Up arrow | Open the radiation phone; P / Down arrow / Escape closes it |
 | Escape | Release mouse capture or close a dismissible dialog |
 | Pause button | Pause, resume or return to controls setup |
 
@@ -74,7 +75,7 @@ Mobile mode enables the movement stick, swipe-to-look and contextual rover butto
 
 For the solar activities, visit the solar station in Story and press E. Drag wires between matching letters/shapes, or select each end with click, tap or Enter. Brush by dragging across the panel; keyboard players focus the panel, use arrows to move the brush and hold Space or Enter while moving. Escape returns to the station without completing an unfinished activity. Completion saves with the mission; an unfinished workbench restarts when reopened.
 
-At other Story stations, choose **Play** to open the tool tablet. Drag a labelled piece to its slot, or select the piece and destination with tap or Tab/Enter. Turn pipe tiles, trace map points or adjust the illustrated dials with pointer or keyboard controls. **Apply** records completed work; Reset and Close do not change mission resources. Finished one-time jobs offer practice, while planning games can update your operating choices. Older completed missions remain completed.
+At other Story stations, choose **Play** to open the tool tablet. Drag a labelled piece to its slot, or select the piece and destination with tap or Tab/Enter. Turn pipe tiles, trace map points or adjust the illustrated dials with pointer or keyboard controls. **Apply** records completed work; Reset and Close do not change mission resources. Finished one-time jobs offer practice, while planning games can update your operating choices. Older completed missions remain completed. The Next step card gives one job, its destination and a direction arrow. After writing a mission journal entry, the completion screen introduces the next mission and its first stop. Use How do I get there? for door and route instructions. Tap the radiation phone, or use P / Up arrow, to check space-weather observations and simulated exposure.
 
 At the garage, use **Open garage · Bring rover out**, then F to drive after the rollout finishes. Boarding always starts in the first-person cockpit; a brief popup explains that **V** (or the mobile camera button) switches views. To return it, stop in the painted return bay, align with its arrows, exit with F and choose **Open garage · Park rover inside**. The same buttons work with touch. Door and vehicle movement pause if their path is occupied. Prepared outpost, greenhouse and garage models are included in the repository; ordinary builds do not require the original authoring files.
 

@@ -14,4 +14,22 @@
 .roam-root[data-phase="story"][data-controls="mobile"] .mars-debug[data-mode="detailed"]{right:10px}
 .ely-dialog .ely-log-entry>small{color:#555a4d}
 .roam-root[data-phase="story"] .roam-info{display:none}
+.ely-guidance{margin:16px 0;padding:18px;border:2px solid #c5a66e;border-radius:12px;background:#1b3039}
+.ely-guidance-label{display:flex;justify-content:space-between;gap:12px;color:#ffcf89;font-size:14px;font-weight:750;letter-spacing:.06em}
+.ely-guidance h3{margin:10px 0;font:700 22px/1.3 system-ui,sans-serif}
+.ely-guidance p{font-size:16px;line-height:1.5;margin:12px 0}
+.ely-guidance>.ely-primary{width:100%;min-height:48px;margin-top:4px;text-align:center;font-size:16px}
+.ely-destination{display:flex;gap:12px;align-items:center;margin:12px 0}
+.ely-destination>div{min-width:0}.ely-destination strong,.ely-destination>div>span{display:block;font-size:16px}
+.ely-destination>div>span{color:#bce4eb;font-size:14px}
+.ely-direction{display:grid;place-items:center;flex:0 0 44px;height:44px;border:2px solid #ffcf89;border-radius:50%;color:#ffcf89;font:700 28px/1 system-ui,sans-serif}
+.ely-direction>span{display:block;transform-origin:center}
+.ely-travel-hint{padding:12px;border-left:3px solid #a0dfe8;background:#11232b}
+.ely-guidance-compact{margin:12px 0 0;padding:12px}.ely-guidance-compact h3{font-size:18px}.ely-guidance-compact p{font-size:14px}
+.ely-complete-mark{padding:16px;border:1px solid #98ddd6;border-radius:10px;background:#23403f;font-size:20px;font-weight:700}
+.ely-hud{width:min(360px,calc(100% - 36px));max-height:calc(100dvh - 335px);overflow:auto;overscroll-behavior:contain}
+.ely-hud .ely-guidance button{font-size:16px}.ely-hud nav+button{margin-top:10px;width:100%}
+.ely-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+@media(max-height:530px){.ely-hud{max-height:calc(100dvh - 145px)}.ely-hud>strong,.ely-guidance-compact>.ely-guidance-label,.ely-guidance-compact>p{display:none}.ely-guidance-compact{padding:8px;margin-top:6px}.ely-guidance-compact h3{font-size:16px;margin:0 0 6px}.ely-guidance-compact .ely-destination{margin:5px 0}.ely-guidance-compact .ely-direction{flex-basis:32px;height:32px;font-size:24px}.ely-guidance-compact .ely-destination strong{font-size:14px}.ely-guidance-compact>.ely-primary{min-height:44px}}
+@media(max-width:700px) and (min-height:531px){.ely-hud{max-height:calc(100dvh - 355px)}}
 .ely-more{margin:16px 0;color:var(--ely-muted)}.ely-more summary,.ely-finished>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:16px;font-weight:650;gap:10px}.ely-more summary:before{content:'＋';color:var(--ely-accent)}.ely-more[open]>summary:before{content:'−'}.ely-more summary:focus-visible,.ely-finished>summary:focus-visible{outline:3px solid #8be0f3;outline-offset:3px}.ely-more[open]{padding-bottom:12px}.ely-play-card{border-left:4px solid var(--ely-accent);background:linear-gradient(110deg,#203842,#14242d)}.ely-play-card h4{font-size:22px;margin:10px 0}.ely-play-card>p{max-width:55ch}.ely-play-card>.ely-primary{min-height:52px;padding-inline:24px}.ely-finished>summary{color:#bde6e9}.ely-finished[open]>summary{margin-bottom:12px}.ely-dialog:has([data-training-game]){border:3px solid #536e7c;box-shadow:0 0 0 5px #0a141b,0 24px 70px #0009}.ely-dialog .ely-caption{font-size:16px}

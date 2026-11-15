@@ -1,0 +1,89 @@
+.mars-phone-launcher {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 26;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #7edfff;
+  border-radius: 12px;
+  background: #102432;
+  color: #f1fbff;
+  font-size: 16px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.mars-phone-launcher kbd { font-size: 14px; }
+.mars-phone-modal {
+  position: fixed;
+  inset: auto max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) auto;
+  width: min(440px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #79d9f6;
+  border-radius: 14px;
+  background: #090e17;
+  color: #e2e8f0;
+  overscroll-behavior: contain;
+}
+.mars-phone-modal::backdrop { background: rgb(3 10 19 / .58); }
+.mars-phone-modal .mars-radiation-hud.gta-phone.phone-open {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  transform: none;
+  transition: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+.mars-phone-modal .mars-phone-screen { gap: 10px; padding: 10px 14px; overflow: visible; }
+.mars-phone-modal .mars-phone-top-bar { position: sticky; top: 0; z-index: 5; background: #101d2c; }
+.mars-phone-modal .mars-phone-nav-bar { position: sticky; bottom: 0; background: #0b1724; z-index: 3; }
+.mars-phone-modal button { min-height: 44px; min-width: 44px; font-size: 14px; }
+.mars-phone-modal :is(.mars-bezel-text, .mars-card-label, .mars-sub-text, .mars-nav-btn span,
+  .mars-event-meta small, .mars-event-tag, .mars-setting-label small, .h-lbl, .mars-home-user small,
+  .mars-hero-sub, .mars-phone-status-bar, .sat-title, .sat-badge, .mars-tab-heading p) { font-size: 14px; line-height: 1.4; }
+.mars-phone-modal :is(.mars-event-meta b, .mars-setting-label b, .mars-bar-card-title, .mars-tab-heading h3) { font-size: 16px; }
+.mars-phone-modal .mars-phone-source-note { position: relative; margin: 0; padding: 10px; border: 1px solid #45617a; border-radius: 8px; color: #cde5ef; font: 16px/1.45 system-ui, sans-serif; }
+.mars-phone-modal .mars-event-item { align-items: center; min-height: 62px; }
+.mars-phone-modal .mars-event-meta { min-width: 0; }
+.mars-phone-modal .mars-event-meta :is(b, small) { white-space: normal; }
+.mars-phone-modal .mars-phone-net-stats, .mars-phone-modal .mars-phone-clock { display: none; }
+.mars-phone-modal .mars-nav-btn { padding: 8px 2px; }
+.mars-phone-modal button:focus-visible, .mars-phone-launcher:focus-visible { outline: 3px solid #ffe184; outline-offset: -3px; }
+dialog.mars-sep-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  width: min(720px, calc(100vw - 24px));
+  max-width: none;
+  height: fit-content;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  background: #102130;
+  color: #e2e8f0;
+  border: 1px solid #79d9f6;
+  border-radius: 12px;
+}
+dialog.mars-sep-modal-backdrop::backdrop { background: rgb(3 10 19 / .72); }
+dialog.mars-sep-modal-backdrop .mars-sep-modal { width: 100%; max-height: none; border: 0; box-shadow: none; }
+dialog.mars-sep-modal-backdrop :is(p, .mars-sep-tip-box) { font-size: 16px; line-height: 1.5; }
+dialog.mars-sep-modal-backdrop button { min-height: 44px; min-width: 44px; font-size: 16px; }
+.roam-root[data-controls="mobile"] .mars-phone-launcher { right: 12px; bottom: 220px; font-size: 14px; }
+.roam-root[data-controls="mobile"] .mars-phone-launcher kbd { display: none; }
+@media (max-width: 400px) {
+  .mars-phone-modal .mars-phone-screen { padding: 8px; }
+  .mars-phone-modal .mars-phone-grid-3 { gap: 4px; }
+  .mars-phone-modal .mars-nav-btn span { font-size: 14px; }
+}
+@media (max-height: 480px) {
+  .roam-root[data-controls="mobile"] .mars-phone-launcher { bottom: auto; top: 62px; right: 12px; }
+}

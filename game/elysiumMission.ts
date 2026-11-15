@@ -103,13 +103,13 @@ export function missionProgress(state:ElysiumState,id:MissionId) {
   const site=(key:SiteId,label:string)=>({id:key,label,done:visited(state,key)});
   const choice=(key:ChoiceGroup,label:string)=>({id:key,label,done:state.choices[key]!==null});
   const requirements:Record<MissionId,{id:string;label:string;done:boolean}[]>={
-    m1:[site('airlock','Enter the habitat airlock'),site('command','Read the command terminal'),site('garage','Visit the crew rover garage'),site('greenhouse1','Visit Greenhouse 1')],
-    m2:[task('solar-trace','Trace the Cluster C wiring'),task('solar-connect','Reconnect the loose connector'),{id:'solar-clean',label:'Brush dust from the solar panels',done:has(state,'solar-clean')||done(state,'m2')},choice('grid','Choose the shared power plan')],
-    m3:[task('water-compare','Compare the water-loop readings'),choice('water','Set water recovery'),choice('oxygen','Set oxygen production'),choice('scrubber','Schedule CO₂ filter regeneration')],
-    m4:[site('greenhouse1','Visit the growing trays'),choice('greenhouse','Choose a greenhouse strategy'),task('forecast-review','Compare the seven-sol forecast')],
-    m5:[choice('route','Plan the rover route'),task('field-arrival','Reach the field sensor in the crew rover'),task('sensor-restore','Restore the buried sensor'),task('sample-collect','Collect a labelled sample'),task('sample-analyse','Return and analyse it in the lab')],
-    m6:[task('archive-review','Review the archived radiation event'),task('ventilation-check','Check the shelter ventilation'),task('shelter-power','Verify shelter power'),choice('shielding','Choose a shielding plan')],
-    m7:[task('plan-submit','Submit the operating plan'),choice('contingency','Choose a reduced-solar backup'),task('review-ack','Read Mission Control’s delayed review'),{id:'test-passed',label:'Complete the overnight readiness test',done:state.test.stage==='passed'}],
+    m1:[site('airlock','Go inside the habitat airlock'),site('command','Use the command tablet'),site('garage','Find the rover garage'),site('greenhouse1','Go inside Greenhouse 1')],
+    m2:[task('solar-trace','Find the broken solar cable'),task('solar-connect','Match the solar wires'),{id:'solar-clean',label:'Brush dust from the solar panels',done:has(state,'solar-clean')||done(state,'m2')},choice('grid','Share power at the command tablet')],
+    m3:[task('water-compare','Fix the pipes and compare the gauges'),choice('water','Build the water filter'),choice('oxygen','Make oxygen from water'),choice('scrubber','Clean the used cabin air')],
+    m4:[site('greenhouse1','Find the growing trays'),choice('greenhouse','Plant a space garden'),task('forecast-review','Try different light and water settings')],
+    m5:[choice('route','Draw a rover route'),task('field-arrival','Drive the rover to the field sensor'),task('sensor-restore','Clean and point the sensor'),task('sample-collect','Collect rocks and seal their boxes'),task('sample-analyse','Bring the rocks back and sort them in the lab')],
+    m6:[task('archive-review','Try the solar-storm drill'),task('ventilation-check','Connect the shelter air pipes'),task('shelter-power','Plug in the backup power'),choice('shielding','Try the shelter layers')],
+    m7:[task('plan-submit','Pack the base plan'),choice('contingency','Pack a spare-power kit'),task('review-ack','Tune the Mission Control radio'),{id:'test-passed',label:'Complete the practice night',done:state.test.stage==='passed'}],
   };
   const objectives=requirements[id]??[];
   const available=availableMissions(state).includes(id);

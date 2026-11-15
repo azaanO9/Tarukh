@@ -479,9 +479,6 @@ export default function ExplorationMinimap({
               )}
             </g>
 
-            {missionPin && <g transform={`translate(${missionPin.x} ${missionPin.y})`} role="img" aria-label={`Mission destination: ${view.storyTarget?.label}`}>
-              <circle r="5" fill="#ffd077" stroke="#192c38" strokeWidth="1.5"/><text y="2.6" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#192c38">!</text>
-            </g>}
             <g transform={`translate(${outpostPin.x} ${outpostPin.y})`} role="img" aria-label="TARUKH outpost">
               <title>Outpost · {Math.round(Math.hypot(x - OUTPOST_SITE.x, z - OUTPOST_SITE.z))} game metres · fictional base</title>
               <path d="M-6 -2 L0 -7 L6 -2 V6 H-6Z" fill="#e7ffff" stroke="#113c48" strokeWidth="1.5" />
@@ -503,6 +500,11 @@ export default function ExplorationMinimap({
                 <path d="M-3 5 V-1 H3 V5 M-3 2 H3" fill="none" stroke="#453521" strokeWidth="1.4" />
               </g>;
             })()}
+            {missionPin && <g transform={`translate(${missionPin.x} ${missionPin.y})`} role="img" aria-label={`Mission destination: ${view.storyTarget?.label}`}>
+              <title>Next stop · {view.storyTarget?.label}</title>
+              <path d="M0 -8 L8 0 L0 8 L-8 0Z" fill="#ffd077" stroke="#192c38" strokeWidth="2"/>
+              <text y="3" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#192c38">!</text>
+            </g>}
             {/* North Indicator */}
             <polygon points="100,32 96,38 104,38" fill="#ef4444" />
             <text
