@@ -762,6 +762,12 @@
   animation: solarPulse 2s infinite ease-in-out;
 }
 
+.sv-rover-solar-status.garage-charging .sv-solar-icon {
+  color: #38bdf8;
+  text-shadow: 0 0 12px #0ea5e9, 0 0 20px #0284c7;
+  animation: solarPulse 1.4s infinite ease-in-out;
+}
+
 .sv-rover-solar-status.dormant .sv-solar-icon {
   color: #475569;
   filter: grayscale(80%) opacity(0.5);
@@ -787,6 +793,11 @@
 .sv-rover-solar-status.charging .sv-solar-state {
   color: #4ade80;
   text-shadow: 0 0 6px rgba(74, 222, 128, 0.45);
+}
+
+.sv-rover-solar-status.garage-charging .sv-solar-state {
+  color: #38bdf8;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.55);
 }
 
 .sv-rover-solar-status.dormant .sv-solar-state {
