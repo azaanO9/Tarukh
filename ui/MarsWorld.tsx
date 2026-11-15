@@ -2870,29 +2870,54 @@ export default function MarsWorld(props: Props) {
 
             <div className="mars-hero-content">
               <div className="mars-hero-header-row">
-                <button
-                  type="button"
-                  className="mars-hero-sep-badge"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    document.exitPointerLock?.();
-                    setSepInfoOpen(true);
-                  }}
-                  title="What is Radiation Level / SEP? Click for NASA briefing"
-                  aria-label="Solar Energetic Particles info"
-                >
-                  SEP
-                </button>
+                {activePhoneTab === "telemetry" && (
+                  <button
+                    type="button"
+                    className="mars-hero-sep-badge"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      document.exitPointerLock?.();
+                      setSepInfoOpen(true);
+                    }}
+                    title="What is Radiation Level / SEP? Click for NASA briefing"
+                    aria-label="Solar Energetic Particles info"
+                  >
+                    SEP
+                  </button>
+                )}
+                {activePhoneTab === "systems" && (
+                  <span className="mars-hero-sep-badge systems-badge">EVA-01</span>
+                )}
+                {activePhoneTab === "data" && (
+                  <span className="mars-hero-sep-badge data-badge">NOAA // DONKI</span>
+                )}
+                {activePhoneTab === "home" && (
+                  <span className="mars-hero-sep-badge home-badge">BASE CAMP</span>
+                )}
               </div>
 
               <div className="mars-hero-title-wrap">
                 <span className="mars-hero-bar" />
                 <h2 className="mars-hero-title">
-                  <b>Mission</b> <span>Telemetry</span>
+                  {activePhoneTab === "telemetry" && (
+                    <><b>Mission</b> <span>Telemetry</span></>
+                  )}
+                  {activePhoneTab === "systems" && (
+                    <><b>Systems</b></>
+                  )}
+                  {activePhoneTab === "data" && (
+                    <><b>Data</b></>
+                  )}
+                  {activePhoneTab === "home" && (
+                    <><b>Home</b></>
+                  )}
                 </h2>
               </div>
               <div className="mars-hero-sub">
-                SURFACE · ENVIRONMENT · VITALS
+                {activePhoneTab === "telemetry" && "SURFACE · ENVIRONMENT · VITALS"}
+                {activePhoneTab === "systems" && "ROVER · POWER · LIFE SUPPORT"}
+                {activePhoneTab === "data" && "COLLECTION · ANALYSIS · STORAGE"}
+                {activePhoneTab === "home" && "EVA-01 · EXPEDITION OUTPOST"}
               </div>
             </div>
           </div>
@@ -3164,100 +3189,280 @@ export default function MarsWorld(props: Props) {
             </div>
           )}
 
-          {/* Tab 3: Systems (Visual Illustrated Hardware Cards) */}
-          {activePhoneTab === "systems" && (
-            <div className="mars-phone-tab-content systems-tab">
-              <div className="mars-tab-heading">
-                <h3>EXPLORATION SYSTEMS</h3>
-                <p>Surface shelter and vehicle status:</p>
-              </div>
-              <div className="mars-systems-list">
-                <div className="mars-system-card">
-                  <div className="mars-sys-icon-box">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#38bdf8" strokeWidth="2">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                  </div>
-                  <div className="mars-sys-info">
-                    <b>Habitat Base Bunker</b>
-                    <small>{isShielded ? "Inside shielded base (−1.5 mSv/s)" : "Outside on surface EVA (Unshielded)"}</small>
-                  </div>
-                  <span className={`mars-sys-status ${isShielded ? "ok" : "warn"}`}>
-                    {isShielded ? "SHIELDED" : "UNSHIELDED"}
-                  </span>
-                </div>
+          {/* Tab 3: Systems - Refined EVA-01 Rover Systems & Real Hardware Telemetry */}
+          {activePhoneTab === "systems" && (() => {
+            const powerSegs = Math.max(1, Math.min(8, Math.round((roverBattery / 100) * 8)));
+            const healthSegs = Math.max(0, Math.min(8, Math.round((astronautHealth / 100) * 8)));
+            const thermalVal = (21.4 + (roverDriving ? roverSpeed * 0.08 : 0)).toFixed(1);
 
-                <div className="mars-system-card">
-                  <div className="mars-sys-icon-box">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#10b981" strokeWidth="2">
-                      <rect x="2" y="7" width="20" height="10" rx="2" />
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="18" cy="18" r="3" />
-                    </svg>
-                  </div>
-                  <div className="mars-sys-info">
-                    <b>MMSEV Exploration Rover</b>
-                    <small>Battery: {Math.round(roverBattery)}% · Speed: {Math.round(roverSpeed)} km/h</small>
-                  </div>
-                  <span className="mars-sys-status ok">ONLINE</span>
-                </div>
-
-                <div className="mars-system-card">
-                  <div className="mars-sys-icon-box">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f59e0b" strokeWidth="2">
-                      <path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z" />
-                      <path d="M4 14v4a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-4" />
-                    </svg>
-                  </div>
-                  <div className="mars-sys-info">
-                    <b>Astronaut EMU Space Suit</b>
-                    <small>O₂ Life Support: 100% · Vitals: {Math.round(astronautHealth)}%</small>
-                  </div>
-                  <span className={`mars-sys-status ${astronautHealth > 70 ? "ok" : "warn"}`}>
-                    {astronautHealth > 70 ? "NOMINAL" : "DAMAGED"}
-                  </span>
-                </div>
-
+            return (
+              <div className="mars-phone-tab-content systems-tab">
+                {/* Hero Feature Card: EVA-01 Rover Systems with High-Tech Isometric Wireframe Rover */}
                 <div
-                  className="mars-system-card clickable"
-                  onClick={handleToggleGeigerMute}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleToggleGeigerMute();
-                    }
-                  }}
-                  title="Click to toggle Geiger counter audio ticks"
+                  className="mars-systems-rover-hero-card"
+                  title="MMSEV Exploration Rover — 6x6 Independent Rocker-Bogie Drivetrain"
                 >
-                  <div className="mars-sys-icon-box">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={geigerMuted ? "#71717a" : "#10b981"} strokeWidth="2">
-                      {geigerMuted ? (
-                        <>
-                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                          <line x1="23" y1="9" x2="17" y2="15" />
-                          <line x1="17" y1="9" x2="23" y2="15" />
-                        </>
-                      ) : (
-                        <>
-                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-                        </>
-                      )}
+                  <div className="mars-rover-hero-left">
+                    <span className="rover-hero-tag">EVA-01</span>
+                    <h3 className="rover-hero-name">Rover Systems</h3>
+                    <span className={`rover-hero-status-pill ${roverBattery < 20 ? "low" : "ok"}`}>
+                      <span className="status-dot" />
+                      {roverDriving
+                        ? `DRIVING · ${Math.round(roverSpeed)} KM/H`
+                        : roverBattery < 20
+                        ? "LOW BATTERY"
+                        : "OPERATIONAL"}
+                    </span>
+                  </div>
+
+                  {/* High-Tech Wireframe 6-Wheel Rover SVG Illustration */}
+                  <div className="mars-rover-hero-art" aria-hidden="true">
+                    <svg viewBox="0 0 130 68" width="105" height="54" fill="none">
+                      <defs>
+                        <linearGradient id="roverGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#ff6d00" stopOpacity="0.7" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Rocker-Bogie Struts & Mechanical Linkages */}
+                      <path d="M26 48 L48 42 L66 38 L84 43 L106 50" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M48 42 L48 54 M84 43 L84 56" stroke="#475569" strokeWidth="1.3" />
+                      <line x1="26" y1="48" x2="26" y2="52" stroke="#64748b" strokeWidth="1.3" />
+                      <line x1="66" y1="38" x2="66" y2="48" stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="1 1" />
+
+                      {/* Main Avionics Body / Chassis Deck */}
+                      <polygon points="46,30 76,24 98,34 68,40" fill="rgba(30, 41, 59, 0.7)" stroke="#94a3b8" strokeWidth="1.2" />
+                      <polygon points="46,30 68,40 68,47 46,37" fill="rgba(15, 23, 42, 0.85)" stroke="#64748b" strokeWidth="1.2" />
+                      <polygon points="68,40 98,34 98,41 68,47" fill="rgba(10, 16, 28, 0.9)" stroke="#475569" strokeWidth="1.2" />
+
+                      {/* Rear MMRTG Power Unit & Radiator Fins */}
+                      <path d="M86 28 L98 25 L104 29 L92 32 Z" fill="rgba(255, 109, 0, 0.2)" stroke="#ff6d00" strokeWidth="1.1" />
+                      <line x1="90" y1="27" x2="94" y2="31" stroke="#ff6d00" strokeWidth="0.9" />
+                      <line x1="94" y1="26" x2="98" y2="30" stroke="#ff6d00" strokeWidth="0.9" />
+
+                      {/* High-Gain Antenna (HGA) Dish */}
+                      <ellipse cx="82" cy="18" rx="6" ry="3" transform="rotate(-15 82 18)" stroke="#38bdf8" strokeWidth="1" fill="rgba(56, 189, 248, 0.15)" />
+                      <line x1="82" y1="18" x2="80" y2="28" stroke="#64748b" strokeWidth="1" />
+
+                      {/* Remote Sensing Mast (RSM / ChemCam) */}
+                      <line x1="56" y1="31" x2="56" y2="10" stroke="#e2e8f0" strokeWidth="1.5" strokeLinecap="round" />
+                      <rect x="52" y="7" width="8" height="6" rx="1.5" fill="#1e293b" stroke="#e2e8f0" strokeWidth="1.2" />
+                      <circle cx="54.5" cy="10" r="1.2" fill="#38bdf8" />
+                      <circle cx="57.5" cy="10" r="1.2" fill="#00e676" />
+
+                      {/* Forward Robotic Arm (Folded Turret) */}
+                      <path d="M48 37 L38 39 L35 44" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
+                      <circle cx="34" cy="45" r="2" stroke="#ff6d00" strokeWidth="0.9" fill="#1e293b" />
+
+                      {/* 6 Treaded Wheels with Rim Hubs */}
+                      {/* Rear-Right Wheel */}
+                      <ellipse cx="112" cy="45" rx="5" ry="8" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
+                      {/* Mid-Right Wheel */}
+                      <ellipse cx="88" cy="38" rx="4.5" ry="7.5" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
+                      {/* Front-Right Wheel */}
+                      <ellipse cx="64" cy="32" rx="4" ry="7" fill="#0f172a" stroke="#475569" strokeWidth="1.1" />
+
+                      {/* Rear-Left Wheel */}
+                      <g transform="translate(102, 54)">
+                        <ellipse cx="0" cy="0" rx="7.5" ry="10" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
+                        <ellipse cx="0" cy="0" rx="4" ry="5.5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
+                        <circle cx="0" cy="0" r="1.5" fill="#ff6d00" />
+                        <line x1="-7" y1="-3" x2="-3" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="-7" y1="3" x2="-3" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="7" y1="-3" x2="3" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="7" y1="3" x2="3" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                      </g>
+
+                      {/* Mid-Left Wheel */}
+                      <g transform="translate(70, 50)">
+                        <ellipse cx="0" cy="0" rx="7" ry="9.5" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
+                        <ellipse cx="0" cy="0" rx="3.5" ry="5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
+                        <circle cx="0" cy="0" r="1.5" fill="#00e676" />
+                        <line x1="-6.5" y1="-3" x2="-2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="-6.5" y1="3" x2="-2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="6.5" y1="-3" x2="2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="6.5" y1="3" x2="2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                      </g>
+
+                      {/* Front-Left Wheel */}
+                      <g transform="translate(26, 46)">
+                        <ellipse cx="0" cy="0" rx="7" ry="9.5" fill="#1e293b" stroke="#f1f5f9" strokeWidth="1.3" />
+                        <ellipse cx="0" cy="0" rx="3.5" ry="5" stroke="#94a3b8" strokeWidth="0.9" fill="#0f172a" />
+                        <circle cx="0" cy="0" r="1.5" fill="#38bdf8" />
+                        <line x1="-6.5" y1="-3" x2="-2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="-6.5" y1="3" x2="-2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="6.5" y1="-3" x2="2.5" y2="-1" stroke="#cbd5e1" strokeWidth="1" />
+                        <line x1="6.5" y1="3" x2="2.5" y2="1" stroke="#cbd5e1" strokeWidth="1" />
+                      </g>
                     </svg>
                   </div>
-                  <div className="mars-sys-info">
-                    <b>Geiger Dosimeter Audio</b>
-                    <small>{geigerMuted ? "Sound Muted · Click to un-mute" : "Audible Ticks Active"}</small>
+                </div>
+
+                {/* 5 Distinct Horizontal System Cards matching reference mockup */}
+                <div className="mars-systems-rows-list">
+                  {/* Row 1: 🔋 Power System */}
+                  <div
+                    className="mars-system-row-card"
+                    title={`Rover Battery: ${Math.round(roverBattery)}% · Solar generation in daylight`}
+                  >
+                    <div className="sys-row-left">
+                      <div className="sys-row-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00e676" strokeWidth="2">
+                          <rect x="2" y="7" width="16" height="10" rx="2" />
+                          <line x1="20" y1="11" x2="20" y2="13" stroke="#00e676" strokeWidth="2" strokeLinecap="round" />
+                          <rect x="4" y="9" width="10" height="6" fill="#00e676" rx="1" />
+                        </svg>
+                      </div>
+                      <span className="sys-row-label">Power System</span>
+                    </div>
+
+                    <div className="sys-row-right">
+                      <div className="sys-row-data-col">
+                        <span className="sys-row-value">{Math.round(roverBattery)}%</span>
+                        <div className="sys-segmented-meter" aria-hidden="true">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
+                            <i
+                              key={seg}
+                              className={`sys-meter-seg ${seg <= powerSegs ? (roverBattery < 20 ? "low" : "active-green") : ""}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="sys-row-chevron">›</span>
+                    </div>
                   </div>
-                  <span className={`mars-sys-status ${geigerMuted ? "warn" : "ok"}`}>
-                    {geigerMuted ? "MUTED" : "ACTIVE"}
-                  </span>
+
+                  {/* Row 2: 🌀 Thermal Control */}
+                  <div
+                    className="mars-system-row-card"
+                    title={`Avionics thermal loop: ${thermalVal} °C · External surface: -62 °C`}
+                  >
+                    <div className="sys-row-left">
+                      <div className="sys-row-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" strokeWidth="2">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.5-6.5-2.8 2.8m-7.4 7.4-2.8 2.8m0-13 2.8 2.8m7.4 7.4 2.8 2.8" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <span className="sys-row-label">Thermal Control</span>
+                    </div>
+
+                    <div className="sys-row-right">
+                      <div className="sys-row-data-col">
+                        <span className="sys-row-value">{thermalVal} °C</span>
+                        <div className="sys-segmented-meter" aria-hidden="true">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
+                            <i
+                              key={seg}
+                              className={`sys-meter-seg ${seg <= 7 ? "active-green" : ""}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="sys-row-chevron">›</span>
+                    </div>
+                  </div>
+
+                  {/* Row 3: 🫁 Life Support (EVA) */}
+                  <div
+                    className="mars-system-row-card"
+                    title={`Astronaut Suit Vitals: ${Math.round(astronautHealth)}% · Radiation Exposure: ${radiationExposure.toFixed(1)} mSv`}
+                  >
+                    <div className="sys-row-left">
+                      <div className="sys-row-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00e676" strokeWidth="2">
+                          <path d="M12 4v7m0 0c-2.5 0-4.5 1.5-5 4.5-.6 3.5 1.5 5.5 3.5 5.5s2.5-2 2.5-4v-6zm0 0c2.5 0 4.5 1.5 5 4.5.6 3.5-1.5 5.5-3.5 5.5s-2.5-2-2.5-4v-6z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <span className="sys-row-label">Life Support (EVA)</span>
+                    </div>
+
+                    <div className="sys-row-right">
+                      <div className="sys-row-data-col">
+                        <span className="sys-row-value">{Math.round(astronautHealth)}%</span>
+                        <div className="sys-segmented-meter" aria-hidden="true">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((seg) => (
+                            <i
+                              key={seg}
+                              className={`sys-meter-seg ${seg <= healthSegs ? (astronautHealth < 40 ? "critical" : astronautHealth < 70 ? "low" : "active-green") : ""}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="sys-row-chevron">›</span>
+                    </div>
+                  </div>
+
+                  {/* Row 4: 📡 Comms / Sat-Link */}
+                  <div
+                    className="mars-system-row-card clickable"
+                    onClick={toggleSpaceWeatherMode}
+                    title="Sat-Link: Click to toggle NOAA SWPC Live Satellites vs Historical Superstorms"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleSpaceWeatherMode();
+                      }
+                    }}
+                  >
+                    <div className="sys-row-left">
+                      <div className="sys-row-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" strokeWidth="2">
+                          <path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07" />
+                          <path d="M7.76 16.24A6 6 0 0 1 12 6a6 6 0 0 1 4.24 10.24" />
+                          <circle cx="12" cy="18" r="2" fill="#38bdf8" />
+                        </svg>
+                      </div>
+                      <span className="sys-row-label">Comms / Sat-Link</span>
+                    </div>
+
+                    <div className="sys-row-right">
+                      <span className="sys-row-value sys-val-green">
+                        {spaceWeather.mode === "live" ? "NOAA LIVE" : "ORBITAL"}
+                      </span>
+                      <span className="sys-row-chevron">›</span>
+                    </div>
+                  </div>
+
+                  {/* Row 5: 📦 Payload & Tools */}
+                  <div
+                    className="mars-system-row-card clickable"
+                    onClick={handleToggleGeigerMute}
+                    title="Click to toggle Geiger Counter click audio"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToggleGeigerMute();
+                      }
+                    }}
+                  >
+                    <div className="sys-row-left">
+                      <div className="sys-row-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e4e4e7" strokeWidth="2">
+                          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                          <line x1="12" y1="22.08" x2="12" y2="12" />
+                        </svg>
+                      </div>
+                      <span className="sys-row-label">Payload & Tools</span>
+                    </div>
+
+                    <div className="sys-row-right">
+                      <span className={`sys-row-value ${geigerMuted ? "sys-val-muted" : "sys-val-green"}`}>
+                        {geigerMuted ? "MUTED" : "READY"}
+                      </span>
+                      <span className="sys-row-chevron">›</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Tab 4: Home / Mission Overview */}
           {activePhoneTab === "home" && (

@@ -2002,6 +2002,231 @@
   margin: 1px 0 0;
 }
 
+/* Systems Tab — EVA-01 Rover Systems & Real Hardware Telemetry */
+.mars-systems-rover-hero-card {
+  position: relative;
+  background: rgba(22, 15, 17, 0.88);
+  border: 1px solid rgba(255, 120, 70, 0.25);
+  border-radius: 9px;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  margin-bottom: 5px;
+  overflow: hidden;
+}
+
+.mars-rover-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.rover-hero-tag {
+  font: 800 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #a1a1aa;
+  letter-spacing: 0.12em;
+}
+
+.rover-hero-name {
+  font: 800 12.5px/1.1 ui-monospace, "SF Mono", sans-serif;
+  color: #ffffff;
+  margin: 1px 0 3px;
+  letter-spacing: 0.02em;
+}
+
+.rover-hero-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
+  border-radius: 10px;
+  padding: 2.5px 6px;
+  letter-spacing: 0.08em;
+  width: fit-content;
+}
+
+.rover-hero-status-pill .status-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.rover-hero-status-pill.ok {
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.5);
+  color: #00e676;
+}
+
+.rover-hero-status-pill.low {
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  color: #facc15;
+}
+
+.mars-rover-hero-art {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+}
+
+.mars-rover-hero-art svg {
+  max-width: 105px;
+  height: auto;
+}
+
+/* 5 System Rows List */
+.mars-systems-rows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mars-system-row-card {
+  background: rgba(22, 15, 17, 0.82);
+  border: 1px solid rgba(255, 120, 70, 0.22);
+  border-radius: 7px;
+  padding: 6px 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.mars-system-row-card:hover {
+  background: rgba(34, 22, 26, 0.95);
+  border-color: rgba(255, 120, 70, 0.45);
+}
+
+.mars-system-row-card.clickable {
+  cursor: pointer;
+}
+
+.mars-system-row-card.clickable:hover {
+  border-color: rgba(255, 109, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+.sys-row-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sys-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.sys-row-label {
+  font: 800 8.5px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #f4f4f5;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.sys-row-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sys-row-data-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2.5px;
+}
+
+.sys-row-value {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.sys-val-green {
+  color: #00e676;
+}
+
+.sys-val-muted {
+  color: #a1a1aa;
+}
+
+.sys-segmented-meter {
+  display: flex;
+  gap: 1.5px;
+  height: 2.5px;
+}
+
+.sys-meter-seg {
+  width: 4.5px;
+  height: 100%;
+  border-radius: 0.8px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sys-meter-seg.active-green {
+  background: #00e676;
+  box-shadow: 0 0 3px #00e676;
+}
+
+.sys-meter-seg.low {
+  background: #facc15;
+  box-shadow: 0 0 3px #facc15;
+}
+
+.sys-meter-seg.critical {
+  background: #ef4444;
+  box-shadow: 0 0 4px #ef4444;
+}
+
+.sys-row-chevron {
+  color: #ff6d00;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 0.15s ease;
+  user-select: none;
+}
+
+.mars-system-row-card:hover .sys-row-chevron {
+  transform: translateX(1.5px);
+  color: #ffa726;
+}
+
+.mars-hero-sep-badge.systems-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #e4e4e7;
+  cursor: default;
+}
+
+.mars-hero-sep-badge.data-badge {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  cursor: default;
+}
+
+.mars-hero-sep-badge.home-badge {
+  background: rgba(255, 109, 0, 0.12);
+  border-color: rgba(255, 109, 0, 0.35);
+  color: #ff6d00;
+  cursor: default;
+}
+
 .mars-events-list,
 .mars-systems-list {
   display: flex;
