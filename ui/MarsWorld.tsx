@@ -2,6 +2,8 @@
 import { createStreamedMars } from "./world/streamedMars";
 import { createMarsRegionalLandscape, MARS_HORIZON_DISTANCE } from "./world/marsRegionalLandscape";
 import { createDetailDistanceCulling } from "./world/detailDistanceCulling";
+import { allocatedRoverCharge, approachStoryDaylight, type ElysiumWorldBridge } from "../game/elysiumWorld";
+import { ROVER_NOMINAL_RANGE_KM } from "../game/roverVehicle";
 import { marsExpeditionHeight, marsOutpostHeight, OUTPOST_GROUND_HEIGHT } from "../game/marsExpeditionTerrain";
 import { OUTPOST_SITE } from "../game/outpostSite";
 import { createMarsOutpost } from "./world/createMarsOutpost";
@@ -64,6 +66,8 @@ import {
   type RoverPartId,
 } from "../game/roverVehicle";
 import { createShuttleLanding } from "./world/createShuttleLanding";
+import {createMarsCatchSite} from './world/createMarsCatchSite';
+import {STARSHIP_RETURN_CUT,type ArrivalPlayback} from '../game/starshipArrival';
 import {
   SpaceWeatherService,
   type SpaceWeatherTelemetry,
@@ -88,6 +92,12 @@ function getPartDamageClass(health: number): string {
   return "critical";
 }
 export type View = {
+  storySite?: string | null;
+  storyRevision?: number;
+  storyTarget?: {id:string;label:string;x:number;z:number};
+  roverBattery?: number;
+  roverHealth?: number;
+  garagePhase?: string;
   lightPhase?: string;
   mapRocks?: readonly {
     x: number;
@@ -122,6 +132,7 @@ export type View = {
   lidar?: LidarScan;
 };
 type Props = {
+  story?: ElysiumWorldBridge;
   onReady?: () => void;
   onGraphicsCalibration?: (status: string) => void;
   onTerrainMode?: (enabled: boolean) => void;
@@ -136,6 +147,7 @@ type Props = {
   onTouchControlsChange?: (active: boolean) => void;
   playLandingIntro?: boolean;
   coveredByArrival?: boolean;
+  arrivalPlayback?: ArrivalPlayback;
   onRestart?: () => void;
 };
 function MarsWorld(props: Props) {
@@ -210,7 +222,7 @@ function MarsWorld(props: Props) {
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
   const spaceWeatherService = useRef<SpaceWeatherService | null>(null);
   if (!spaceWeatherService.current) {
-    spaceWeatherService.current = new SpaceWeatherService();
+    spaceWeatherService.current = new SpaceWeatherService(!props.story);
   }
   const geigerAudio = useRef<GeigerAudio | null>(null);
   if (!geigerAudio.current) {
@@ -507,6 +519,14 @@ function MarsWorld(props: Props) {
         model.obstacles.push(perseveranceFootprint());
       }
       let streaming: ReturnType<typeof createStreamedMars> | null = null;
+      let storyMarkers: ReturnType<typeof import('./world/elysiumMarkers').createElysiumMarkers> | null = null;
+      let storySites: typeof import('../game/elysiumSites').ELYSIUM_SITES = [];
+      let storyRevision = -1;
+      let storySession = '';
+      let storyWasNight = false, storyDawn = false;
+      let endingElapsed = 0, endingFinished = false;
+      const endingAt = new T.Vector3(-10,0,-65);
+      const endingWindow = new T.Vector3(-39,3,-34), endingAbove = new T.Vector3(-88,70,55);
       const regionalLandscape = createMarsRegionalLandscape(model.root);
       let detailCulling: ReturnType<typeof createDetailDistanceCulling> | null = null;
       const previousSceneRender = scene.onBeforeRender;
@@ -516,6 +536,7 @@ function MarsWorld(props: Props) {
       const baseRoverHeight = model.roverHeightAt;
       setLoadingStage("Preparing the outpost, garage and greenhouses…");
       const outpost = createMarsOutpost(scene, OUTPOST_GROUND_HEIGHT, model.obstacles);
+      const catchSite = createMarsCatchSite(scene,model.obstacles,mobileMars||props.initialQuality==='performance');
       const greenhouses = createGreenhouseFarm(scene, model.obstacles);
       const garageState = createGarageState();
       const garage = createRoverGarage(scene, garageState, OUTPOST_GROUND_HEIGHT, model.obstacles);
@@ -524,7 +545,8 @@ function MarsWorld(props: Props) {
       dispose = () => {
         if (preparationDisposed) return;
         preparationDisposed = true;
-        outpost.dispose(); greenhouses.dispose(); garage.dispose(); model.disposeTracks?.();
+        storyMarkers?.dispose();
+        catchSite.dispose();outpost.dispose(); greenhouses.dispose(); garage.dispose(); model.disposeTracks?.();
         model.root.traverse(object => {
           if (object instanceof T.Mesh) {
             object.geometry.dispose();
@@ -544,6 +566,12 @@ function MarsWorld(props: Props) {
       // Stable callbacks also keep footprints and suspension aligned after streaming activates.
       model.heightAt = (x, z) => garage.floorAt(x, z, greenhouses.floorAt(x, z, outpost.floorAt(x, z, streaming ? streaming.heightAt(x, z) : baseHeight(x, z))));
       model.roverHeightAt = (x, z) => garage.floorAt(x, z, greenhouses.floorAt(x, z, outpost.floorAt(x, z, streaming && (Math.abs(x) > 210 || Math.abs(z) > 210) ? streaming.roverHeightAt(x, z) : baseRoverHeight(x, z))));
+      if (current.current.story) {
+        const [{createElysiumMarkers},{ELYSIUM_SITES}] = await Promise.all([import('./world/elysiumMarkers'),import('../game/elysiumSites')]);
+        if (cancelled) return;
+        storySites = ELYSIUM_SITES;
+        storyMarkers = createElysiumMarkers(scene, model.heightAt);
+      }
       const smallRocks = model.root.getObjectByName("mars-small-rocks") as import("three").InstancedMesh | undefined;
       const previewParams = new URLSearchParams(window.location.search);
       const previewValue = Number(previewParams.get('landingPreview'));
@@ -881,6 +909,10 @@ function MarsWorld(props: Props) {
         if (!current.current.enabled || landingIntro?.isActive() || false || false)
           return;
         if (garageControlsRover(garageState)) return;
+        if (!rover.driving && current.current.story?.command.roverAllowed === false) {
+          setMessage('Mission Notes: choose a route and finish its charging plan at the garage terminal.');
+          return;
+        }
         if (!rover.driving) {
           if (canEnterRover(walker, rover)) {
             rover = enterRover(rover);
@@ -997,6 +1029,10 @@ function MarsWorld(props: Props) {
         }
         if (current.current.enabled && !rover.driving && greenhouses.interact(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw)) return;
         if (current.current.enabled && !rover.driving && outpost.interact(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw)) return;
+        const station = storyMarkers?.nearest(walker.x, walker.z);
+        if (current.current.enabled && station && Math.abs(rover.speed) < .5) {
+          keys.clear(); current.current.story?.onInteract(station.id); return;
+        }
         if (current.current.enabled && !rover.driving && hover && range <= 5.5)
           current.current.onInspect(hover);
       };
@@ -1153,7 +1189,7 @@ function MarsWorld(props: Props) {
         if (dragging || document.pointerLockElement === element) {
           lastMouseMoveTime = performance.now();
         }
-        if (!current.current.enabled || landingIntro?.isActive()) {
+        if (!current.current.enabled || current.current.story?.ending || landingIntro?.isActive()) {
           return;
         }
         const isThird = cameraSettings.current.thirdPerson;
@@ -1186,6 +1222,10 @@ function MarsWorld(props: Props) {
         }
       };
       const keydown = (e: KeyboardEvent) => {
+        if (current.current.story?.ending) {
+          if (e.code==='Space'||e.key==='Escape') { e.preventDefault(); current.current.story.onEndingComplete?.(); }
+          return;
+        }
         if (e.defaultPrevented || !current.current.enabled)
           return;
         const active = document.activeElement as HTMLElement | null;
@@ -1211,7 +1251,7 @@ function MarsWorld(props: Props) {
         const onInteractive = tag === "BUTTON" || tag === "SUMMARY" || tag === "A";
         const k = e.key.toLowerCase();
         geigerAudio.current?.resume();
-        if ((k === "p" || e.key === "ArrowUp") && !e.repeat && !onInteractive) {
+        if (!current.current.story && (k === "p" || e.key === "ArrowUp") && !e.repeat && !onInteractive) {
           e.preventDefault();
           setPhoneOpen((prev) => (e.key === "ArrowUp" ? true : !prev));
           return;
@@ -1241,7 +1281,7 @@ function MarsWorld(props: Props) {
             return;
           }
         }
-        if (k === "y" && !e.repeat && !onInteractive) {
+        if (!current.current.story && k === "y" && !e.repeat && !onInteractive) {
           e.preventDefault();
           toggleSpaceWeatherAction.current();
           return;
@@ -1404,16 +1444,40 @@ function MarsWorld(props: Props) {
       let deathCollapse = 0;
       const sevObstacles: CollisionObstacle[] = [], dynamicObstacles: CollisionObstacle[] = [], curiosityObstacles: CollisionObstacle[] = [];
       const lidarObstacles: CollisionObstacle[] = [];
+      let previousArrivalTime=0;
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
         if (current.current.coveredByArrival) {
+          const arrival=current.current.arrivalPlayback;
+          if(!document.hidden&&arrival?.active&&arrival.time>=STARSHIP_RETURN_CUT){
+            const step=Math.max(0,Math.min(.1,arrival.time-previousArrivalTime));
+            previousArrivalTime=arrival.time;
+            catchSite.cinematic(arrival.time,step,camera,reduced.matches);
+            // Use the daylight environment immediately; the normal gameplay loop has not run yet.
+            light.intensity=3.4;ambient.intensity=.65;scene.environmentIntensity=.85;
+            ambient.color.copy(dayAmbient);ambient.groundColor.copy(dayGround);light.color.copy(dayLight);
+            (scene.fog as import('three').FogExp2).density=.0018;
+            (scene.fog as import('three').FogExp2).color.copy(dayFog);
+            (scene.background as import('three').Color).copy(daySky);
+            if(marsSky)marsSky.uniforms.night.value=0;
+            starField.visible=false;earth.visible=false;
+            if(dust)dust.visible=false;
+            outpost.update(0,OUTPOST_SITE.x,OUTPOST_GROUND_HEIGHT+45,OUTPOST_SITE.z,true,false);
+            outpost.updateVisibility(camera);
+            greenhouses.updateVisibility(camera,OUTPOST_SITE.x,OUTPOST_SITE.z,lastQuality==='performance');
+            viewFrame++;renderer.info.reset();renderer.render(scene,camera);
+            arrival.marsRendered=true;
+            element.dataset.arrivalScene='mars';
+            element.dataset.arrivalTime=arrival.time.toFixed(2);
+          }
           last = time;
           metricStart = 0;
           metricFrames = 0;
           keys.clear();
           return;
         }
+        catchSite.settle();
         if (document.hidden) {
           last = time;
           metricStart = 0;
@@ -1424,12 +1488,18 @@ function MarsWorld(props: Props) {
           return;
         }
         // A stationary view behind a dialog needs only occasional refreshes.
-        if (!current.current.enabled && time - last < 100)
+        if (!current.current.enabled && !current.current.story?.ending && time - last < 100)
           return;
         const frameInterval = last ? time - last : 0;
         const dt = last ? Math.min(frameInterval / 1000, 0.1) : 1 / 60;
         last = time;
         const p = current.current;
+        if (p.story && (storySession !== p.story.sessionId || storyRevision !== p.story.command.revision)) {
+          storySession = p.story.sessionId; storyRevision = p.story.command.revision;
+          rover.battery = Math.max(0,Math.min(100,p.story.command.roverCharge));
+          rover.estimatedRangeKm = rover.battery / 100 * ROVER_NOMINAL_RANGE_KM;
+          setRoverBattery(rover.battery);
+        }
         perseverance?.updateVisibility(walker.x, walker.z, lastQuality === 'performance');
         if (streaming) {
           streaming.update(walker.x, walker.z, lastQuality === "performance" ? .7 : terrainBudget.generationMs);
@@ -1479,7 +1549,8 @@ function MarsWorld(props: Props) {
             rover.handbrake = true;
           }
         }
-        if (p.enabled && !dropRunning) {
+        if (p.enabled && !dropRunning && !p.story?.ending) {
+          const previousCharge = rover.battery;
           const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
           const step = dt / steps;
           {
@@ -1487,7 +1558,7 @@ function MarsWorld(props: Props) {
             if(curiosity)sevObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
             stepGarage(garageState, rover, dt, !isDeadRef.current,
               {x:walker.x,z:walker.z,radius:WALKER_RADIUS+.1,id:"walker"},
-              sevObstacles, model.roverHeightAt, 1-nightAmount(daylightElapsed), reduced.matches);
+              sevObstacles, model.roverHeightAt, 1-nightAmount(daylightElapsed), reduced.matches, p.story?.command.chargingAllowed ?? true);
             if (rover.driving) {
               const prevRoverYaw = rover.yaw;
               for (let i = 0; i < steps; i++) {
@@ -1536,6 +1607,10 @@ function MarsWorld(props: Props) {
               keys.delete("jump");
             }
           }
+          if (p.story) {
+            rover.battery = allocatedRoverCharge(previousCharge, rover.battery, p.story.command);
+            rover.estimatedRangeKm = rover.battery / 100 * ROVER_NOMINAL_RANGE_KM;
+          }
           if (curiosity && true) {
             curiosityObstacles.length=0;
             for(const obstacle of model.obstacles)curiosityObstacles.push(obstacle);
@@ -1558,8 +1633,15 @@ function MarsWorld(props: Props) {
           lidar = scanRoverLidar(rover, lidarObstacles);
           lastLidarScan = time;
         }
-        if (p.enabled && !dropRunning)
-          daylightElapsed += dt;
+        if (!dropRunning) {
+          if (p.story?.command.night) {
+            daylightElapsed = approachStoryDaylight(daylightElapsed,true,dt); storyWasNight = true;
+          } else if (storyWasNight || storyDawn) {
+            storyWasNight = false; storyDawn = true;
+            daylightElapsed = approachStoryDaylight(daylightElapsed,false,dt);
+            if (daylightElapsed%600 > 599.8) { daylightElapsed=0;storyDawn=false; }
+          } else if(p.enabled) daylightElapsed += dt;
+        }
         const nightBlend = nightAmount(daylightElapsed);
         {
           model.root.visible = true;
@@ -1713,7 +1795,7 @@ function MarsWorld(props: Props) {
           }
         }
         // Space Weather & Radiation Telemetry Loop
-        if (p.enabled && !landingIntro?.isActive()) {
+        if (p.enabled && !p.story && !landingIntro?.isActive()) {
           const inRover = Boolean(rover.driving);
           const playerPosX = inRover ? rover.x : walker.x;
           const playerPosZ = inRover ? rover.z : walker.z;
@@ -1790,9 +1872,9 @@ function MarsWorld(props: Props) {
             }
           }
         }
-        const insideOutpost = !rover.driving && outpost.indoors(walker.x,walker.z);
+        const insideOutpost = !p.story?.ending && !rover.driving && outpost.indoors(walker.x,walker.z);
         const insideFacility = insideOutpost || (!rover.driving && greenhouses.indoors(walker.x,walker.z));
-        if(updateOutpostRendering(outpostRendering,insideOutpost,p.enabled?dt:0)){
+        if(updateOutpostRendering(outpostRendering,insideOutpost,p.enabled||p.story?.ending?dt:0)){
           outpost.setInteriorActive(outpostRendering.active);
           configureEffects();
           // Retain the cached shadow maps and shader variants while indoors.
@@ -1967,8 +2049,22 @@ function MarsWorld(props: Props) {
             helmetTarget.position.set(walker.x - Math.sin(cameraYaw) * 12, hy + Math.sin(pitch) * 6 - 0.8, walker.z - Math.cos(cameraYaw) * 12);
           }
         }
+        if (p.story?.ending) {
+          // The supplied greenhouse has opaque walls: start beside its entrance.
+          // Travelling here from the terminal would pass through solid rooms.
+          endingWindow.y = model.heightAt(-39,-34) + 2.1;
+          endingElapsed += dt;
+          const duration = reduced.matches ? 2 : 12;
+          const t = Math.min(1,endingElapsed/duration), smooth=t*t*(3-2*t);
+          if (reduced.matches) camera.position.copy(endingAbove);
+          else camera.position.lerpVectors(endingWindow,endingAbove,smooth);
+          endingAt.set(-10,model.heightAt(0,-65)+2,-65);
+          camera.lookAt(endingAt);
+          outpost.update(0,camera.position.x,camera.position.y-1.5,camera.position.z,lastQuality==='performance',false);
+          if (t===1&&!endingFinished) {endingFinished=true;p.story.onEndingComplete?.();}
+        } else {endingElapsed=0;endingFinished=false;}
         outpost.updateVisibility(camera);
-        greenhouses.updateVisibility(camera, walker.x, walker.z, lastQuality === "performance");
+        greenhouses.updateVisibility(camera, p.story?.ending?camera.position.x:walker.x, p.story?.ending?camera.position.z:walker.z, lastQuality === "performance");
         garage.update(walker.x, walker.z, lastQuality === "performance");
         windDust?.update(dt, walker.x, walker.z, model.heightAt, reduced.matches, activeTier.particles);
         if (dust) dust.visible = !insideFacility && !garageIndoors(walker.x, walker.z);
@@ -2085,12 +2181,15 @@ function MarsWorld(props: Props) {
           const gate = !rover.driving ? greenhouses.nearby(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw)
             ?? outpost.nearby(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw) : null;
           const garageAction = garagePrompt(garageState, walker.x, walker.z, rover);
-          const prompt = !p.enabled ? "" : garageAction ? garageAction.text : gate ? (gate.waiting ? `Cycling airlock · ${gate.label} — Cancel` : gate.blocked ? "Step clear of the doorway to close" : `${gate.target ? "Close" : "Open"} · ${gate.label}`) : "";
+          const station = storyMarkers?.nearest(walker.x, walker.z);
+          const gatePrompt = gate ? (gate.waiting ? `Cycling airlock · ${gate.label} — Cancel` : gate.blocked ? "Step clear of the doorway to close" : `${gate.target ? "Close" : "Open"} · ${gate.label}`) : "";
+          const prompt = !p.enabled ? "" : !p.story ? garageAction?.text ?? gatePrompt
+            : garageAction?.enabled ? garageAction.text : gatePrompt || (station ? `Open · ${station.label}` : garageAction?.text ?? "");
           if (prompt !== lastOutpostPrompt) {
             lastOutpostPrompt = prompt; setOutpostPrompt(prompt);
-            setOutpostPromptDisabled(Boolean(garageAction && !garageAction.enabled));
+            setOutpostPromptDisabled(Boolean(garageAction && !garageAction.enabled && (!p.story || !station && !gate)));
           }
-          const inspectReady = Boolean(p.enabled && !rover.driving && (garageAction?.enabled || gate || hover && range <= 5.5));
+          const inspectReady = Boolean(p.enabled && (station && Math.abs(rover.speed)<.5 || !rover.driving && (garageAction?.enabled || gate || hover && range <= 5.5)));
           if (inspectReady !== lastCanInspect) {
             lastCanInspect = inspectReady;
             setCanInspect(inspectReady);
@@ -2114,6 +2213,12 @@ function MarsWorld(props: Props) {
               .slice(0, 48).map(o => ({ x: o.x, z: o.z, radius: o.radius }));
           }
           current.current.onView({
+            storySite: storyMarkers?.nearest(walker.x,walker.z)?.id ?? null,
+            storyRevision,
+            storyTarget: storySites.find(site=>site.id===p.story?.targetSiteId),
+            roverBattery: rover.battery,
+            roverHealth: rover.damage.cabin_roof,
+            garagePhase: garageState.phase,
             mapRocks: mapRocks,
             x: walker.x,
             z: walker.z,
@@ -2150,6 +2255,7 @@ function MarsWorld(props: Props) {
         renderer.shadowMap.autoUpdate = !outpostRendering.active;
         if(outpostRendering.active)renderer.shadowMap.needsUpdate = false;
         renderer.info.reset();
+        storyMarkers?.update(camera,p.story?.targetSiteId);
         viewFrame++;
         if (lastQuality === "performance" || !renderEffects())
           renderer.render(scene, camera);
@@ -2288,6 +2394,8 @@ function MarsWorld(props: Props) {
         }
       }
       dispose = () => {
+        storyMarkers?.dispose();
+        catchSite.dispose();
         scene.onBeforeRender = previousSceneRender;
         detailCulling?.dispose();
         outpost.dispose();
@@ -2573,6 +2681,8 @@ function MarsWorld(props: Props) {
         element.dataset.calibrationTarget = String(AUTO_TARGET_FPS);
       }
       current.current.onTerrainMode?.(!!streaming);
+      catchSite.settle();
+      element.dataset.catchSite='ready';
       element.dataset.terrainMode = "bounded-mola";
       frame = requestAnimationFrame(animate);
       setLoadingStage("Launching exploration…");
@@ -2640,7 +2750,7 @@ function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0}>
+  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`Mars open world. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : `WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects.${props.story ? "" : " Y toggles space weather mode."} M opens map.`}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
@@ -2914,6 +3024,8 @@ function MarsWorld(props: Props) {
               <span>
                 {garageDockPopup.repairActive
                   ? `🔧 Auto-repairing damaged rover components · Battery: ${Math.round(roverBattery)}%`
+                  : props.story && !props.story.command.chargingAllowed
+                    ? `Rover battery: ${Math.round(roverBattery)}% · Charging paused by your power plan`
                   : roverBattery < 99.9
                     ? `⚡ Recharging rover battery: ${Math.round(roverBattery)}% (+0.35%/s) · All systems nominal`
                     : "✓ Rover 100% Charged & Fully Repaired"}
@@ -3020,33 +3132,36 @@ function MarsWorld(props: Props) {
         </aside>
       )}
 
-{/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
-      {touchControlsActive && !phoneOpen && (
-        <button
-          type="button"
-          className="mars-phone-mobile-pill"
-          onClick={() => setPhoneOpen(true)}
-          aria-label="Open Mars Telemetry Communicator"
-          title="Open Mars Communicator"
-        >
-          <span className="mars-mobile-pill-icon">📱</span>
-          <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
-          <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
-        </button>
-      )}
+      {/* Free exploration retains its separate live telemetry interface. */}
+      {!props.story && (
+        <>
+          {/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
+          {touchControlsActive && !phoneOpen && (
+            <button
+              type="button"
+              className="mars-phone-mobile-pill"
+              onClick={() => setPhoneOpen(true)}
+              aria-label="Open Mars Telemetry Communicator"
+              title="Open Mars Communicator"
+            >
+              <span className="mars-mobile-pill-icon">📱</span>
+              <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
+              <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
+            </button>
+          )}
 
-      {/* Mobile Backdrop when Phone is open */}
-      {touchControlsActive && phoneOpen && (
-        <div
-          className="mars-phone-mobile-backdrop"
-          onClick={() => setPhoneOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+          {/* Mobile Backdrop when Phone is open */}
+          {touchControlsActive && phoneOpen && (
+            <div
+              className="mars-phone-mobile-backdrop"
+              onClick={() => setPhoneOpen(false)}
+              aria-hidden="true"
+            />
+          )}
 
-      {/* SpaceX / NASA Minimalist Icon-Driven Mars Telemetry Communicator */}
-      <div
-        className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}
+          {/* SpaceX / NASA Minimalist Icon-Driven Mars Telemetry Communicator */}
+          <div
+            className={`mars-radiation-hud gta-phone ${phoneOpen ? "phone-open" : "phone-closed"}${touchControlsActive ? " touch-mode" : ""}${roverDriving ? " driving" : ""}`}
         role="region"
         aria-label="Mars Communicator Display"
         onClick={() => {
@@ -3878,7 +3993,8 @@ function MarsWorld(props: Props) {
           </nav>
         </div>
       </div>
-            {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
+      </>)}
+      {touchControlsActive && (<TouchDeck enabled={props.enabled} roverDriving={roverDriving} roverNear={roverNear} canInspect={canInspect} thirdPerson={thirdPerson} onWalkAxes={handleWalkAxes} onDriveAxes={handleDriveAxes} onHoldKey={touch} onToggleView={handleToggleView} onToggleRover={handleToggleRover} onInspectNearby={handleInspectNearby}/>)}
     </>)}
    {/* Astronaut Death Screen Overlay */}
    {isDead && (

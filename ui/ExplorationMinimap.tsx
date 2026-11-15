@@ -74,6 +74,7 @@ export default function ExplorationMinimap({
 
   const target = MARS_LANDMARKS.find((p) => p.id === selected) ?? MARS_LANDMARKS[0];
   const outpostPin = isOverview ? toRegion(OUTPOST_SITE.x, OUTPOST_SITE.z) : mapRectPoint(OUTPOST_SITE.x, OUTPOST_SITE.z, x, z, activeRange);
+  const missionPin = view.storyTarget ? (isOverview ? toRegion(view.storyTarget.x,view.storyTarget.z) : mapRectPoint(view.storyTarget.x,view.storyTarget.z,x,z,activeRange)) : null;
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
@@ -478,6 +479,9 @@ export default function ExplorationMinimap({
               )}
             </g>
 
+            {missionPin && <g transform={`translate(${missionPin.x} ${missionPin.y})`} role="img" aria-label={`Mission destination: ${view.storyTarget?.label}`}>
+              <circle r="5" fill="#ffd077" stroke="#192c38" strokeWidth="1.5"/><text y="2.6" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#192c38">!</text>
+            </g>}
             <g transform={`translate(${outpostPin.x} ${outpostPin.y})`} role="img" aria-label="TARUKH outpost">
               <title>Outpost · {Math.round(Math.hypot(x - OUTPOST_SITE.x, z - OUTPOST_SITE.z))} game metres · fictional base</title>
               <path d="M-6 -2 L0 -7 L6 -2 V6 H-6Z" fill="#e7ffff" stroke="#113c48" strokeWidth="1.5" />

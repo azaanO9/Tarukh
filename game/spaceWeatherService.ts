@@ -157,8 +157,8 @@ export class SpaceWeatherService {
   private isReplaying: boolean = false;
   private statusMessage: string = "Connecting to NOAA SWPC Live Telemetry…";
 
-  constructor() {
-    this.startLivePolling();
+  constructor(livePolling = true) {
+    if (livePolling) this.startLivePolling();
   }
 
   public getMode(): SpaceWeatherMode {

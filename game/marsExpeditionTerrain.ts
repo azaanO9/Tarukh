@@ -4,6 +4,7 @@ import {OUTPOST_SITE, gradeOutpostTerrain, outpostGradeWeight} from './outpostSi
 import {GREENHOUSE_SITES, gradeGreenhouseTerrain} from './greenhouseSites.ts';
 import {garageGradeWeight} from './garageSite.ts';
 import {boundaryMountainHeight} from './explorationBounds.ts';
+import {MARS_CATCH_SITE,gradeMarsCatchSite} from './marsCatchSite.ts';
 const smooth=(a:number,b:number,x:number)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 
 /** MOLA macro relief + clearly artistic sub-grid regolith. No invented named mountains. */
@@ -18,6 +19,7 @@ export function marsExpeditionHeight(x:number,z:number){
 }
 
 export const OUTPOST_GROUND_HEIGHT = marsExpeditionHeight(OUTPOST_SITE.x, OUTPOST_SITE.z);
+export const MARS_CATCH_GROUND_HEIGHT = marsExpeditionHeight(MARS_CATCH_SITE.x,MARS_CATCH_SITE.z);
 // Cultivation bays share the campus datum, avoiding steep isolated terraces
 // across the compressed regional relief while preserving the outer terrain.
 export const GREENHOUSE_GROUND_HEIGHTS = GREENHOUSE_SITES.map(() => OUTPOST_GROUND_HEIGHT);
@@ -25,5 +27,6 @@ export const GREENHOUSE_GROUND_HEIGHTS = GREENHOUSE_SITES.map(() => OUTPOST_GROU
 /** The campus pad is graded into the same surface used by rendering and physics. */
 export function marsOutpostHeight(x:number,z:number) {
  const campus=gradeGreenhouseTerrain(x,z,gradeOutpostTerrain(x,z,marsExpeditionHeight(x,z),OUTPOST_GROUND_HEIGHT),GREENHOUSE_GROUND_HEIGHTS,outpostGradeWeight(x,z));
- return campus+(OUTPOST_GROUND_HEIGHT-campus)*garageGradeWeight(x,z)+boundaryMountainHeight(x,z);
+ const graded=campus+(OUTPOST_GROUND_HEIGHT-campus)*garageGradeWeight(x,z);
+ return gradeMarsCatchSite(x,z,graded,MARS_CATCH_GROUND_HEIGHT)+boundaryMountainHeight(x,z);
 }

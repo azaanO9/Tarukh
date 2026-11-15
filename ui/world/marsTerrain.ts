@@ -3,6 +3,7 @@ import { marsExpeditionHeight, marsOutpostHeight } from "../../game/marsExpediti
 import { outpostClearing } from "../../game/outpostSite.ts";
 import { greenhouseClearing } from "../../game/greenhouseSites.ts";
 import { garageClearing } from "../../game/garageSite.ts";
+import { marsCatchClearing } from "../../game/marsCatchSite.ts";
 import type { CollisionObstacle } from "../../game/collision.ts";
 import * as T from "three";
 import { createMarsSkyMaterial } from "./marsAtmosphere.ts";
@@ -367,7 +368,7 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
       const baseH = sampleMeshHeight(x, z);
       const mesh = big ? large[i % 4] : small;
       const index = big ? Math.floor(i / 4) : i;
-      if (gradeCampus && (outpostClearing(x, z, Math.max(sx, sz) + .3) || greenhouseClearing(x, z, Math.max(sx, sz) + .3) || garageClearing(x, z, Math.max(sx, sz) + .3))) {
+      if (gradeCampus && (outpostClearing(x, z, Math.max(sx, sz) + .3) || greenhouseClearing(x, z, Math.max(sx, sz) + .3) || garageClearing(x, z, Math.max(sx, sz) + .3) || marsCatchClearing(x,z,Math.max(sx,sz)+.3))) {
         dummy.position.set(x, baseH, z);
         dummy.scale.setScalar(0);
         dummy.updateMatrix();

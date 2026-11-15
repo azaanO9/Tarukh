@@ -1,0 +1,50 @@
+.mission-activity { color: #eef6fa; font-size: 16px; line-height: 1.5; }
+.mission-activity button { min-width: 44px; min-height: 44px; font: inherit; }
+.mission-activity button:focus-visible, .mission-activity [tabindex="0"]:focus-visible { outline: 3px solid #a1e8ff; outline-offset: 4px; }
+.ma-heading h3 { font-size: clamp(24px, 4vw, 32px); margin: 5px 0 12px; }
+.ma-heading p { max-width: 66ch; }
+.ma-kicker { color: #f3c185; font-size: 14px; letter-spacing: .12em; font-weight: 750; }
+.ma-isolator { display: flex; align-items: center; gap: 15px; width: 100%; padding: 16px !important; background: #192c39 !important; border: 1px solid #788c9d !important; }
+.ma-isolator > span:last-child { display: flex; flex-direction: column; text-align: left; }
+.ma-isolator small { font-size: 14px; color: #bccbd6; }
+.ma-switch-track { flex: 0 0 52px; height: 30px; border-radius: 17px; background: #536575; border: 1px solid #aebbc7; padding: 3px; }
+.ma-switch-track i { display: block; width: 22px; height: 22px; border-radius: 50%; background: #f1f5f8; transition: transform .15s ease; }
+.ma-isolator[aria-checked="true"] .ma-switch-track { background: #316784; }
+.ma-isolator[aria-checked="true"] .ma-switch-track i { transform: translateX(21px); }
+.ma-board-labels { display: flex; justify-content: space-between; gap: 14px; margin: 26px 0 5px; font-size: 14px; letter-spacing: .06em; color: #b3c7d6; }
+.ma-wire-board { position: relative; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32%; height: 352px; padding: 18px 8px; background: radial-gradient(ellipse at 50% 50%, #183044, #0b1723 75%); border: 1px solid #405266; border-radius: 14px; touch-action: none; }
+.ma-wire-board::before { content: ''; position: absolute; inset: 12px; border: 1px dashed #7188a12b; border-radius: 8px; pointer-events: none; }
+.ma-wire-column { display: grid; grid-template-rows: repeat(4, 1fr); gap: 14px; min-width: 0; z-index: 1; }
+.ma-terminal { position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 13px !important; text-align: left; border: 1px solid color-mix(in srgb, var(--wire-color) 55%, #223244) !important; background: linear-gradient(125deg, #293b4b, #14222e) !important; border-radius: 9px !important; user-select: none; }
+.ma-terminal[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--wire-color); }
+.mission-activity .ma-terminal:disabled { opacity: .62; }
+.ma-terminal > span:not(.ma-port) { pointer-events: none; }
+.ma-terminal b { display: block; font-size: 21px; line-height: 1.1; }
+.ma-terminal small { display: block; font-size: 14px; color: #d4e0ea !important; }
+.ma-terminal-symbol { font-size: 23px; color: var(--wire-color); }
+.ma-port { position: absolute; top: 50%; width: 18px; height: 25px; transform: translateY(-50%); display: grid; place-items: center; background: var(--wire-color); color: #122232; border: 3px solid #081522; border-radius: 5px; box-shadow: 0 0 0 1px var(--wire-color); font-size: 14px; font-weight: 900; pointer-events: none; }
+.ma-source .ma-port { right: -9px; }.ma-target .ma-port { left: -9px; }
+.ma-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.ma-wires path { fill: none; stroke-linecap: round; }
+.ma-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 20px; margin: 18px 0 10px; }
+.ma-progress progress { flex: 1; min-width: 120px; height: 14px; accent-color: #80d8eb; }
+.ma-feedback { padding: 14px 17px; border-left: 3px solid #88d5e5; background: #183340; border-radius: 0 8px 8px 0; min-height: 52px; }
+.ma-science, .ma-keyboard-help { font-size: 16px; color: #bfd0db; }
+.ma-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 12px; }
+.ma-panel-frame { padding: 12px; border: 1px solid #899ba8; border-radius: 14px; background: linear-gradient(130deg, #64717b, #1e2b38 28%, #3c4954 80%, #84909b); box-shadow: 0 10px 25px #0004; }
+.ma-brush-surface { position: relative; aspect-ratio: 2; width: 100%; overflow: hidden; background: #9b6a47; border: 2px solid #091b2a; border-radius: 4px; touch-action: none; cursor: none; user-select: none; }
+.ma-brush-surface canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
+.ma-brush-cursor { position: absolute; display: grid; place-items: center; color: #fff; font-size: 20px; border: 2px solid #fff; outline: 1px solid #172b3e; background: #ffffff0c; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 1px 8px #0005; }
+.ma-panel-corner { position: absolute; bottom: 6px; right: 8px; padding: 3px 7px; color: #d6e8f6; background: #101e2cd9; font-size: 12px; letter-spacing: .08em; pointer-events: none; }
+.ma-clean-readout { padding: 4px 0; }
+.ma-quadrants { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ma-quadrants span { padding: 10px; border: 1px solid #4c6172; border-radius: 7px; font-size: 14px; }
+.ma-quadrants b { display: block; color: #f1c990; font-size: 16px; }
+.ma-quadrants [data-ready="true"] { border-color: #86d3df; }.ma-quadrants [data-ready="true"] b { color: #a7edf0; }
+.ma-brush-controls { display: flex; gap: 8px; justify-content: center; margin-top: 20px; }
+.ma-brush-controls button { text-align: center !important; }
+.ma-panel-fallback { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(24, 1fr); grid-template-rows: repeat(12, 1fr); background: #11314f; }
+.ma-panel-fallback i { background: #ad794d; border: 1px solid #a7754c; }.ma-panel-fallback i[data-clean="true"] { background: #164361; border-color: #365e81; }
+@media (max-width: 600px) { .ma-wire-board { column-gap: 24%; padding-inline: 8px; }.ma-terminal { gap: 6px; padding: 8px !important; }.ma-terminal-symbol { font-size: 18px; }.ma-board-labels { font-size: 14px; letter-spacing: 0; }.ma-quadrants { grid-template-columns: 1fr 1fr; }.ma-panel-frame { padding: 7px; }.ma-panel-corner { display: none; }.ma-brush-controls { gap: 5px; }.ma-brush-controls button { padding: 8px !important; }.ma-actions button { flex: 1 1 150px; } }
+@media (max-height: 520px) { .ma-panel-frame { max-width: min(100%, max(200px, calc((100dvh - 250px) * 2))); margin-inline: auto; } }
+@media (prefers-reduced-motion: reduce) { .mission-activity *, .mission-activity *::before { transition: none !important; animation: none !important; } }

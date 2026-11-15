@@ -1,9 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { ElysiumWorldBridge } from "../game/elysiumWorld";
 import ExplorationMinimap from "./ExplorationMinimap";
 import MarsAtlas from "./MarsAtlas";
 import {PERSEVERANCE_LANDING} from '../content/marsLandingSites';
 import StarshipArrival from "./StarshipArrival";
+import {createArrivalPlayback} from '../game/starshipArrival';
 import MarsWorld, { type View } from "./MarsWorld";
 import { isCoarsePointerDevice, tryEnterLandscape } from "./mobileDevice";
 import { RotateToLandscapeGate } from "./RotateToLandscapeGate";
@@ -13,15 +15,26 @@ import "./mobileCockpit.css";
 import "./freeRoam.css";
 import "./outpost.css";
 
-export default function MarsFreeRoam() {
+const ElysiumStory = lazy(() => import('./ElysiumStory'));
+export interface StoryPresentation {
+  controlMode:'pc'|'mobile'; modalOpen:boolean; overlay:ReactNode;
+  world:ElysiumWorldBridge; onView:(view:View)=>void; onInspect?:(id:string)=>void;
+  onExit:()=>void; arrival:'earth'|'none'; onArrivalComplete?:()=>void;
+}
+
+export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
+  const arrivalPlayback=useMemo(()=>createArrivalPlayback(),[]);
+  const storyRef = useRef(story);
+  useEffect(() => {storyRef.current = story;},[story]);
+  const [storyRequested,setStoryRequested] = useState(false);
   const [streamed, setStreamed] = useState(false);
-  const [mode, setMode] = useState<"pc" | "mobile">("pc");
+  const [mode, setMode] = useState<"pc" | "mobile">(story?.controlMode ?? "pc");
   const [sceneReady, setSceneReady] = useState(false);
   const [arrived, setArrived] = useState(false);
-  const ready = useCallback(() => setSceneReady(true), []);
-  const finishArrival = useCallback(() => setArrived(true), []);
+  const ready = useCallback(() => {setSceneReady(true);if(storyRef.current?.arrival==='none'){setArrived(true);storyRef.current.onArrivalComplete?.();}},[]);
+  const finishArrival = useCallback(() => {setArrived(true);storyRef.current?.onArrivalComplete?.();},[]);
   const changeTouchControls = useCallback((active:boolean)=>setMode(active?'mobile':'pc'),[]);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(Boolean(story));
   const [menu, setMenu] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -34,15 +47,18 @@ export default function MarsFreeRoam() {
   const [landmark,setLandmark]=useState('elysium');
   const dialog = useRef<HTMLElement>(null);
   const unavailable = useCallback(() => setFailed(true), []);
-  const inspectRover = useCallback((id: string) => { if (id === "curiosity" || id === "perseverance") setInspect(id); }, []);
+  const inspectRover = useCallback((id: string) => { if (storyRef.current?.onInspect) storyRef.current.onInspect(id); else if (id === "curiosity" || id === "perseverance") setInspect(id); },[]);
+  const receiveView = useCallback((next:View) => {setView(next);storyRef.current?.onView(next);},[]);
   const handleRestart = useCallback(() => {
     setSceneReady(false);
     setArrived(false);
     setAttempt(value => value + 1);
   }, []);
   const modal = menu || failed || inspect || atlas;
+  const storyReady = story ? sceneReady && story.arrival !== 'earth' : arrived;
+  const showArrival = story ? story.arrival === 'earth' : !arrived;
 
-  useEffect(() => { if (isCoarsePointerDevice()) setMode("mobile"); }, []);
+  useEffect(() => { if (!storyRef.current && isCoarsePointerDevice()) setMode("mobile"); }, []);
   useEffect(() => {
     if (!modal) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -68,6 +84,8 @@ export default function MarsFreeRoam() {
     }); };
   }, [modal, failed, atlas]);
 
+  if (storyRequested && !story) return <Suspense fallback={<main className="roam-launch"><p>Opening Elysium briefing…</p></main>}><ElysiumStory controlMode={mode} onExit={()=>setStoryRequested(false)}/></Suspense>;
+
   if (!started) return <main className="roam-launch">
     <section><p>TARUKH</p><h1>Mars Open World</h1>
       <p>Touch down in the Elysium region. Walk measured Martian terrain, drive to real volcanoes and explore with your field map. Travel distances are compressed for play.</p>
@@ -77,28 +95,31 @@ export default function MarsFreeRoam() {
       </fieldset>
       <p>{mode === "pc" ? "WASD move · Space jump · V camera · F enter/exit rover · E inspect science rovers · M map" : "Use the movement stick, swipe to look and use the rover buttons when nearby. Tap Atlas below the minimap for the full region."}</p>
       <button className="roam-primary" onClick={() => { if (mode === "mobile") void tryEnterLandscape(); setView(null); setSceneReady(false); setArrived(false); setStarted(true); }}>Explore Mars</button>
+      <button className="roam-primary" onClick={() => {if(mode==='mobile')void tryEnterLandscape();setStoryRequested(true);}}>Elysium Story · New / Resume</button>
+      <p>Free Exploration stays available. In Story, become Kaelen Reeves and prove the outpost is ready for its next crew.</p>
     </section>
   </main>;
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
-  return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase="explore">
-    <MarsWorld key={attempt} coveredByArrival={!arrived} enabled={arrived && !modal && !blocked} onReady={ready} onTerrainMode={setStreamed}
+  return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase={story?'story':'explore'}>
+    <MarsWorld key={attempt} story={story?.world} arrivalPlayback={arrivalPlayback} coveredByArrival={!sceneReady || showArrival} enabled={storyReady && !modal && !story?.modalOpen && !story?.world.ending && !blocked} onReady={ready} onTerrainMode={setStreamed}
       showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={changeTouchControls}
-      initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={setView} onUnavailable={unavailable}
+      initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={receiveView} onUnavailable={unavailable}
       onRestart={handleRestart} />
-    {!arrived && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} />}
-    {!modal && arrived && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
-    <header className="roam-header"><b>TARUKH <span>· FREE EXPLORATION</span></b>{view?.cockpitView&&<button aria-keyshortcuts="KeyM" onClick={openAtlas}>Map (M)</button>}<button disabled={!arrived} onClick={() => setMenu(true)}>Pause</button></header>
+    {showArrival && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} playback={arrivalPlayback} />}
+    {!modal && !story?.modalOpen && storyReady && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
+    <header className="roam-header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="KeyM" onClick={openAtlas}>Map (M)</button>}<button disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>Pause</button></header>
     {!modal && <aside className="roam-info">{streamed ? "Mars MOLA region" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
-    {!modal && arrived && view && !view.cockpitView && <ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} />}
+    {!modal && storyReady && view && !view.cockpitView && <ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} />}
+    {!modal && story?.overlay}
     {modal && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-labelledby="roam-dialog-title">
       {failed ? <><h2 id="roam-dialog-title">The 3D world couldn’t start</h2><p>Retry, or use lighter graphics for this browser.</p>
         <button onClick={() => { setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry</button>
         <button onClick={() => { setLowGraphics(true); setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry with Performance graphics</button></>
-      : atlas && view ? <MarsAtlas x={view.x} z={view.z} selected={landmark} onSelect={setLandmark} onClose={()=>setAtlas(false)} view={view}/>
+      : atlas && view ? <MarsAtlas x={view.x} z={view.z} selected={landmark} onSelect={setLandmark} onClose={()=>setAtlas(false)} view={view} storyTarget={view.storyTarget} storyRoute={story?.world.routePoints}/>
       : inspect === 'perseverance' ? <><h2 id="roam-dialog-title">Perseverance · Jezero crater</h2><p>You found {PERSEVERANCE_LANDING.site}, where Perseverance landed on {PERSEVERANCE_LANDING.date}.</p><p>Landing coordinates: {PERSEVERANCE_LANDING.latitude}° N, {PERSEVERANCE_LANDING.longitude}° E. This original model marks its historical landing position, not its current location. Distances are compressed for exploration.</p><p><a href={PERSEVERANCE_LANDING.source} target="_blank" rel="noreferrer">NASA landing-coordinate source ↗</a></p><button onClick={() => setInspect(null)}>Continue exploring</button></>
       : inspect ? <><h2 id="roam-dialog-title">Curiosity rover</h2><p>This autonomous rover explores the terrain and pauses to scan rocks. Its movements and measurements are simulated.</p><p>Status: {view?.curiosityPhase ?? "exploring"}</p><button onClick={() => setInspect(null)}>Continue exploring</button></>
-      : <><h2 id="roam-dialog-title">Exploration paused</h2><button onClick={() => setMenu(false)}>Resume exploring</button><p>WASD move · Space jump · V camera · F enter/exit rover · M map. Drag to look if mouse capture is unavailable.</p><button onClick={() => { setMenu(false); setStarted(false); }}>Back to controls setup</button></>}
+      : <><h2 id="roam-dialog-title">Exploration paused</h2><button onClick={() => setMenu(false)}>Resume exploring</button><p>WASD move · Space jump · V camera · F enter/exit rover · M map. Drag to look if mouse capture is unavailable.</p><button onClick={() => { setMenu(false); if(story)story.onExit();else setStarted(false); }}>Back to controls setup</button></>}
     </section></div>}
   </main>;
 }

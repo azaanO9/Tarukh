@@ -121,6 +121,8 @@ export default function MarsAtlas({
   onSelect,
   onClose,
   view,
+  storyTarget,
+  storyRoute,
 }: {
   x: number;
   z: number;
@@ -128,6 +130,8 @@ export default function MarsAtlas({
   onSelect: (id: string) => void;
   onClose: () => void;
   view?: View;
+  storyTarget?: { label: string; x: number; z: number };
+  storyRoute?: readonly { x: number; z: number }[];
 }) {
   // Navigation & perspective states
   const [zoom, setZoom] = useState(1.1);
@@ -146,6 +150,8 @@ export default function MarsAtlas({
   });
   const [terrainReady, setTerrainReady] = useState(false);
   const [reliefRendererReady, setReliefRendererReady] = useState(false);
+  const [heightData, setHeightData] = useState<Int16Array | null>(null);
+  const [heightDatum, setHeightDatum] = useState<number | null>(null);
 
   // Traverse simulation and route state
   const [routeState, setRouteState] = useState<RouteState>("preview");
@@ -167,8 +173,6 @@ export default function MarsAtlas({
   const reliefCanvasRef = useRef<HTMLCanvasElement>(null);
   const wireCanvasRef = useRef<HTMLCanvasElement>(null);
   const baseMapImageRef = useRef<HTMLImageElement | null>(null);
-  const heightDataRef = useRef<Int16Array | null>(null);
-  const heightDatumRef = useRef<number | null>(null);
   const reliefSceneRef = useRef<THREE.Scene | null>(null);
   const reliefCameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const reliefRendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -189,19 +193,19 @@ export default function MarsAtlas({
     return sampleMarsElevation(center.longitude, center.latitude);
   }, [centerX, centerZ]);
   const terrainHeightAt = useCallback((wx: number, wz: number) => {
-    const heights = heightDataRef.current;
+    const heights = heightData;
     if (!heights) {
       const mars = worldToMars(wx, wz);
       return (sampleMarsElevation(mars.longitude, mars.latitude) - terrainDatum) / RELIEF_HEIGHT_DIVISOR;
     }
     const u = (wx - B.west) / regionWidth;
     const v = (wz - B.north) / regionHeight;
-    const datum = heightDatumRef.current ?? terrainDatum;
+    const datum = heightDatum ?? terrainDatum;
     const mola = (sampleAtlasHeight(heights, u, v) - datum) / RELIEF_HEIGHT_DIVISOR;
     const localWeight = 1 - smoothAtlasBlend(185, 320, Math.hypot(wx, wz + 65));
     if (localWeight <= 0) return mola;
     return mola + (marsOutpostHeight(wx, wz) - marsRegionalHeight(wx, wz)) * localWeight;
-  }, [regionWidth, regionHeight, terrainDatum]);
+  }, [regionWidth, regionHeight, terrainDatum, heightData, heightDatum]);
 
   // Synchronize viewport size on resize/rotation
   useEffect(() => {
@@ -223,7 +227,7 @@ export default function MarsAtlas({
   useEffect(() => {
     const canvas = reliefCanvasRef.current;
     const image = baseMapImageRef.current;
-    const heights = heightDataRef.current;
+    const heights = heightData;
     if (!terrainReady || !canvas || !image || !heights) return;
 
     let renderer: THREE.WebGLRenderer;
@@ -343,7 +347,9 @@ export default function MarsAtlas({
       reliefCameraRef.current = camera;
       reliefRendererRef.current = renderer;
       reliefMaterialRef.current = material;
-      setReliefRendererReady(true);
+      requestAnimationFrame(() => {
+        setReliefRendererReady(true);
+      });
     } catch (error) {
       console.error("Mars atlas 3D relief could not be initialized:", error);
       geometry?.dispose();
@@ -363,7 +369,7 @@ export default function MarsAtlas({
       texture?.dispose();
       renderer.dispose();
     };
-  }, [terrainReady, regionHeight, regionWidth, terrainHeightAt]);
+  }, [terrainReady, regionHeight, regionWidth, terrainHeightAt, heightData]);
 
   // Keep the real mesh camera in the same world-space view as the game overlays.
   useEffect(() => {
@@ -431,8 +437,9 @@ export default function MarsAtlas({
       .then(([loadedImage, heights]) => {
         if (cancelled) return;
         baseMapImageRef.current = loadedImage;
-        heightDataRef.current = heights;
-        heightDatumRef.current = sampleAtlasHeight(heights, 0.5, 0.5);
+        const datum = sampleAtlasHeight(heights, 0.5, 0.5);
+        setHeightData(heights);
+        setHeightDatum(datum);
         setTerrainReady(true);
       })
       .catch((error: unknown) => {
@@ -960,6 +967,18 @@ export default function MarsAtlas({
       ctx.setLineDash([]);
     }
 
+    // Fictional Story Route (if provided in story mode)
+    if (storyRoute && storyRoute.length >= 2) {
+      const storyScreenPts = storyRoute.map((pt) => projectWorldToScreen(pt.x, pt.z, width, height));
+      ctx.beginPath();
+      storyScreenPts.forEach((pt, i) => (i === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1])));
+      ctx.strokeStyle = "#ffcf77";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([8, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     // 7. Expanding Waypoint Pulse Animation
     if (pulseRing > 0 && routeScreenPts.length > 0) {
       const targetPt = routeScreenPts[routeScreenPts.length - 1];
@@ -985,6 +1004,9 @@ export default function MarsAtlas({
     pulseRing,
     projectWorldToScreen,
     projectScreenToWorld,
+    storyRoute,
+    regionHeight,
+    regionWidth,
   ]);
 
   // Render 3D Terrain Wireframe Mesh Canvas (`wire` canvas)
@@ -1258,6 +1280,25 @@ export default function MarsAtlas({
                     <i>📍</i>
                     <span>WAYPOINT</span>
                   </button>
+                );
+              })()}
+
+              {/* Story Objective Pin (if in story mode) */}
+              {storyTarget && (() => {
+                const { width, height } = viewportSize;
+                const [sx, sy] = projectWorldToScreen(storyTarget.x, storyTarget.z, width, height);
+                const isVisible = sx >= -20 && sx <= width + 20 && sy >= -20 && sy <= height + 20;
+                if (!isVisible) return null;
+                return (
+                  <div
+                    className="pin chosen"
+                    style={{ left: `${sx}px`, top: `${sy}px` }}
+                    title={`Story objective: ${storyTarget.label}`}
+                    aria-label={`Story objective: ${storyTarget.label}`}
+                  >
+                    <i>!</i>
+                    <span>{storyTarget.label}</span>
+                  </div>
                 );
               })()}
 
