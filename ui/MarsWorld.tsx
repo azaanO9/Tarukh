@@ -2095,7 +2095,8 @@ function MarsWorld(props: Props) {
             cameraGround += (groundHeight - cameraGround) * (1 - Math.exp(-14 * dt));
           const astronautEyeHeight = marsAstronaut?.getEyeHeight() ?? 1.7;
           const eyeHeight = isDeadRef.current ? Math.max(.35,astronautEyeHeight-deathCollapse*1.35) : astronautEyeHeight;
-          eyeCamera.set(walker.x,cameraGround+eyeHeight+jump.height,walker.z);
+          const fpvForward = 0.28;
+          eyeCamera.set(walker.x - Math.sin(cameraYaw) * fpvForward,cameraGround+eyeHeight+jump.height,walker.z - Math.cos(cameraYaw) * fpvForward);
           const eyeRoll = isDeadRef.current ? camera.rotation.z+(.35-camera.rotation.z)*(1-Math.exp(-4*dt)) : 0;
           eyeRotation.setFromEuler(eyeAngles.set(pitch,cameraYaw,eyeRoll,"YXZ"));
           if (thirdBlend>0) {

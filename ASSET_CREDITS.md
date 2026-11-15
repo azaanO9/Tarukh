@@ -51,6 +51,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - The bounded exploration area's perimeter mountains are original procedural geometry. They are artistic barriers added to the MOLA crop, not NASA elevation measurements; no new external assets are used.
 - `public/team/tarukh-logo.png` and its WebP derivative: original team-supplied TARUKH identity marks. `public/team/tarukh-logo-menu.png` is the user-supplied blue illuminated logo used on the main menu. No logo files are loaded by the 3D exploration renderer.
+- `public/art/main-menu/red-valley/`: the supplied Red Valley illustration, separated for Parallax Atlas into sky, moons, clouds, basin, ridge and explorers. The main menu uses those six WebP plates and a still of the illustration. The landscape is fictional.
 
 ## Outpost, greenhouses and garage
 

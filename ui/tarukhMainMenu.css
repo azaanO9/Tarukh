@@ -25,50 +25,35 @@
   inset: 0;
   overflow: hidden;
   background: #171615;
+  pointer-events: none;
 }
 
-.tarukh-home-scene {
+.tarukh-valley {
   position: absolute;
-  inset: -2%;
-  width: 104%;
-  height: 104%;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(1.04);
-  transition: opacity 1.05s ease, visibility 0s linear 1.05s;
+  inset: 0;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.tarukh-valley-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+}
+
+.tarukh-valley-world img {
+  position: absolute;
+  display: block;
+  max-width: none;
   user-select: none;
 }
 
-.tarukh-home-scene.is-active {
-  z-index: 1;
-  opacity: 1;
-  visibility: visible;
-  animation: tarukh-home-kenburns 9s ease-out both;
-  transition: opacity 1.05s ease, visibility 0s;
-}
-
-.tarukh-home-scene.is-leaving {
-  z-index: 1;
-  opacity: 0;
-  visibility: visible;
-}
-
-.tarukh-home[data-transition="push"] .tarukh-home-scene.is-active {
-  animation: tarukh-home-push-in 1.2s cubic-bezier(.2,.75,.25,1) both;
-}
-
-.tarukh-home[data-transition="push"] .tarukh-home-scene.is-leaving {
-  animation: tarukh-home-push-out 1.2s cubic-bezier(.2,.75,.25,1) both;
-}
-
-.tarukh-home[data-transition="wipe"] .tarukh-home-scene.is-active {
-  animation: tarukh-home-wipe-in 1.2s cubic-bezier(.2,.7,.2,1) both, tarukh-home-kenburns 9s ease-out both;
-}
-
-.tarukh-home[data-transition="wipe"] .tarukh-home-scene.is-leaving {
-  animation: tarukh-home-wipe-out 1.15s ease-in both;
+.tarukh-home[data-playing="false"] .tarukh-home-dust {
+  animation-play-state: paused;
 }
 
 .tarukh-home-shade {
@@ -128,11 +113,10 @@
 
 .tarukh-home-logo-window img {
   position: absolute;
-  top: -41px;
-  left: 0;
+  inset: 0;
   display: block;
-  width: 210px;
-  height: 210px;
+  width: 100%;
+  height: 100%;
   max-width: none;
   object-fit: contain;
   mix-blend-mode: screen;
@@ -305,17 +289,27 @@
 }
 
 .tarukh-home-slideshow .tarukh-home-pips button {
-  width: 19px;
-  height: 3px;
+  width: 24px;
   border: 0;
-  background: rgba(239,225,207,.38);
+  background: transparent;
 }
 
-.tarukh-home-slideshow .tarukh-home-pips button.is-active {
+.tarukh-home-pips button::after {
+  content: "";
+  width: 19px;
+  height: 3px;
+  background: rgba(239,225,207,.5);
+}
+
+.tarukh-home-pips button.is-active::after {
   background: #f2a36c;
   box-shadow: 0 0 10px rgba(242,163,108,.6);
 }
 
+.tarukh-home-pips button:focus-visible {
+  outline: 1px solid var(--home-copper);
+  outline-offset: 1px;
+}
 .tarukh-home-menu {
   position: absolute;
   z-index: 5;
@@ -534,31 +528,6 @@
   outline-offset: 3px;
 }
 
-@keyframes tarukh-home-kenburns {
-  from { transform: scale(1.035) translate3d(0,0,0); }
-  to { transform: scale(1.105) translate3d(-.7%,-.5%,0); }
-}
-
-@keyframes tarukh-home-push-in {
-  from { opacity: .2; transform: scale(1.08) translate3d(4%,0,0); }
-  to { opacity: 1; transform: scale(1.105) translate3d(-.5%,-.3%,0); }
-}
-
-@keyframes tarukh-home-push-out {
-  from { opacity: 1; transform: scale(1.105) translate3d(-.5%,-.3%,0); }
-  to { opacity: 0; transform: scale(1.08) translate3d(-4%,0,0); }
-}
-
-@keyframes tarukh-home-wipe-in {
-  from { opacity: 1; clip-path: inset(0 0 0 100%); }
-  to { opacity: 1; clip-path: inset(0); }
-}
-
-@keyframes tarukh-home-wipe-out {
-  from { opacity: 1; clip-path: inset(0); }
-  to { opacity: .45; clip-path: inset(0 100% 0 0); }
-}
-
 @keyframes tarukh-home-dust {
   from { transform: translate3d(1%,0,0); }
   to { transform: translate3d(-3%,-1%,0); }
@@ -583,7 +552,7 @@
 @media (max-width: 650px) {
   .tarukh-home-header { left: 16px; right: 16px; height: 74px; }
   .tarukh-home-logo-window { flex-basis: 145px; width: 145px; height: 70px; }
-  .tarukh-home-logo-window img { top: -28px; width: 145px; height: 145px; }
+  .tarukh-home-logo-window img { width: 100%; height: 100%; }
   .tarukh-home-divider { height: 20px; margin: 0 10px 0 0; }
   .tarukh-home-brand-label { font-size: 7px; letter-spacing: .09em; }
   .tarukh-home-status { gap: 0; font-size: 7px; }
@@ -607,10 +576,10 @@
   .tarukh-home-option { min-height: 52px; grid-template-columns: 16px minmax(0,1fr) 9px; padding: 0 8px; border-bottom: 1px solid rgba(233,223,204,.14); }
   .tarukh-home-option:first-child { grid-column: 1 / -1; }
   .tarukh-home-option:nth-child(2n+3) { border-right: 0; }
-  .tarukh-home-option:last-child { grid-column: 1 / -1; border-bottom: 0; }
+  .tarukh-home-option:nth-last-child(-n+2) { border-bottom: 0; }
   .tarukh-home-option-copy strong { font-size: 12px; }
   .tarukh-home-option-copy small { font-size: 6px; }
-  .tarukh-home-footer { left: 16px; right: 16px; min-height: 41px; gap: 7px; font-size: 7px; }
+  .tarukh-home-footer { left: 16px; right: 16px; min-height: 41px; flex-direction: row; padding: 0; gap: 7px; font-size: 7px; }
   .tarukh-home-footer div { display: flex; align-items: center; gap: 4px; }
   .tarukh-home-footer b { margin: 0; padding: 3px 4px; }
   .tarukh-home-footer span { max-width: 45%; white-space: normal; text-align: right; }
@@ -618,7 +587,6 @@
 
 @media (max-width: 380px) {
   .tarukh-home-logo-window { flex-basis: 124px; width: 124px; }
-  .tarukh-home-logo-window img { left: -10px; }
   .tarukh-home-brand-label { max-width: 90px; }
   .tarukh-home-copy { top: 23%; }
   .tarukh-home-copy h1 { font-size: 64px; }
@@ -643,8 +611,14 @@
   .tarukh-home-slideshow { bottom: 184px; }
 }
 
+@media (max-height: 450px) and (min-width: 651px) {
+  .tarukh-home-copy { top: 22%; }
+  .tarukh-home-copy h1 { margin: 9px 0; font-size: clamp(49px, 15vh, 67px); }
+  .tarukh-home-description { margin-top: 8px; font-size: 12px; }
+  .tarukh-home-option-copy strong { white-space: normal; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tarukh-home-dust,.tarukh-home-status i { animation: none !important; }
-  .tarukh-home-scene.is-active { animation: none !important; transform: none; }
-  .tarukh-home-scene,.tarukh-home-option,.tarukh-home-option-arrow { transition-duration: .01ms !important; }
+  .tarukh-home-option,.tarukh-home-option-arrow { transition-duration: .01ms !important; }
 }

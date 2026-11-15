@@ -264,7 +264,7 @@ export function createRiggedAstronaut(
   let seated = false;
   let firstPersonView = false;
   let seatedPoseApplied = false;
-  let eyeHeight = 1.88;
+  let eyeHeight = 1.78;
   const headScale = new T.Vector3(1,1,1);
   const hipCenter = new T.Vector3(), otherHip = new T.Vector3(), headPosition = new T.Vector3();
   const updateHeadVisibility = () => {
@@ -540,7 +540,7 @@ export function createRiggedAstronaut(
       if (bones.head) {
         root.updateWorldMatrix(true, true);
         bones.head.bone.getWorldPosition(headPosition);
-        eyeHeight = root.worldToLocal(headPosition).y;
+        eyeHeight = root.worldToLocal(headPosition).y + 0.1;
       }
       updateHeadVisibility();
       handle.isModelLoaded = true;

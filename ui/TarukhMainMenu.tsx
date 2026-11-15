@@ -1,26 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { redValleyShots } from "../content/redValley";
 import { assetUrl } from "../lib/assetUrl";
+import RedValleyBackdrop from "./RedValleyBackdrop";
 import "./tarukhMainMenu.css";
 
-const scenes = [
-  {
-    name: "Elysium Planitia",
-    caption: "Sol 018 · 14:32 local · 24.63° N",
-    image: "art/main-menu/elysium-planitia.svg",
-  },
-  {
-    name: "Melas Chasma",
-    caption: "Sol 027 · 06:04 local · 11.82° S",
-    image: "art/main-menu/melas-chasma.svg",
-  },
-  {
-    name: "Olympus foothills",
-    caption: "Sol 041 · 19:41 local · 18.65° N",
-    image: "art/main-menu/olympus-foothills.svg",
-  },
-] as const;
+const motionQuery = "(prefers-reduced-motion: reduce)";
+const prefersPlayback = () => !window.matchMedia(motionQuery).matches;
+const serverPlayback = () => false;
 
 type LaunchMode = "pc" | "mobile";
 type Panel = "settings" | "about" | null;
@@ -44,41 +32,35 @@ export default function TarukhMainMenu({
 }: TarukhMainMenuProps) {
   const [panel, setPanel] = useState<Panel>(null);
   const [activeFrame, setActiveFrame] = useState(0);
-  const [leavingFrame, setLeavingFrame] = useState<number | null>(null);
-  const [transition, setTransition] = useState<"crossfade" | "push" | "wipe">("crossfade");
-  const [playing, setPlaying] = useState(false);
-  const activeFrameRef = useRef(0);
-  const leaveTimer = useRef<number | null>(null);
+  const [playbackOverride, setPlaybackOverride] = useState<boolean | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
 
-  const showFrame = useCallback((requestedFrame: number) => {
-    const next = (requestedFrame + scenes.length) % scenes.length;
-    const previous = activeFrameRef.current;
-    if (next === previous) return;
-    activeFrameRef.current = next;
-    setLeavingFrame(previous);
-    setTransition((["crossfade", "push", "wipe"] as const)[next]);
-    setActiveFrame(next);
-    if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
-    leaveTimer.current = window.setTimeout(() => setLeavingFrame(null), 1300);
+  const subscribeToMotion = useCallback((notify: () => void) => {
+    const preference = window.matchMedia(motionQuery);
+    const change = () => { setPlaybackOverride(null); notify(); };
+    preference.addEventListener("change", change);
+    return () => preference.removeEventListener("change", change);
   }, []);
-
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPlaying(!preference.matches);
-    const updatePreference = (event: MediaQueryListEvent) => setPlaying(!event.matches);
-    preference.addEventListener("change", updatePreference);
-    return () => {
-      preference.removeEventListener("change", updatePreference);
-      if (leaveTimer.current !== null) window.clearTimeout(leaveTimer.current);
-    };
+  const autoplay = useSyncExternalStore(subscribeToMotion, prefersPlayback, serverPlayback);
+  const playing = playbackOverride ?? autoplay;
+  const stepFrame = useCallback((step: number) => {
+    setActiveFrame(current => (current + step + redValleyShots.length) % redValleyShots.length);
   }, []);
 
   useEffect(() => {
     if (!playing) return;
-    const timer = window.setInterval(() => showFrame(activeFrameRef.current + 1), 9000);
-    return () => window.clearInterval(timer);
-  }, [playing, showFrame]);
+    let timer: number;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (!document.hidden) timer = window.setTimeout(() => stepFrame(1), 9000);
+    };
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", schedule);
+    };
+  }, [playing, activeFrame, stepFrame]);
 
   useEffect(() => {
     const element = dialog.current;
@@ -90,24 +72,12 @@ export default function TarukhMainMenu({
     };
   }, [panel]);
 
-  const selectedScene = scenes[activeFrame];
+  const selectedScene = redValleyShots[activeFrame];
 
   return (
-    <main className="tarukh-home" data-transition={transition}>
+    <main className="tarukh-home" data-playing={playing}>
       <div className="tarukh-home-backdrop" aria-hidden="true">
-        {scenes.map((scene, index) => (
-          <img
-            key={scene.image}
-            className={[
-              "tarukh-home-scene",
-              index === activeFrame ? "is-active" : "",
-              index === leavingFrame ? "is-leaving" : "",
-            ].filter(Boolean).join(" ")}
-            src={assetUrl(scene.image)}
-            alt=""
-            draggable={false}
-          />
-        ))}
+        <RedValleyBackdrop shot={activeFrame} playing={playing} />
         <div className="tarukh-home-shade" />
         <div className="tarukh-home-dust" />
       </div>
@@ -115,7 +85,7 @@ export default function TarukhMainMenu({
       <header className="tarukh-home-header">
         <div className="tarukh-home-brand">
           <span className="tarukh-home-logo-window">
-            <img src={assetUrl("team/tarukh-logo-menu.png")} alt="TARUKH" />
+            <img src={assetUrl("team/tarukh-blue-arc-logo.png")} alt="TARUKH" />
           </span>
           <span className="tarukh-home-divider" />
           <span className="tarukh-home-brand-label">Surface operations</span>
@@ -141,16 +111,16 @@ export default function TarukhMainMenu({
       </div>
 
       <div className="tarukh-home-slideshow" role="group" aria-label="Background slideshow controls">
-        <button type="button" aria-label="Previous scene" onClick={() => showFrame(activeFrameRef.current - 1)}>‹</button>
+        <button type="button" aria-label="Previous scene" onClick={() => stepFrame(-1)}>‹</button>
         <div className="tarukh-home-pips">
-          {scenes.map((scene, index) => (
+          {redValleyShots.map((scene, index) => (
             <button
               type="button"
-              key={scene.image}
+              key={scene.name}
               className={index === activeFrame ? "is-active" : ""}
               aria-label={"Show " + scene.name}
               aria-current={index === activeFrame ? "true" : undefined}
-              onClick={() => showFrame(index)}
+              onClick={() => setActiveFrame(index)}
             />
           ))}
         </div>
@@ -158,9 +128,9 @@ export default function TarukhMainMenu({
           type="button"
           aria-label={playing ? "Pause background slideshow" : "Play background slideshow"}
           aria-pressed={playing}
-          onClick={() => setPlaying(value => !value)}
+          onClick={() => setPlaybackOverride(!playing)}
         >{playing ? "Ⅱ" : "▶"}</button>
-        <button type="button" aria-label="Next scene" onClick={() => showFrame(activeFrameRef.current + 1)}>›</button>
+        <button type="button" aria-label="Next scene" onClick={() => stepFrame(1)}>›</button>
       </div>
 
       <nav className="tarukh-home-menu" aria-label="Main menu">
