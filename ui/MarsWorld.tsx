@@ -195,7 +195,8 @@ export default function MarsWorld(props: Props) {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const phoneOpenRef = useRef(false);
   phoneOpenRef.current = phoneOpen;
-  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data">("telemetry");
+  const [activePhoneTab, setActivePhoneTab] = useState<"telemetry" | "home" | "systems" | "data" | "science">("telemetry");
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const prevStormActive = useRef(false);
   const TouchDeck = (roverDriving ? RoverTouchDeck : MarsTouchDeck);
   const spaceWeatherService = useRef<SpaceWeatherService | null>(null);
@@ -1140,7 +1141,7 @@ export default function MarsWorld(props: Props) {
           if (e.key === "ArrowRight" && !e.repeat && !onInteractive) {
             e.preventDefault();
             setActivePhoneTab((current) => {
-              const tabs = ["home", "telemetry", "systems", "data"] as const;
+              const tabs = ["home", "telemetry", "systems", "data", "science"] as const;
               const idx = tabs.indexOf(current);
               return tabs[(idx + 1) % tabs.length];
             });
@@ -1149,7 +1150,7 @@ export default function MarsWorld(props: Props) {
           if (e.key === "ArrowLeft" && !e.repeat && !onInteractive) {
             e.preventDefault();
             setActivePhoneTab((current) => {
-              const tabs = ["home", "telemetry", "systems", "data"] as const;
+              const tabs = ["home", "telemetry", "systems", "data", "science"] as const;
               const idx = tabs.indexOf(current);
               return tabs[(idx - 1 + tabs.length) % tabs.length];
             });
@@ -1168,7 +1169,8 @@ export default function MarsWorld(props: Props) {
           }
           return;
         }
-        if (e.code === "CapsLock" && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey && tag !== "INPUT" && current.current.onOpenMap) {
+        const isMapKey = (e.code === "KeyM" || k === "m" || e.code === "CapsLock");
+        if (isMapKey && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey && tag !== "INPUT" && current.current.onOpenMap) {
           e.preventDefault();
           current.current.onOpenMap();
           return;
@@ -2456,7 +2458,7 @@ export default function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<div ref={host} className="sv-world" data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}

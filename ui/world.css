@@ -2856,3 +2856,415 @@
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   SpaceX & NASA Screen 3 (Data) & Screen 4 (Science) Phone UI Styling
+   ========================================================================== */
+
+.mars-hero-sep-badge.science-badge {
+  background: rgba(255, 109, 0, 0.15);
+  border-color: rgba(255, 109, 0, 0.45);
+  color: #ff6d00;
+  cursor: default;
+}
+
+.mars-science-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Screen 3: Data Tab */
+.mars-data-storage-card {
+  background: rgba(26, 18, 20, 0.85);
+  border: 1px solid rgba(255, 120, 70, 0.22);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mars-data-storage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mars-data-storage-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 800 9px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+}
+
+.mars-data-storage-values {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.mars-storage-amt {
+  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #a1a1aa;
+}
+
+.mars-storage-pct {
+  font: 800 10.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #ff6d00;
+}
+
+.mars-capsule-fill.data-storage-bar {
+  background: linear-gradient(90deg, #ff6d00 0%, #ffa726 100%);
+  box-shadow: 0 0 8px rgba(255, 109, 0, 0.65);
+}
+
+/* 2x2 Category Grid */
+.mars-data-cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.mars-data-cat-tile {
+  background: rgba(22, 15, 17, 0.82);
+  border: 1px solid rgba(255, 120, 70, 0.2);
+  border-radius: 7px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.mars-data-cat-tile:hover {
+  background: rgba(36, 24, 28, 0.95);
+  border-color: rgba(255, 120, 70, 0.45);
+  transform: translateY(-1px);
+}
+
+.mars-data-cat-tile.science-tile {
+  border-color: rgba(255, 109, 0, 0.4);
+  background: rgba(255, 109, 0, 0.06);
+}
+
+.mars-data-cat-tile.science-tile:hover {
+  background: rgba(255, 109, 0, 0.15);
+  border-color: #ff6d00;
+}
+
+.cat-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.cat-label {
+  font: 800 8.5px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.cat-meta {
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
+  color: #71717a;
+}
+
+/* Recent Data Section */
+.mars-recent-data-card {
+  background: rgba(22, 15, 17, 0.82);
+  border: 1px solid rgba(255, 120, 70, 0.2);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mars-recent-data-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1px 2px;
+}
+
+.recent-header-title {
+  font: 800 9px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #f4f4f5;
+  letter-spacing: 0.04em;
+}
+
+.recent-view-all-btn {
+  background: none;
+  border: none;
+  color: #ff6d00;
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.recent-view-all-btn:hover {
+  color: #ffa726;
+  background: rgba(255, 109, 0, 0.1);
+}
+
+.mars-recent-data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+}
+
+.mars-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: rgba(14, 10, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.mars-recent-row:hover {
+  background: rgba(255, 109, 0, 0.08);
+  border-color: rgba(255, 120, 70, 0.25);
+}
+
+.recent-row-thumb {
+  width: 32px;
+  height: 22px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.recent-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  overflow: hidden;
+}
+
+.recent-row-name {
+  font: 800 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #ffffff;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.recent-row-details {
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
+  color: #71717a;
+}
+
+.recent-row-time {
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #a1a1aa;
+  flex-shrink: 0;
+}
+
+/* Screen 4: Science Tab */
+.mars-sample-hero-card {
+  background: rgba(26, 18, 20, 0.85);
+  border: 1px solid rgba(255, 120, 70, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mars-sample-target-box {
+  position: relative;
+  width: 64px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 8, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.target-bracket {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: rgba(255, 109, 0, 0.9);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.target-bracket.tl { top: 2px; left: 2px; border-width: 1.5px 0 0 1.5px; }
+.target-bracket.tr { top: 2px; right: 2px; border-width: 1.5px 1.5px 0 0; }
+.target-bracket.bl { bottom: 2px; left: 2px; border-width: 0 0 1.5px 1.5px; }
+.target-bracket.br { bottom: 2px; right: 2px; border-width: 0 1.5px 1.5px 0; }
+
+.mars-sample-rock-render {
+  width: 46px;
+  height: 38px;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 170, 110, 0.55), transparent 60%),
+    linear-gradient(135deg, rgba(200, 75, 35, 0.4), rgba(40, 15, 10, 0.85)),
+    url('/art/mars-surface/fractured-rock-color.webp') center / cover no-repeat;
+  clip-path: polygon(25% 4%, 62% 0%, 88% 20%, 98% 54%, 82% 88%, 46% 98%, 14% 86%, 2% 50%, 8% 18%);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 4px rgba(255, 109, 0, 0.35));
+}
+
+.mars-sample-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sample-title {
+  margin: 0;
+  font: 800 10.5px/1.1 ui-monospace, "SF Mono", sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.sample-id {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #a1a1aa;
+}
+
+.sample-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 3px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.45);
+  color: #00e676;
+  font: 800 7px/1 ui-monospace, monospace;
+  letter-spacing: 0.05em;
+}
+
+.sample-chevron {
+  color: #ff6d00;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 6-Grid Stats */
+.mars-science-grid-6 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.mars-sci-card {
+  background: rgba(22, 15, 17, 0.82);
+  border: 1px solid rgba(255, 120, 70, 0.2);
+  border-radius: 7px;
+  padding: 6px 3px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: all 0.15s ease;
+}
+
+.mars-sci-card:hover {
+  background: rgba(34, 22, 26, 0.95);
+  border-color: rgba(255, 120, 70, 0.45);
+  transform: translateY(-1px);
+}
+
+.sci-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+}
+
+.sci-card-label {
+  font: 700 6.5px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #71717a;
+  letter-spacing: 0.06em;
+}
+
+.sci-card-val {
+  font: 800 9.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #ffffff;
+}
+
+/* Experiment Log Card */
+.mars-experiment-log-card {
+  background: rgba(22, 15, 17, 0.82);
+  border: 1px solid rgba(255, 120, 70, 0.2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mars-experiment-log-card:hover {
+  background: rgba(34, 22, 26, 0.95);
+  border-color: rgba(255, 109, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.exp-log-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exp-log-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exp-log-title {
+  font: 800 8.5px/1 ui-monospace, "SF Mono", sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+}
+
+.exp-log-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exp-log-val {
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #a1a1aa;
+}
+
+.exp-log-chevron {
+  color: #ff6d00;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}

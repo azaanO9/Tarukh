@@ -629,3 +629,646 @@
 .roam-root .sv-auto-result{font:14px/1.5 system-ui;margin:10px 0;color:#e0eef2}
 .roam-root .sv-look-controls :focus-visible{outline:3px solid #9be9ed;outline-offset:2px}
 @media(max-height:460px){.roam-root .sv-look-controls{top:76px}.roam-root .sv-look-controls details{max-height:calc(100dvh - 90px)}.roam-root .mars-debug[data-mode=detailed]{top:128px;right:72px}}
+
+/* ==========================================================================
+   GTA V Style Interactive Full Map / Atlas Screen
+   ========================================================================== */
+
+.roam-dialog:has(.gta-atlas-container) {
+  max-width: min(96vw, 1340px) !important;
+  width: 96vw !important;
+  height: min(92dvh, 900px) !important;
+  max-height: 92dvh !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  background: rgba(14, 10, 12, 0.98) !important;
+  border: 1px solid rgba(255, 120, 70, 0.3) !important;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 109, 0, 0.18) !important;
+}
+
+.gta-atlas-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  color: #f4f4f5;
+  font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 109, 0, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #120c0e 0%, #0a0708 100%);
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 1. Top Pause Menu Header */
+.gta-atlas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(10, 7, 8, 0.96);
+  border-bottom: 1px solid rgba(255, 120, 70, 0.25);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.gta-atlas-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.gta-brand-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00e676;
+  box-shadow: 0 0 6px #00e676;
+}
+
+.gta-brand-title {
+  font: 900 13px/1 ui-monospace, sans-serif;
+  letter-spacing: 0.22em;
+  color: #ffffff;
+}
+
+.gta-brand-sub {
+  font: 700 8.5px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  color: #a1a1aa;
+}
+
+.gta-atlas-tabs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gta-atlas-tab {
+  background: none;
+  border: none;
+  color: #71717a;
+  padding: 6px 4px;
+  font: 800 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.gta-atlas-tab:hover {
+  color: #e4e4e7;
+}
+
+.gta-atlas-tab.active {
+  color: #ffffff;
+}
+
+.gta-tab-active-bar {
+  position: absolute;
+  bottom: -9px;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  background: #ff6d00;
+  box-shadow: 0 0 8px #ff6d00;
+  border-radius: 1px;
+}
+
+.gta-atlas-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gta-meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1.5px;
+}
+
+.meta-lbl {
+  font: 700 6.5px/1 ui-monospace, monospace;
+  color: #71717a;
+  letter-spacing: 0.1em;
+}
+
+.meta-val {
+  font: 800 9.5px/1 ui-monospace, monospace;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.gta-atlas-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  transition: all 0.15s ease;
+  margin-left: 6px;
+}
+
+.gta-atlas-close-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+}
+
+/* 2. Workspace Layout */
+.gta-atlas-workspace {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #080506;
+}
+
+.gta-atlas-map-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.gta-atlas-map-viewport:active {
+  cursor: grabbing;
+}
+
+.gta-atlas-svg-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* North Directional Compass (Top-Left) */
+.gta-map-north-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(14, 10, 12, 0.85);
+  border: 1px solid rgba(255, 120, 70, 0.3);
+  border-radius: 6px;
+  padding: 4px 6px;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.north-arrow {
+  color: #ef4444;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.north-label {
+  font: 900 9px/1 monospace;
+  color: #ef4444;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+
+/* Crosshair HUD (Top-Right) */
+.gta-map-crosshair-hud {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(14, 10, 12, 0.85);
+  border: 1px solid rgba(255, 120, 70, 0.25);
+  border-radius: 5px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 800 8.5px/1 monospace;
+  color: #e4e4e7;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.crosshair-icon {
+  color: #ff6d00;
+  font-size: 11px;
+}
+
+/* Zoom & Center HUD Controls (Bottom-Right of map) */
+.gta-map-controls-hud {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(14, 10, 12, 0.9);
+  border: 1px solid rgba(255, 120, 70, 0.3);
+  border-radius: 7px;
+  padding: 4px;
+  backdrop-filter: blur(8px);
+  z-index: 5;
+}
+
+.gta-hud-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 12px/1 monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gta-hud-btn:hover {
+  background: rgba(255, 109, 0, 0.2);
+  border-color: #ff6d00;
+  color: #ffffff;
+}
+
+.gta-hud-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1px 0;
+}
+
+.gta-hud-btn.center-btn {
+  color: #00e676;
+  font-size: 14px;
+}
+
+.gta-hud-btn.center-btn:hover {
+  background: rgba(0, 230, 118, 0.2);
+  border-color: #00e676;
+}
+
+/* Metric Scale HUD (Bottom-Left) */
+.gta-map-scale-hud {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background: rgba(14, 10, 12, 0.85);
+  border: 1px solid rgba(255, 120, 70, 0.25);
+  border-radius: 5px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
+.scale-bar-track {
+  width: 90px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.scale-bar-track i {
+  display: block;
+  height: 100%;
+  background: #ff6d00;
+}
+
+.scale-text {
+  font: 700 7.5px/1 monospace;
+  color: #d4d4d8;
+  letter-spacing: 0.04em;
+}
+
+/* Waypoint HUD Pill */
+.gta-map-waypoint-hud {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(14, 10, 12, 0.92);
+  border: 1px solid #ff6d00;
+  border-radius: 20px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 16px rgba(255, 109, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.waypoint-icon {
+  color: #ff6d00;
+  font-size: 12px;
+}
+
+.waypoint-info b {
+  display: block;
+  font-size: 8.5px;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+}
+
+.waypoint-info small {
+  font-size: 7.5px;
+  color: #a1a1aa;
+}
+
+.waypoint-clear-btn {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 10px;
+}
+
+.waypoint-clear-btn:hover {
+  color: #ef4444;
+}
+
+/* 3. Landmark & POI Sidebar */
+.gta-atlas-sidebar {
+  width: 290px;
+  background: rgba(16, 12, 14, 0.95);
+  border-left: 1px solid rgba(255, 120, 70, 0.25);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  z-index: 8;
+}
+
+.gta-sidebar-header {
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gta-sidebar-header h3 {
+  font: 800 10px/1 monospace;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  margin: 0 0 8px;
+}
+
+.gta-filter-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #a1a1aa;
+  border-radius: 3px;
+  padding: 3px 6px;
+  font: 700 7px/1 monospace;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.filter-chip.active {
+  background: rgba(255, 109, 0, 0.2);
+  border-color: #ff6d00;
+  color: #ff6d00;
+}
+
+.gta-poi-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gta-poi-category-title {
+  font: 800 7px/1 monospace;
+  color: #ff6d00;
+  letter-spacing: 0.1em;
+  margin: 4px 2px 2px;
+}
+
+.gta-poi-card {
+  background: rgba(26, 18, 20, 0.7);
+  border: 1px solid rgba(255, 120, 70, 0.16);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: inherit;
+}
+
+.gta-poi-card:hover {
+  background: rgba(38, 24, 28, 0.95);
+  border-color: rgba(255, 120, 70, 0.45);
+  transform: translateX(2px);
+}
+
+.gta-poi-card.active {
+  background: rgba(255, 109, 0, 0.16);
+  border-color: #ff6d00;
+  box-shadow: 0 0 10px rgba(255, 109, 0, 0.2);
+}
+
+.poi-card-icon,
+.poi-card-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 9px/1 monospace;
+  color: #ffedd5;
+  flex-shrink: 0;
+}
+
+.poi-card-meta {
+  flex: 1;
+  overflow: hidden;
+}
+
+.poi-card-meta b {
+  display: block;
+  font-size: 8.5px;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poi-card-meta small {
+  font-size: 7px;
+  color: #a1a1aa;
+}
+
+.poi-card-chevron {
+  color: #ff6d00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Selected Landmark Detail Card in Sidebar */
+.gta-landmark-detail-card {
+  padding: 10px 12px;
+  background: rgba(20, 14, 16, 0.96);
+  border-top: 1px solid rgba(255, 120, 70, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-header h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.detail-tag {
+  font: 800 6.5px/1 monospace;
+  background: rgba(255, 109, 0, 0.2);
+  border: 1px solid #ff6d00;
+  color: #ff6d00;
+  padding: 2px 5px;
+  border-radius: 2px;
+}
+
+.detail-desc {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.detail-source-link {
+  color: #38bdf8;
+  font-size: 8px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detail-source-link:hover {
+  color: #7dd3fc;
+}
+
+.gta-waypoint-set-btn {
+  background: linear-gradient(135deg, #ff6d00 0%, #ea580c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 6px;
+  font: 800 8.5px/1 monospace;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.gta-waypoint-set-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* 4. Bottom Controls Legend Strip */
+.gta-atlas-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 16px;
+  background: rgba(10, 7, 8, 0.96);
+  border-top: 1px solid rgba(255, 120, 70, 0.25);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.gta-legend-keys {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gta-key-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 7.5px/1 monospace;
+  color: #a1a1aa;
+  letter-spacing: 0.04em;
+}
+
+.gta-kbd {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font: 800 7.5px/1 monospace;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.gta-footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.gta-trek-link {
+  font: 700 8px/1 monospace;
+  color: #38bdf8;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.15s ease;
+}
+
+.gta-trek-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .gta-atlas-sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 250px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+  }
+  .gta-atlas-tabs {
+    display: none;
+  }
+}

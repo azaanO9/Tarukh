@@ -554,15 +554,15 @@ export default function ExplorationMinimap({
               type="button"
               className="roam-atlas-open"
               onClick={onOpenAtlas}
-              aria-keyshortcuts="CapsLock"
-              title="Open landmark atlas · Caps Lock"
-              aria-label={`Open landmark atlas. Selected ${target.name}`}
+              aria-keyshortcuts="KeyM"
+              title="Open field map · [M]"
+              aria-label={`Open field map. Selected ${target.name}`}
             >
               <span className="roam-atlas-target">
                 <span className="roam-atlas-pin-icon">◆</span>
                 {target.number}. {target.name}
               </span>
-              <small className="roam-atlas-dist">{Math.round(Math.hypot(target.x - x, target.z - z))}m · Atlas</small>
+              <small className="roam-atlas-dist">{Math.round(Math.hypot(target.x - x, target.z - z))}m · Map [M]</small>
             </button>
           </div>
         </div>
