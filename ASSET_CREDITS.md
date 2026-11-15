@@ -43,6 +43,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - `createPerseveranceRover.ts`: original simplified rover geometry, thermal deck, wheel rig, mast, antenna and generated labels. It marks the historical landing position, not the rover's current location.
 - `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch and stairs, now used as the settled Mars shelter. The active opening is the Starship cinematic described below. Neither spacecraft presentation is a NASA vehicle certification or validated descent simulation.
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
+- The bounded exploration area's perimeter mountains are original procedural geometry. They are artistic barriers added to the MOLA crop, not NASA elevation measurements; no new external assets are used.
 - `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
 
 ## Outpost, greenhouses and garage
@@ -52,6 +53,8 @@ The game uses the reviewed original TARUKH rover garage, with the supplied **Sci
 The cultivation district uses the user-supplied **Arcadia greenhouse** model, placed six times using shared geometry and textures. Both provided filenames contain the same enclosed source. Its provenance, source hash and preparation changes are recorded in [greenhouse attribution](public/models/greenhouse/ATTRIBUTION.md). The original building deck, crops and equipment are retained; surrounding soil comes from the game's own graded terrain. The game applies a uniform 1.6 scale for astronaut clearance, with matching ramps, doors and collision footprints; the supplied and prepared model files are unchanged. No additional third-party models were downloaded.
 
 The game uses a derivative of the later v9 white modular campus in `public/models/outpost/`. Its [attribution](public/models/outpost/ATTRIBUTION.md) and [source manifest](public/models/outpost/sources.json) identify all furnishings and the supplied CC BY computer and lift door. Preparation removes the review landscape and basalt, simplifies surfaces conservatively, instances shared geometry, batches static parts and converts textures to WebP at a maximum 1024 pixels. All eleven gate animation clips are retained. The reviewed source exports are unchanged. The three prepared game GLBs ship with the repository and their attribution records.
+
+The game derivative also removes obstructing observatory doorway trim and adds original fitted pressure collars around the ten internal airlock gates. Existing materials and supplied door geometry are retained; no additional external assets are used. These corrections are reproduced by `scripts/outpost-repairs.mjs` during asset preparation.
 
 ## Separate outpost review models
 

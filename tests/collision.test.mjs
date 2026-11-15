@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boxObstacle,moveAndSlide,overlapDisc,overlapBody} from '../game/collision.ts';
+import {boxObstacle,moveAndSlide,overlapDisc,overlapBody,nearbyObstacles} from '../game/collision.ts';
 import {stepWalker,WALKER_RADIUS} from '../game/navigation.ts';
 import {spawnRoverVehicle,enterRover,stepRoverVehicle,exitRover,roverFootprint} from '../game/roverVehicle.ts';
 
@@ -9,6 +9,13 @@ test('continuous sweeps stop a fast walker at a thin wall instead of tunnelling'
  const next=stepWalker({x:0,z:2,vx:0,vz:-100,yaw:0},new Set(['w']),.05,[wall],100);
  assert.ok(next.z>=.04+WALKER_RADIUS-1e-5);
  assert.equal(next.vz,0);
+});
+
+test('reused broadphase buffers keep nearby contacts and long boundary walls',()=>{
+ const near=boxObstacle(3,1,1,1),far=boxObstacle(90,90,1,1),wall=boxObstacle(100,0,100,1);
+ const result=[far];assert.equal(nearbyObstacles([near,far,wall],0,0,4,result),result);
+ assert.deepEqual(result,[near,wall]);
+ nearbyObstacles([near,far],90,90,4,result);assert.deepEqual(result,[far]);
 });
 
 test('diagonal wall contact preserves tangential movement without jitter or stored inward velocity',()=>{

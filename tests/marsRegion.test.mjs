@@ -38,7 +38,7 @@ test('decoded big-endian PDS topography retains observed volcano/plains elevatio
  for(const [lon,lat] of [[R.west,R.north],[R.east,R.south],[R.west-5,R.north+5]])assert.ok(Number.isFinite(sampleMarsElevation(lon,lat)));
 });
 
-test('regional surface is continuous, spawn is graded and infinite continuation stays finite',()=>{
+test('regional surface is continuous, spawn is graded and out-of-crop sampling stays finite',()=>{
  for(const [x,z] of [[0,12],[0,21],[17,10]])assert.equal(marsExpeditionHeight(x,z),0);
  for(let x=-600;x<600;x+=19)for(let z=-500;z<500;z+=23){const a=marsExpeditionHeight(x,z);assert.ok(Number.isFinite(a));assert.ok(Math.abs(a-marsExpeditionHeight(x+.001,z))<.05);}
  assert.equal(isSurveyedRegion(10000,10000),false);
@@ -57,7 +57,7 @@ test('streaming uses the measured height sampler on both sides of a tile seam an
    assert.equal(root.children.length,18);
    for(const tile of root.children.filter(m=>m.name==='streamed-ground'&&m.visible)){
     const v=tile.geometry.attributes.position;
-    for(const i of [0,35,70,5040])assert.ok(Math.abs(v.getY(i)-marsExpeditionHeight(v.getX(i)+tile.position.x,v.getZ(i)+tile.position.z))<1e-4);
+    for(const i of [0,35,70,v.count-1])assert.ok(Math.abs(v.getY(i)-marsExpeditionHeight(v.getX(i)+tile.position.x,v.getZ(i)+tile.position.z))<1e-4);
    }
   }
   const x=280,z=-300.25;assert.ok(Math.abs(stream.heightAt(x-1e-7,z)-stream.heightAt(x,z))<1e-5);

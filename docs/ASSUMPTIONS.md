@@ -8,7 +8,7 @@ The supplied Mars Trek extent uses an equirectangular projection centred at 134.
 
 The 16-pixel/degree MOLA product includes measured and interpolated altimetry. The downsampled crop has roughly 0.316° × 0.318° cells, about 19 km north/south before gameplay compression. It cannot resolve individual rocks, narrow channels or an actual landing pad. Surface grains, local rocks and flattened spawn areas are artistic additions.
 
-Landmarks mark gazetteer feature centres, not necessarily summits or boundaries. Outside the supplied crop, heights clamp to its edge while procedural terrain continues. The interface labels that continuation as a procedural frontier. Perseverance's coordinates mark its historical touchdown; the model and surrounding rocks are original approximations, not a live position feed or measured reconstruction.
+Landmarks mark gazetteer feature centres, not necessarily summits or boundaries. Exploration is restricted to the supplied MOLA region: approximately 1.74 × 1.32 game kilometres inside an authored mountain perimeter. These perimeter ridges and their impassable collision walls are gameplay boundaries, not measured Martian features. Detail tiles are only generated where they intersect the survey crop. All seven landmark positions are retained. Perseverance's coordinates mark its historical touchdown; the model and surrounding rocks are original approximations, not a live position feed or measured reconstruction.
 
 ## Movement, vehicles and time
 

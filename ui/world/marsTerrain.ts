@@ -11,6 +11,7 @@ import { createMarsTrackSystem } from "./marsTrackDeformation.ts";
 import type { RoverVehicle } from "../../game/roverVehicle.ts";
 import type { CuriosityRoverState } from "../../game/curiosityRover.ts";
 import { fallbackMarsSurfaceTextures, stochasticSurfaceGLSL, type MarsSurfaceTextures } from "./marsSurfaceTextures.ts";
+import { terrainPatches } from './terrainPatches.ts';
 const firmGroundZones: readonly [
   number,
   number
@@ -236,10 +237,14 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
    reflectedLight.indirectSpecular*=mix(soilCavity,1.0,.5);`);
   };
   groundMat.customProgramCacheKey = () => "tarukh-height-blended-soil-rolling-tracks-v5";
-  const ground = new T.Mesh(geometry, groundMat);
-  ground.name = "mars-ground";
-  ground.receiveShadow = true;
-  root.add(ground);
+  const groundPatches = terrainPatches(geometry, 6, 6).map((patch, i) => {
+    const mesh = new T.Mesh(patch, groundMat);
+    mesh.name = i === 0 ? 'mars-ground' : `mars-ground-patch-${i}`;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+    return mesh;
+  });
+  geometry.dispose();
   const rockMat = new T.MeshStandardMaterial({ map: surfaces.rock.color, bumpMap: surfaces.rock.relief, bumpScale: .055, roughness: .9 });
   rockMat.onBeforeCompile = shader => {
     shader.vertexShader = "varying vec3 vStoneWorld; varying vec3 vStoneNormal;\n" + shader.vertexShader;
@@ -556,7 +561,7 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
   };
   lightRockMat.customProgramCacheKey = () => "tarukh-light-rock-v1";
   function setLightSurfaces(light: boolean) {
-    ground.material = light ? lightGroundMat : groundMat;
+    for (const ground of groundPatches) ground.material = light ? lightGroundMat : groundMat;
     for (const rocks of [small, ...large])
       rocks.material = light ? lightRockMat : rockMat;
   }
@@ -600,6 +605,9 @@ export function createMarsTerrain(root: T.Group, suppliedSurfaces?: MarsSurfaceT
 }
 export function createMarsSky(scene: T.Scene) {
   const material = createMarsSkyMaterial();
+  // Atmosphere is a background, independent of the tier's much nearer terrain far plane.
+  material.vertexShader = material.vertexShader.replace('gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);',
+    'gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position.z=gl_Position.w;');
   const sky = new T.Mesh(new T.SphereGeometry(850, 40, 24), material);
   sky.name = "mars-sky";
   scene.add(sky);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {OUTPOST_SITE,outpostGradeWeight,gradeOutpostTerrain,outpostClearing} from '../game/outpostSite.ts';
 import {marsExpeditionHeight,marsOutpostHeight,OUTPOST_GROUND_HEIGHT} from '../game/marsExpeditionTerrain.ts';
-import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor} from '../game/outpost.ts';
+import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor,occupiesOutpostDoor,OUTPOST_AIRLOCK_PAIRS,OUTPOST_AUTO_CLOSE_SECONDS} from '../game/outpost.ts';
 import {moveAndSlide} from '../game/collision.ts';
 import {scanRoverLidar} from '../game/roverLidar.ts';
 import {spawnRoverVehicle} from '../game/roverVehicle.ts';
@@ -102,4 +102,118 @@ test('gate state is independent and invalid frame deltas cannot move a leaf',()=
   for(const dt of [NaN,-1,Infinity,0])assert.equal(stepOutpostDoor(door,dt,0,0,0),false);
   stepOutpostDoor(door,1000,door.x,door.y,door.z+4);
   assert.ok(door.amount>0&&door.amount<.1);assert.ok(doors.slice(1).every(d=>d.amount===0));
+});
+
+function stepGates(campus,frames,position) {
+  for(let frame=0;frame<frames;frame++){
+    for(const door of campus.doors)stepOutpostDoor(door,.05,position.x,position.y,position.z);
+    for(const door of campus.doors)if(door.pair){
+      assert.ok(door.amount===0||door.pair.amount===0,`${door.id}: both chamber gates are raised`);
+    }
+  }
+}
+
+test('all outpost doors auto-close only after the fully open doorway has remained clear',()=>{
+  const campus=state();
+  assert.equal(campus.doors.find(door=>door.id==='entrance').pair,undefined);
+  for(const door of campus.doors){
+    assert.equal(door.autoCloseSeconds,OUTPOST_AUTO_CLOSE_SECONDS);
+    const outside={x:door.x+door.nx*3,y:door.y,z:door.z+door.nz*3};
+    toggleOutpostDoor(door,outside.x,outside.y,outside.z);
+    stepGates(campus,34,outside);
+    assert.equal(door.amount,1);
+    stepGates(campus,100,{x:door.x,y:door.y,z:door.z});
+    assert.equal(door.amount,1,'An occupied open doorway must stay open');
+    assert.equal(door.clearSeconds,0);
+    stepGates(campus,39,outside);
+    assert.equal(door.amount,1,'Two clear seconds are required');
+    stepGates(campus,2,outside);
+    assert.ok(door.amount<1);
+    stepGates(campus,34,outside);
+    assert.equal(door.amount,0);
+    assert.equal(door.collider.disabled,false);
+  }
+});
+
+test('each airlock cycles in both directions and waits for a fully sealed opposite gate',()=>{
+  for(const pair of OUTPOST_AIRLOCK_PAIRS)for(const reverse of [false,true]){
+    const campus=state(),ids=reverse?[...pair].reverse():pair;
+    const first=campus.doors.find(door=>door.id===ids[0]);
+    const next=campus.doors.find(door=>door.id===ids[1]);
+    assert.equal(first.pair,next);assert.equal(next.pair,first);
+    const middle={x:(first.x+next.x)/2,y:first.y,z:(first.z+next.z)/2};
+    assert.equal(occupiesOutpostDoor(first,middle.x,middle.y,middle.z),false);
+    assert.equal(occupiesOutpostDoor(next,middle.x,middle.y,middle.z),false);
+    toggleOutpostDoor(first,middle.x,middle.y,middle.z);
+    stepGates(campus,34,middle);assert.equal(first.amount,1);
+    toggleOutpostDoor(next,middle.x,middle.y,middle.z);
+    assert.equal(next.waiting,true);assert.equal(next.target,0);
+    for(let frame=0;frame<34;frame++){
+      stepGates(campus,1,middle);
+      if(first.amount>0)assert.equal(next.amount,0);
+    }
+    assert.equal(first.amount,0);assert.equal(first.collider.disabled,false);
+    stepGates(campus,34,middle);
+    assert.equal(next.amount,1);assert.equal(next.waiting,false);
+  }
+});
+
+test('queued gate waits safely when the departing gate is occupied, then continues after clearance',()=>{
+  const campus=state(),first=campus.doors.find(door=>door.id==='botany_transit'),next=first.pair;
+  const occupied={x:first.x,y:first.y,z:first.z};
+  toggleOutpostDoor(first,occupied.x,occupied.y,occupied.z);stepGates(campus,34,occupied);
+  toggleOutpostDoor(next,occupied.x,occupied.y,occupied.z);
+  stepGates(campus,100,occupied);
+  assert.equal(first.amount,1);assert.equal(first.blocked,true);
+  assert.equal(next.waiting,true);assert.equal(next.amount,0);
+  // The 1.65m botany chamber has useful standing space, not a deadlocked overlap
+  // of both gates' much larger architectural frame bounds.
+  const middle={x:first.x,y:first.y,z:(first.z+next.z)/2+.12};
+  assert.equal(occupiesOutpostDoor(first,middle.x,middle.y,middle.z),false);
+  assert.equal(occupiesOutpostDoor(next,middle.x,middle.y,middle.z),false);
+  stepGates(campus,68,middle);
+  assert.equal(first.amount,0);assert.equal(next.amount,1);
+});
+
+test('walking back into an automatically closing gate reverses it before collision overlap',()=>{
+  const campus=state(),door=campus.doors.find(door=>door.id==='entrance');
+  const clear={x:door.x,y:door.y,z:door.z+3};
+  toggleOutpostDoor(door,clear.x,clear.y,clear.z);stepGates(campus,76,clear);
+  assert.equal(door.target,0);assert.ok(door.amount<1&&door.amount>0);
+  const near={x:door.x,y:door.y,z:door.z+.5};
+  stepGates(campus,1,near);
+  assert.equal(door.target,1);assert.equal(door.blocked,true);
+  stepGates(campus,34,near);assert.equal(door.amount,1);
+});
+
+test('a queued request can be cancelled or replaced without reopening both sides',()=>{
+  for(const replacement of ['cancel','reopen']){
+    const campus=state(),first=campus.doors.find(door=>door.id==='west_command'),next=first.pair;
+    const middle={x:(first.x+next.x)/2,y:first.y,z:first.z};
+    toggleOutpostDoor(first,middle.x,middle.y,middle.z);stepGates(campus,34,middle);
+    toggleOutpostDoor(next,middle.x,middle.y,middle.z);stepGates(campus,5,middle);
+    assert.equal(next.waiting,true);
+    const requested=replacement==='cancel'?next:first;
+    toggleOutpostDoor(requested,middle.x,middle.y,middle.z);
+    assert.equal(next.waiting,false);
+    stepGates(campus,25,middle);
+    assert.equal(next.amount,0);
+    if(replacement==='reopen')assert.equal(first.amount,1);
+    stepGates(campus,100,middle);
+    assert.equal(next.amount,0);assert.equal(first.amount,0);
+  }
+});
+
+test('pause and invalid deltas do not advance the closing timer or queued state',()=>{
+  const campus=state(),door=campus.doors.find(door=>door.id==='east_command');
+  door.amount=door.target=1;door.clearSeconds=.5;door.collider.disabled=true;
+  for(const dt of [0,-1,NaN,Infinity]){
+    assert.equal(stepOutpostDoor(door,dt,door.x+4,door.y,door.z),false);
+    assert.equal(door.clearSeconds,.5);assert.equal(door.amount,1);
+    door.pair.waiting=true;
+    assert.equal(stepOutpostDoor(door.pair,dt,door.x+4,door.y,door.z),false);
+    assert.equal(door.pair.waiting,true);assert.equal(door.target,1);
+  }
+  stepOutpostDoor(door,1000,door.x+4,door.y,door.z);
+  close(door.clearSeconds,.6);assert.equal(door.amount,1,'Large deltas are bounded for both timer and leaf');
 });

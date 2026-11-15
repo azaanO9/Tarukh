@@ -9,6 +9,7 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {isOutpostInterior} from './outpost-classification.mjs';
+import {repairOutpost} from './outpost-repairs.mjs';
 
 const toolDir=path.resolve(process.argv[2]??'outputs/garage-v1/tools');
 const require=createRequire(path.join(toolDir,'package.json'));
@@ -23,6 +24,8 @@ const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'
 const source='outputs/outpost-v9/final/tarukh-outpost-full.glb';
 const destination='public/models/outpost/campus.glb';
 const raw=await fs.readFile(source),doc=await io.read(source),root=doc.getRoot(),scene=root.listScenes()[0];
+const {doors}=JSON.parse(await fs.readFile('public/models/outpost/layout.json','utf8'));
+const repairs=repairOutpost(doc,doors);
 const removed=[];
 for(const node of [...root.listNodes()])if(/^(MARS \/|Basalt \/)/.test(node.getName())){removed.push(node.getName());node.dispose();}
 const moving=new Set();
@@ -108,6 +111,6 @@ for(const texture of decoded.getRoot().listTextures()){
   const meta=await sharp(texture.getImage()).metadata();maxTextureSize=Math.max(maxTextureSize,meta.width,meta.height);
 }
 assert.ok(maxTextureSize<=1024);
-const report={source,sourceSha256:createHash('sha256').update(raw).digest('hex'),destination,bytes:output.length,sha256:createHash('sha256').update(output).digest('hex'),removedGroundObjects:removed.length,beforeTriangles,triangles,primitives:draws,sectors:sectors.size,instanceBatches,animations:11,maxTextureSize,quality:90,simplificationErrorFraction:.0002,positionBits:16};
+const report={source,sourceSha256:createHash('sha256').update(raw).digest('hex'),destination,bytes:output.length,sha256:createHash('sha256').update(output).digest('hex'),removedGroundObjects:removed.length,repairs,beforeTriangles,triangles,primitives:draws,sectors:sectors.size,instanceBatches,animations:11,maxTextureSize,quality:90,simplificationErrorFraction:.0002,positionBits:16};
 await fs.writeFile('outputs/outpost-integration/asset-report.json',JSON.stringify(report,null,2));
 console.log(JSON.stringify(report));

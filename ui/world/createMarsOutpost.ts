@@ -5,10 +5,8 @@ import {assetUrl} from '../../lib/assetUrl.ts';
 import {OUTPOST_SITE} from '../../game/outpostSite.ts';
 import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor,type OutpostLayout} from '../../game/outpost.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
-
-const roomLights = [
-  [0,0],[-19,0],[18,0],[-11,-22],[12,-22],[0,-13],[-8.5,0],[9,0],[0,-8],
-] as const;
+import {createInstanceVisibility} from './instanceVisibility.ts';
+import {createInteriorLighting} from './interiorLighting.ts';
 
 /** The campus has no landscape of its own: only the game surface is rendered. */
 export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:CollisionObstacle[]) {
@@ -19,9 +17,10 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
   let loaded=false;
   const actions:{action:T.AnimationAction;duration:number}[]=[];
   const sectors:{object:T.Object3D;bounds:T.Box3;interior:boolean}[]=[];
+  const instanceVisibility:{sector:T.Object3D;update:(frustum:T.Frustum)=>void}[]=[];
+  const viewMatrix=new T.Matrix4(),frustum=new T.Frustum();
   const cameraBoxes:{obstacle:CollisionObstacle;box:T.Box3}[]=[];
-  const lights=[new T.PointLight('#e5efff',0,11,2),new T.PointLight('#d6c6ef',0,9,2)];
-  for(const light of lights){light.castShadow=false;root.add(light);}
+  const interiorLighting=createInteriorLighting();
   const ray=new T.Ray(),hit=new T.Vector3(),origin=new T.Vector3(),direction=new T.Vector3();
   const resources={geometries:new Set<T.BufferGeometry>(),materials:new Set<T.Material>(),textures:new Set<T.Texture>(),instances:new Set<T.InstancedMesh>()};
   function remember(object:T.Object3D) {
@@ -36,6 +35,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
     });
   }
   function freeResources(){
+    interiorLighting.dispose();
     for(const instance of resources.instances)instance.dispose();
     for(const g of resources.geometries)g.dispose();
     for(const m of resources.materials)m.dispose();
@@ -65,9 +65,16 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
     root.add(gltf.scene);root.updateMatrixWorld(true);
     state=createOutpostState(layout,baseY);
     mixer=new T.AnimationMixer(gltf.scene);
+    const gateMeshes=new Set<T.Mesh>();
     for(const door of state.doors){
       const clip=gltf.animations.find(animation=>animation.name===door.clip);
       if(!clip)throw new Error('Missing outpost gate animation: '+door.id);
+      // Moving leaves sit outside the static interior sectors. Link their
+      // materials too, without changing the shared exterior wall materials.
+      for(const track of clip.tracks){
+        const target=T.PropertyBinding.findNode(gltf.scene,T.PropertyBinding.parseTrackName(track.name).nodeName);
+        if(target instanceof T.Object3D)target.traverse(o=>{if(o instanceof T.Mesh)gateMeshes.add(o);});
+      }
       const action=mixer.clipAction(clip);action.setLoop(T.LoopOnce,1);action.clampWhenFinished=true;action.play();action.paused=true;action.time=0;
       actions.push({action,duration:clip.duration});
     }
@@ -77,10 +84,19 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       if(o instanceof T.Mesh){
         // Interior furnishings are lit locally; they do not need another full
         // rendering pass into the outdoor sun shadow map.
-        let parent:T.Object3D|null=o,interior=false;
-        while(parent){interior ||= Boolean(parent.userData.interior);parent=parent.parent;}
+        let parent:T.Object3D|null=o,interior=false,sector:T.Object3D|null=null;
+        while(parent){interior ||= Boolean(parent.userData.interior);if(parent.userData.outpostSector)sector=parent;parent=parent.parent;}
+        // Interior and exterior share some source materials. Only the interior
+        // clones receive the room fill; fixtures keep their authored emission.
+        if(interior||gateMeshes.has(o))o.material=Array.isArray(o.material)?o.material.map(material=>interiorLighting.materialFor(material)):interiorLighting.materialFor(o.material);
         o.castShadow=!interior;o.receiveShadow=true;
         o.geometry.computeBoundingSphere();
+        if(o instanceof T.InstancedMesh)o.computeBoundingSphere();
+        // These authored furnishings are static. Animated gate leaves stay on
+        // their existing hierarchy and never have their transforms compacted.
+        if(interior&&sector&&o instanceof T.InstancedMesh&&!o.morphTexture){
+          instanceVisibility.push({sector,...createInstanceVisibility(o)});
+        }
       }
     });
     obstacles.push(...state.obstacles);
@@ -92,6 +108,12 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
   function floorAt(x:number,z:number,ground:number){return state?.floorAt(x,z,ground)??ground;}
   function indoors(x:number,z:number){
     return loaded && z-OUTPOST_SITE.z<6.1 && floorAt(x,z,baseY-1)>baseY+.3;
+  }
+  function updateVisibility(camera:T.Camera){
+    if(!loaded)return;
+    camera.updateMatrixWorld();viewMatrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(viewMatrix);
+    for(const batch of instanceVisibility)if(batch.sector.visible)batch.update(frustum);
   }
   function ceilingAt(x:number,z:number){
     if(!indoors(x,z))return Infinity;
@@ -122,18 +144,6 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       const range=sector.interior?(lightTier?8:14):(lightTier?220:400);
       sector.object.visible=sector.bounds.distanceToPoint(origin)<range;
     }
-    const nearCampus=Math.abs(x-OUTPOST_SITE.x)<32&&Math.abs(z-OUTPOST_SITE.z)<34;
-    lights[0].intensity=nearCampus?28:0;lights[1].intensity=nearCampus?(lightTier?6:10):0;
-    if(nearCampus){
-      let index=0,distance=Infinity;
-      for(let i=0;i<roomLights.length;i++){
-        const [rx,rz]=roomLights[i],d=(x-OUTPOST_SITE.x-rx)**2+(z-OUTPOST_SITE.z-rz)**2;
-        if(d<distance){distance=d;index=i;}
-      }
-      const [rx,rz]=roomLights[index];
-      lights[0].position.set(rx-.65,2.65,rz);
-      lights[1].position.set(rx+.65,1.95,rz-1.2);
-    }
   }
   function constrainCamera(x:number,y:number,z:number,position:T.Vector3) {
     if(!loaded||Math.abs(x-OUTPOST_SITE.x)>34||Math.abs(z-OUTPOST_SITE.z)>35)return;
@@ -147,10 +157,11 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
     position.copy(origin).addScaledVector(direction,distance);
     position.y=Math.min(position.y,ceilingAt(position.x,position.z)-.15);
   }
-  return {root,ready,floorAt,indoors,ceilingAt,nearby,interact,update,constrainCamera,
+  return {root,ready,floorAt,indoors,ceilingAt,nearby,interact,update,updateVisibility,constrainCamera,
+    setInteriorActive:interiorLighting.setActive,
     get loaded(){return loaded;},get doors(){return state?.doors??[];},
     dispose(){
       disposed=true;mixer?.stopAllAction();if(mixer)mixer.uncacheRoot(mixer.getRoot());
-      root.removeFromParent();freeResources();for(const light of lights)light.dispose();
+      root.removeFromParent();instanceVisibility.length=0;freeResources();
     }};
 }

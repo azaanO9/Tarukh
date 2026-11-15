@@ -20,6 +20,7 @@ export default function MarsFreeRoam() {
   const [arrived, setArrived] = useState(false);
   const ready = useCallback(() => setSceneReady(true), []);
   const finishArrival = useCallback(() => setArrived(true), []);
+  const changeTouchControls = useCallback((active:boolean)=>setMode(active?'mobile':'pc'),[]);
   const [started, setStarted] = useState(false);
   const [menu, setMenu] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -81,13 +82,13 @@ export default function MarsFreeRoam() {
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase="explore">
     <MarsWorld key={attempt} coveredByArrival={!arrived} enabled={arrived && !modal && !blocked} onReady={ready} onTerrainMode={setStreamed}
-      showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={active => setMode(active ? "mobile" : "pc")}
+      showTouchControls={mode === "mobile"} autoDetectTouch={false} onTouchControlsChange={changeTouchControls}
       initialQuality={lowGraphics ? "performance" : "auto"} onInspect={inspectRover} onOpenMap={openAtlas} onView={setView} onUnavailable={unavailable}
       onRestart={handleRestart} />
     {!arrived && !failed && <StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} />}
     {!modal && arrived && <RotateToLandscapeGate onBlockedChange={setBlocked} />}
     <header className="roam-header"><b>TARUKH <span>· FREE EXPLORATION</span></b>{view?.cockpitView&&<button aria-keyshortcuts="CapsLock" onClick={openAtlas}>Atlas</button>}<button disabled={!arrived} onClick={() => setMenu(true)}>Pause</button></header>
-    {!modal && <aside className="roam-info">{streamed ? "Expanding Mars terrain" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
+    {!modal && <aside className="roam-info">{streamed ? "Mars MOLA region" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
     {!modal && arrived && view && !view.cockpitView && <ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} />}
     {modal && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-labelledby="roam-dialog-title">
       {failed ? <><h2 id="roam-dialog-title">The 3D world couldn’t start</h2><p>Retry, or use lighter graphics for this browser.</p>

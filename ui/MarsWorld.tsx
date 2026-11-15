@@ -14,16 +14,18 @@ import { ARRIVAL_SPAWN, ARRIVAL_YAW } from "../game/shuttleLanding";
 import { streamingBudget, STREAM_LIMIT, streamedHeight } from "../game/terrainStreaming";
 import { PERSEVERANCE_LANDING } from '../content/marsLandingSites';
 import { createPerseveranceRover, perseveranceFootprint, PERSEVERANCE_CLEARING } from './world/createPerseveranceRover';
-import { nightAmount, daylightPhase, daylightAngle } from "../game/daylightCycle";
+import { nightAmount, daylightPhase, daylightAngle, helmetLightAmount } from "../game/daylightCycle";
 import { safeLookDelta } from "../game/mouseLook";
+import {createInteriorCamera,updateInteriorCamera,createCameraBlend,updateCameraBlend} from "../game/interiorCamera";
 import { performanceReadout, type PerformanceMeterMode } from "../game/performanceMeter";
 import { assetUrl } from "../lib/assetUrl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Mesh, Object3D } from "three";
 import { scanRoverLidar, type LidarScan } from "../game/roverLidar";
 import { stepMarsLocomotion } from "../game/marsLocomotion";
 import { spawnWalker, WALKER_RADIUS, type MoveAxes } from "../game/navigation";
-import { boxObstacle } from "../game/collision";
+import { boxObstacle, nearbyObstacles, type CollisionObstacle } from "../game/collision";
+import { createExplorationBoundaryObstacles, PLAYABLE_BOUNDS } from "../game/explorationBounds";
 import { isCoarsePointerDevice } from "./mobileDevice";
 import { MarsTouchDeck } from "./world/MarsTouchDeck";
 import { RoverTouchDeck } from "./world/RoverTouchDeck";
@@ -38,6 +40,7 @@ import { CURIOSITY_SAVE_KEY, parseCuriositySave } from "../game/curiositySave";
 import { createMarsWindDust } from "./world/marsWindDust";
 import { createSoftContactShadow } from "./world/contactShadow";
 import { graphicsTier } from "./world/graphicsTiers";
+import {createOutpostRendering,updateOutpostRendering} from './world/outpostRendering';
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
@@ -129,7 +132,7 @@ type Props = {
   coveredByArrival?: boolean;
   onRestart?: () => void;
 };
-export default function MarsWorld(props: Props) {
+function MarsWorld(props: Props) {
   const host = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const aim = useRef<HTMLDivElement>(null);
@@ -335,7 +338,7 @@ export default function MarsWorld(props: Props) {
   useEffect(() => {
     let cancelled = false;
     let dispose = () => { };
-    let backgroundTimer = 0;
+    const backgroundTimer = 0;
     async function mount() {
       const loadStarted = performance.now();
       const [T, { createMarsWorld }] = await Promise.all([
@@ -490,8 +493,17 @@ export default function MarsWorld(props: Props) {
       const previewValue = Number(previewParams.get('landingPreview'));
       const landingPreview = debug && previewParams.has('landingPreview') && Number.isFinite(previewValue) ? Math.max(0, Math.min(23.9, previewValue)) : undefined;
       const previewPerseverance = debug && true && previewParams.get('sitePreview') === 'perseverance';
-      const previewOutpost = debug && previewParams.get('sitePreview') === 'outpost';
+      const previewOutpostLights = debug && previewParams.get('sitePreview') === 'outpost-lights';
+      const airlockCheckpoints: Record<string, {x:number;z:number;yaw:number}> = {
+        west:{x:-8.645,z:-65,yaw:Math.PI/2}, east:{x:8.885,z:-65,yaw:-Math.PI/2},
+        north:{x:0,z:-73.275,yaw:0}, botany:{x:-11,z:-80.895,yaw:0},
+        observatory:{x:12,z:-81.17,yaw:0}, 'observatory-room':{x:12,z:-83.8,yaw:Math.PI},
+      };
+      const previewAirlock = debug && previewParams.get('sitePreview') === 'airlock'
+        ? airlockCheckpoints[previewParams.get('airlock') ?? 'observatory'] : undefined;
+      const previewOutpost = debug && (previewParams.get('sitePreview') === 'outpost' || previewOutpostLights || Boolean(previewAirlock));
       const previewGreenhouse = debug && previewParams.get('sitePreview') === 'greenhouse';
+      const previewBoundary = debug && previewParams.get('sitePreview') === 'boundary';
       const previewGarage = debug && previewParams.get('sitePreview') === 'garage';
       const landingIntro = (createShuttleLanding(model.heightAt, window.matchMedia("(prefers-reduced-motion: reduce)").matches, landingPreview));
       {
@@ -647,8 +659,13 @@ export default function MarsWorld(props: Props) {
       let bloom: import("three/examples/jsm/postprocessing/UnrealBloomPass.js").UnrealBloomPass | null = null;
       let fxaaPass: import("three/examples/jsm/postprocessing/ShaderPass.js").ShaderPass | null = null;
       let effectsLoading: Promise<void> | null = null;
+      const outpostRendering = createOutpostRendering();
       const effectsSupported = Boolean(gl.getExtension('EXT_color_buffer_float'));
       const desiredCamera = new T.Vector3();
+      const orbitCamera = new T.Vector3(), eyeCamera = new T.Vector3();
+      const eyeRotation = new T.Quaternion(), eyeAngles = new T.Euler(0,0,0,"YXZ");
+      const interiorCamera = createInteriorCamera();
+      const viewBlend = createCameraBlend(cameraSettings.current.thirdPerson);
       let orbitInitialized = false;
       let lastLidarScan = -Infinity;
       let lidar: LidarScan | undefined;
@@ -664,9 +681,11 @@ export default function MarsWorld(props: Props) {
         fxaaPass = null;
       }
       function renderEffects() {
-        if (!composer || (!occlusion?.enabled && !bloom?.enabled))
+        if (!composer || (!outpostRendering.active && !occlusion?.enabled && !bloom?.enabled))
           return false;
         try {
+          // Indoors only the existing scene/output/FXAA passes remain. This
+          // avoids the main framebuffer's multisample cost on detailed rooms.
           composer.render();
           return true;
         }
@@ -709,9 +728,9 @@ export default function MarsWorld(props: Props) {
       function configureEffects(render = false) {
         const preset = graphicsTier(effectiveQuality());
         if (occlusion)
-          occlusion.enabled = preset.ssao;
+          occlusion.enabled = preset.ssao && !outpostRendering.active;
         if (bloom)
-          bloom.enabled = preset.bloom && !reduced.matches;
+          bloom.enabled = preset.bloom && !reduced.matches && !outpostRendering.active;
         if (render && effectiveQuality() !== "performance")
           renderEffects();
       }
@@ -721,7 +740,10 @@ export default function MarsWorld(props: Props) {
       const ray = new T.Raycaster();
       const spawnAtArrival = () => {
         if (previewPerseverance) return {...spawnWalker(), x: PERSEVERANCE_LANDING.x+2, z: PERSEVERANCE_LANDING.z+4};
+        if (previewAirlock) return {...spawnWalker(), x:previewAirlock.x, z:previewAirlock.z};
+        if (previewOutpostLights) return {...spawnWalker(), x:OUTPOST_SITE.x-9.5, z:OUTPOST_SITE.z+3};
         if (previewOutpost) return {...spawnWalker(), x: OUTPOST_SITE.x, z: OUTPOST_SITE.z+15};
+        if (previewBoundary) return {...spawnWalker(), x:PLAYABLE_BOUNDS.east-8, z:0};
         if (previewGreenhouse) return {...spawnWalker(), ...greenhousePoint(GREENHOUSE_SITES[0],0,10/GREENHOUSE_SCALE)};
         if (previewGarage) return {...spawnWalker(), x:GARAGE_SITE.x-5.5, z:GARAGE_SITE.z+11};
         return {...spawnWalker(), ...ARRIVAL_SPAWN};
@@ -754,7 +776,7 @@ export default function MarsWorld(props: Props) {
       let lastRoverNear = false;
       let wasCockpit = false;
       let lastRoverSpeed = 0;
-      let cameraYaw = previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : !current.current.playLandingIntro && !previewPerseverance && !previewOutpost ? ARRIVAL_YAW : 0;
+      let cameraYaw = previewAirlock ? previewAirlock.yaw : previewBoundary ? -Math.PI/2 : previewGarage ? -.55 : previewGreenhouse ? GREENHOUSE_SITES[0].yaw : !current.current.playLandingIntro && !previewPerseverance && !previewOutpost ? ARRIVAL_YAW : 0;
       let characterYaw = cameraYaw;
       let lastRoverGear: RoverGear = "N";
       let lastRoverBoost = false;
@@ -1274,8 +1296,10 @@ export default function MarsWorld(props: Props) {
         e.preventDefault();
         current.current.onUnavailable();
       };
-      let lastCuriositySave = 0;
+      let lastCuriositySave = 0, pendingSave = 0;
+      const hasIdleSave = typeof window.requestIdleCallback === 'function';
       const saveCuriosityNow = () => {
+        if(pendingSave){if(hasIdleSave)window.cancelIdleCallback(pendingSave);else window.clearTimeout(pendingSave);pendingSave=0;}
         if (!curiosity || false)
           return;
         try {
@@ -1314,6 +1338,8 @@ export default function MarsWorld(props: Props) {
       let lastReportedHp = 100;
       let lastSpaceWeatherUpdate = 0;
       let deathCollapse = 0;
+      const sevObstacles: CollisionObstacle[] = [], dynamicObstacles: CollisionObstacle[] = [], curiosityObstacles: CollisionObstacle[] = [];
+      const lidarObstacles: CollisionObstacle[] = [];
       function animate(time: number) {
         const frameStarted = performance.now();
         frame = requestAnimationFrame(animate);
@@ -1393,9 +1419,8 @@ export default function MarsWorld(props: Props) {
           const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
           const step = dt / steps;
           {
-            const sevObstacles = curiosity
-              ? [...model.obstacles, curiosityFootprint(curiosity.x, curiosity.z, curiosity.yaw)]
-              : model.obstacles;
+            nearbyObstacles(model.obstacles,rover.x,rover.z,40,sevObstacles);
+            if(curiosity)sevObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
             stepGarage(garageState, rover, dt, !isDeadRef.current,
               {x:walker.x,z:walker.z,radius:WALKER_RADIUS+.1,id:"walker"},
               sevObstacles, model.roverHeightAt, 1-nightAmount(daylightElapsed), reduced.matches);
@@ -1429,11 +1454,9 @@ export default function MarsWorld(props: Props) {
                   daylightElapsed,
                 });
               }
-              const dynamicObstacles = [
-                ...model.obstacles.filter(o => Math.abs(walker.x - o.x) < o.radius + 3 && Math.abs(walker.z - o.z) < o.radius + 3),
-                ...(bigRover ? [roverFootprint(rover.x, rover.z, rover.yaw)] : []),
-                ...(curiosity ? [curiosityFootprint(curiosity.x, curiosity.z, curiosity.yaw)] : []),
-              ];
+              nearbyObstacles(model.obstacles,walker.x,walker.z,3,dynamicObstacles);
+              if(bigRover)dynamicObstacles.push(roverFootprint(rover.x,rover.z,rover.yaw));
+              if(curiosity)dynamicObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
               walker.yaw = cameraYaw;
               const speedMultiplier = radiationExposureRef.current >= 70 ? 0.70 : 1.0;
               for (let i = 0; i < steps; i++) {
@@ -1450,11 +1473,10 @@ export default function MarsWorld(props: Props) {
             }
           }
           if (curiosity && true) {
-            const curiosityObstacles = [
-              ...model.obstacles,
-              ...(bigRover ? [roverFootprint(rover.x, rover.z, rover.yaw)] : []),
-              { x: walker.x, z: walker.z, radius: WALKER_RADIUS, id: "walker" },
-            ];
+            curiosityObstacles.length=0;
+            for(const obstacle of model.obstacles)curiosityObstacles.push(obstacle);
+            if(bigRover)curiosityObstacles.push(roverFootprint(rover.x,rover.z,rover.yaw));
+            curiosityObstacles.push({x:walker.x,z:walker.z,radius:WALKER_RADIUS,id:'walker'});
             curiosity = stepCuriosityRover(curiosity, dt, curiosityObstacles, model.roverHeightAt);
           }
           if (keys.has("look-left")) {
@@ -1467,9 +1489,8 @@ export default function MarsWorld(props: Props) {
           }
         }
         if (rover.driving && true && time - lastLidarScan >= 125) {
-          const lidarObstacles = curiosity
-            ? [...model.obstacles, curiosityFootprint(curiosity.x, curiosity.z, curiosity.yaw)]
-            : model.obstacles;
+          nearbyObstacles(model.obstacles,rover.x,rover.z,35,lidarObstacles);
+          if(curiosity)lidarObstacles.push(curiosityFootprint(curiosity.x,curiosity.z,curiosity.yaw));
           lidar = scanRoverLidar(rover, lidarObstacles);
           lastLidarScan = time;
         }
@@ -1698,7 +1719,21 @@ export default function MarsWorld(props: Props) {
             }
           }
         }
-        const third = cameraSettings.current.thirdPerson;
+        const insideOutpost = !rover.driving && outpost.indoors(walker.x,walker.z);
+        const insideFacility = insideOutpost || (!rover.driving && greenhouses.indoors(walker.x,walker.z));
+        if(updateOutpostRendering(outpostRendering,insideOutpost,p.enabled?dt:0)){
+          outpost.setInteriorActive(outpostRendering.active);
+          configureEffects();
+          // Retain the cached shadow maps and shader variants while indoors.
+          renderer.shadowMap.needsUpdate = !outpostRendering.active;
+        }
+        const cameraDt = p.enabled ? dt : 0;
+        const third = updateInteriorCamera(interiorCamera,insideFacility,cameraSettings.current.thirdPerson,rover.driving?.25:cameraDt);
+        if(third!==cameraSettings.current.thirdPerson){
+          cameraSettings.current.thirdPerson=third;
+          setThirdPerson(third);
+        }
+        const thirdBlend = updateCameraBlend(viewBlend,third,cameraDt,reduced.matches || rover.driving);
         const cockpitView = rover.driving && !third;
         if (cockpitView && !wasCockpit) {
           cameraYaw = rover.yaw;
@@ -1707,7 +1742,7 @@ export default function MarsWorld(props: Props) {
         wasCockpit = cockpitView;
         bigRover?.setCockpitView(cockpitView);
         if (astronautShadow)
-          astronautShadow.mesh.visible = !rover.driving && third;
+          astronautShadow.mesh.visible = !rover.driving && thirdBlend>.24;
         if (landingIntro?.isActive() && true) {
           astronaut.visible = true;
           const groundHeight = model.heightAt(walker.x, walker.z);
@@ -1764,7 +1799,7 @@ export default function MarsWorld(props: Props) {
           if (isDeadRef.current) {
             deathCollapse = Math.min(1, deathCollapse + dt * 1.5);
           }
-          astronaut.visible = third;
+          astronaut.visible = thirdBlend>.24;
           const groundHeight = activeHeightAt(walker.x, walker.z);
           const collapseY = isDeadRef.current ? -deathCollapse * 0.5 : 0;
           astronaut.position.set(walker.x, groundHeight + jump.height + collapseY, walker.z);
@@ -1806,37 +1841,40 @@ export default function MarsWorld(props: Props) {
             cameraGround = groundHeight;
           else
             cameraGround += (groundHeight - cameraGround) * (1 - Math.exp(-14 * dt));
-          if (third) {
+          const eyeHeight = isDeadRef.current ? Math.max(.35,1.7-deathCollapse*1.35) : 1.7;
+          eyeCamera.set(walker.x,cameraGround+eyeHeight+jump.height,walker.z);
+          const eyeRoll = isDeadRef.current ? camera.rotation.z+(.35-camera.rotation.z)*(1-Math.exp(-4*dt)) : 0;
+          eyeRotation.setFromEuler(eyeAngles.set(pitch,cameraYaw,eyeRoll,"YXZ"));
+          if (thirdBlend>0) {
             const targetY = cameraGround + jump.height + (1.45);
             const horizBack = Math.cos(pitch) * back;
             const vertBack = -Math.sin(pitch) * back;
             desiredCamera.set(walker.x + Math.sin(cameraYaw) * horizBack + Math.cos(cameraYaw) * shoulder, targetY + vertBack, walker.z + Math.cos(cameraYaw) * horizBack - Math.sin(cameraYaw) * shoulder);
             const groundUnderCam = activeHeightAt(desiredCamera.x, desiredCamera.z);
             desiredCamera.y = Math.max(desiredCamera.y, groundUnderCam + 0.45);
-            if (!orbitInitialized || false)
-              camera.position.copy(desiredCamera);
-            camera.position.lerp(desiredCamera, 1 - Math.exp(-18 * dt));
+            if (!orbitInitialized)
+              orbitCamera.copy(desiredCamera);
+            orbitCamera.lerp(desiredCamera, 1 - Math.exp(-18 * dt));
             orbitInitialized = true;
-          }
-          else {
-            const eyeHeight = isDeadRef.current
-              ? Math.max(0.35, 1.7 - deathCollapse * 1.35)
-              : 1.7;
-            camera.position.set(walker.x, cameraGround + eyeHeight + jump.height, walker.z);
-            if (isDeadRef.current) {
-              camera.rotation.z += (0.35 - camera.rotation.z) * (1 - Math.exp(-4 * dt));
-            }
-          }
-          if (third && true) {
-            outpost.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, camera.position);
-            greenhouses.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, camera.position);
-            garage.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, camera.position);
+            outpost.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, orbitCamera);
+            greenhouses.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, orbitCamera);
+            garage.constrainCamera(walker.x, cameraGround + jump.height + 1.45, walker.z, orbitCamera);
+            camera.position.copy(orbitCamera);
             camera.lookAt(walker.x + Math.cos(cameraYaw) * shoulder, cameraGround + jump.height + (1.45), walker.z - Math.sin(cameraYaw) * shoulder);
+            camera.position.lerp(eyeCamera,1-thirdBlend);
+            camera.quaternion.slerp(eyeRotation,1-thirdBlend);
           }
           else {
             orbitInitialized = false;
-            camera.rotation.set(pitch, cameraYaw, 0, "YXZ");
+            camera.position.copy(eyeCamera);
+            camera.quaternion.copy(eyeRotation);
           }
+        }
+        if(debug){
+          element.dataset.cameraView=third?'third':'first';
+          element.dataset.cameraBlend=thirdBlend.toFixed(4);
+          element.dataset.indoorCamera=String(interiorCamera.inside);
+          element.dataset.cameraPosition=`${camera.position.x.toFixed(3)},${camera.position.y.toFixed(3)},${camera.position.z.toFixed(3)}`;
         }
         if (helmetLamp && helmetTarget) {
           const lampActive = true;
@@ -1847,10 +1885,11 @@ export default function MarsWorld(props: Props) {
             helmetTarget.position.set(walker.x - Math.sin(cameraYaw) * 12, hy + Math.sin(pitch) * 6 - 0.8, walker.z - Math.cos(cameraYaw) * 12);
           }
         }
+        outpost.updateVisibility(camera);
         greenhouses.updateVisibility(camera, walker.x, walker.z, lastQuality === "performance");
         garage.update(walker.x, walker.z, lastQuality === "performance");
         windDust?.update(dt, walker.x, walker.z, model.heightAt, reduced.matches, activeTier.particles);
-        if (dust) dust.visible = !outpost.indoors(walker.x, walker.z) && !greenhouses.indoors(walker.x, walker.z) && !garageIndoors(walker.x, walker.z);
+        if (dust) dust.visible = !insideFacility && !garageIndoors(walker.x, walker.z);
         if (aim.current) {
           aim.current.style.left = "50%";
           aim.current.style.top = "50%";
@@ -1908,7 +1947,7 @@ export default function MarsWorld(props: Props) {
           if (dust)
             (dust.material as import("three").ShaderMaterial).uniforms.opacity.value = reduced.matches ? .025 : T.MathUtils.lerp(.09, .045, n);
           if (helmetLamp)
-            helmetLamp.intensity = rover.driving ? 0 : 2.6 * n;
+            helmetLamp.intensity = rover.driving || outpostRendering.active ? 0 : 2.6 * helmetLightAmount(n);
           if (astronautShadow)
             astronautShadow.material.opacity = Math.max(.12, (activeTier.shadows ? .18 : .44) - jump.height * .16) * T.MathUtils.lerp(1, .45, n);
           if (bigRover) {
@@ -1964,7 +2003,7 @@ export default function MarsWorld(props: Props) {
           const gate = !rover.driving ? greenhouses.nearby(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw)
             ?? outpost.nearby(walker.x, model.heightAt(walker.x, walker.z) + jump.height, walker.z, cameraYaw) : null;
           const garageAction = garagePrompt(garageState, walker.x, walker.z, rover);
-          const prompt = !p.enabled ? "" : garageAction ? garageAction.text : gate ? (gate.blocked ? "Step clear of the doorway to close" : `${gate.target ? "Close" : "Open"} · ${gate.label}`) : "";
+          const prompt = !p.enabled ? "" : garageAction ? garageAction.text : gate ? (gate.waiting ? `Cycling airlock · ${gate.label} — Cancel` : gate.blocked ? "Step clear of the doorway to close" : `${gate.target ? "Close" : "Open"} · ${gate.label}`) : "";
           if (prompt !== lastOutpostPrompt) {
             lastOutpostPrompt = prompt; setOutpostPrompt(prompt);
             setOutpostPromptDisabled(Boolean(garageAction && !garageAction.enabled));
@@ -1979,11 +2018,12 @@ export default function MarsWorld(props: Props) {
           firstFrame = false;
           keys.clear();
         }
-        if (curiosity && time - lastCuriositySave >= 1500) {
+        if (curiosity && !pendingSave && time - lastCuriositySave >= 1500) {
           lastCuriositySave = time;
-          saveCuriosityNow();
+          const save=()=>{pendingSave=0;if(!cancelled)saveCuriosityNow();};
+          pendingSave=hasIdleSave?window.requestIdleCallback(save,{timeout:5000}):window.setTimeout(save,250);
         }
-        if (time - lastReport > 90) {
+        if (time - lastReport > 125) {
           lastReport = time;
           if (time - lastMapReport > 500) {
             lastMapReport = time;
@@ -2022,6 +2062,11 @@ export default function MarsWorld(props: Props) {
             lidar: rover.driving ? lidar : undefined,
           });
         }
+        // Keep the light/shader configuration stable, but do not redraw an unlit
+        // spotlight's depth map. Its first map is still prepared before use.
+        helmetLamp.shadow.autoUpdate = helmetLamp.intensity > 0 || helmetLamp.shadow.map === null;
+        renderer.shadowMap.autoUpdate = !outpostRendering.active;
+        if(outpostRendering.active)renderer.shadowMap.needsUpdate = false;
         renderer.info.reset();
         if (lastQuality === "performance" || !renderEffects())
           renderer.render(scene, camera);
@@ -2093,6 +2138,7 @@ export default function MarsWorld(props: Props) {
           element.dataset.worldX = walker.x.toFixed(2);
           element.dataset.worldZ = walker.z.toFixed(2);
           element.dataset.outpostDoors = outpost.doors.map(door => `${door.id}:${door.amount.toFixed(2)}`).join(",");
+          if (debug) element.dataset.outpostDoorStates = JSON.stringify(outpost.doors.map(door => ({id:door.id,amount:door.amount,target:door.target,waiting:door.waiting,blocked:door.blocked,clearSeconds:door.clearSeconds})));
           element.dataset.greenhouseDoors = greenhouses.doors.map(door => `${door.id}:${door.amount.toFixed(2)}`).join(",");
           element.dataset.garagePhase = garageState.phase;
           element.dataset.garageDoor = garageState.doorAmount.toFixed(3);
@@ -2127,7 +2173,8 @@ export default function MarsWorld(props: Props) {
           element.dataset.curiosityScans = String(curiosity?.scanCount ?? 0);
           element.dataset.resolutionScale = resolutionScale.toFixed(2);
           element.dataset.contactShading = String(occlusion?.enabled ?? false);
-          element.dataset.antialiasing = composer && (occlusion?.enabled || bloom?.enabled) ? "fxaa" : renderer.getContext().getContextAttributes()?.antialias ? "native" : "off";
+          element.dataset.indoorRendering = outpostRendering.active ? 'simple' : 'outdoor';
+          element.dataset.antialiasing = lastQuality !== 'performance' && composer && (outpostRendering.active || occlusion?.enabled || bloom?.enabled) ? "fxaa" : renderer.getContext().getContextAttributes()?.antialias ? "native" : "off";
           element.dataset.aaTexel = fxaaPass ? `${fxaaPass.uniforms.resolution.value.x},${fxaaPass.uniforms.resolution.value.y}` : "";
           const fps = metricFrames * 1000 / (time - metricStart);
           if (debugPanel.current)
@@ -2299,6 +2346,7 @@ export default function MarsWorld(props: Props) {
         setLoadingStage("Fully rendering Mars landscape & terrain…");
         setLoadingProgress(92);
         const ground = model.root.getObjectByName("mars-ground") as import("three").Mesh;
+        model.obstacles.push(...createExplorationBoundaryObstacles());
         streaming = createStreamedMars(model.root, ground, baseHeight, { ...terrainBudget, obstacles: model.obstacles, sampleHeight: marsOutpostHeight, clearings: [PERSEVERANCE_CLEARING] });
         streaming.setPerformance(lastQuality === 'performance');
         // Fully generate all terrain chunks and rock instances within radius during loading
@@ -2393,7 +2441,7 @@ export default function MarsWorld(props: Props) {
         element.dataset.calibrationTarget = String(AUTO_TARGET_FPS);
       }
       current.current.onTerrainMode?.(!!streaming);
-      element.dataset.terrainMode = streaming ? "streamed" : "finite";
+      element.dataset.terrainMode = "bounded-mola";
       frame = requestAnimationFrame(animate);
       setLoadingStage("Launching exploration…");
       setLoadingProgress(100);
@@ -3535,3 +3583,4 @@ export default function MarsWorld(props: Props) {
    {message && <p className="sv-world-message" role="status">{message}</p>}
   </div>);
 }
+export default memo(MarsWorld);

@@ -9,3 +9,8 @@ export function daylightAngle(seconds:number){return (Math.max(0,seconds)%DAYLIG
 export function nightAmount(seconds:number){
  return (1-Math.cos(daylightAngle(seconds)))/2;
 }
+/** The helmet lamp fades in at dusk, avoiding a shadow pass in bright daylight. */
+export function helmetLightAmount(night:number){
+ const dusk=Math.max(0,Math.min(1,(night-.3)/.7));
+ return dusk*dusk*(3-2*dusk);
+}
