@@ -646,10 +646,11 @@ function MarsWorld(props: Props) {
         });
         model.root.removeFromParent(); light.shadow.dispose(); disposeBeforeOutpost();
       };
-      try { await Promise.all([outpost.ready, greenhouses.ready, garage.ready]); }
+      try { await Promise.all([outpost.ready, greenhouses.ready, garage.ready, catchSite.ready]); }
       catch (error) { dispose(); throw error; }
       if (cancelled) return;
       element.dataset.outpostLoaded = "true";
+      element.dataset.rocketModel = catchSite.modelStatus;
       element.dataset.greenhouses = String(GREENHOUSE_SITES.length);
       element.dataset.garageLoaded = String(garage.loaded);
       element.dataset.drivableRovers = String(scene.children.filter(object => object.name === "BigRover").length);

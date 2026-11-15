@@ -6,6 +6,7 @@ import {REUSABLE_ROCKET} from '../../game/reusableRocket.ts';
 import {ARRIVAL_READY_HOLD,STARSHIP_SPACE_CUT,advanceArrivalWithReadiness,canEnterMars,createArrivalFrame,sampleStarshipArrival,STARSHIP_ARRIVAL_DURATION,type ArrivalPlayback} from '../../game/starshipArrival.ts';
 import {createArrivalRigPose} from './arrivalRig.ts';
 import {createEarthDeparture} from './earthDeparture.ts';
+import {createStarshipVisual} from './starshipVisual.ts';
 
 type ArrivalOptions={
   ready:()=>boolean;onComplete:()=>void;onFrame:(frame:ReturnType<typeof createArrivalFrame>,elapsed:number,paused:boolean,dust:number)=>void;
@@ -39,6 +40,7 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
   try{environment=generator.fromScene(room,.04);}finally{room.dispose();generator.dispose();}
   cleanups.push(()=>environment.dispose());scene.environment=environment.texture;scene.environmentIntensity=.95;
   const rig=createStarbase(scene,{reusableRocket:true,ground:false});cleanups.push(()=>rig.dispose());
+  const starship=createStarshipVisual(rig);cleanups.push(()=>starship.dispose());
   const earth=createEarthDeparture(scene,options.performance);cleanups.push(()=>earth.dispose());
   const dust=createLandingDust(scene,options.performance?32:80);cleanups.push(()=>dust.dispose());
   // The Earth vehicle stands on its own feet; only Mars has a catch tower.
@@ -89,6 +91,9 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
   const lost=(event:Event)=>{event.preventDefault();dispose();options.onFailure();};renderer.domElement.addEventListener('webglcontextlost',lost);
   cleanups.push(()=>renderer.domElement.removeEventListener('webglcontextlost',lost));
   async function start(){
+    await starship.ready;
+    if(disposed)return;
+    host.dataset.rocketModel=starship.status;
     // Warm both environments and the active exhaust before presenting motion.
     for(const time of [0,2,STARSHIP_SPACE_CUT+1]){pose(time,0);await renderer.compileAsync(scene,camera);if(disposed)return;}
     pose(options.reduced?ARRIVAL_READY_HOLD:0,0);renderer.render(scene,camera);

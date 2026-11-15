@@ -1,16 +1,19 @@
 # Earth-to-Mars opening
 
 The opening shows a coastal Earth launch (0–6 seconds), an intact orbital coast
-(6–11 seconds), and a fictional Mars catch (11–32 seconds). One white cylindrical
-crew vehicle stays intact throughout: there is no booster, separation or landing
-flip. Its shallow roof, portholes and red exterior braces take their visual cue
-from the user-supplied outpost recording. This is original procedural geometry,
-not an extracted model or a claim that the recording depicts a flight.
+(6–11 seconds), and a fictional Mars catch (11–32 seconds). The user-supplied
+Starship stays intact throughout: there is no booster, separation or landing
+flip. The MartianDays CC BY 4.0 model is uniformly fitted to the existing
+19.2-metre flight envelope; it is not presented at the real vehicle's scale.
 Cuts compress the journey; this is not a real trajectory or
 a claim that Mars already has launch infrastructure.
 
 Earth's coast, cloud banks and orbital limb are original procedural geometry.
-No external models, images, APIs or runtime downloads are added.
+The prepared Starship and its four PBR textures ship locally with the game.
+The 1.17 MB derivative retains all eight parts and 20,630 triangles from the
+19.01 MB supplied file, with Draco geometry and 1024px WebP textures.
+No external model service is used. Provenance and preparation are recorded in
+[the asset attribution](../public/models/starship/ATTRIBUTION.md).
 
 Mars descent uses the actual MarsWorld renderer, terrain, outpost and cultivation
 district. The tower is at game coordinates (118, 90), about 195 metres from the
@@ -26,10 +29,7 @@ temporary lightweight renderer. Once the actual world is ready, only its rendere
 draws Mars descent; the temporary renderer stops drawing. No duplicate campus
 models or second Mars landscape are loaded for the cinematic.
 
-The secured rig is batched by material during preparation. A Node scene traversal
-counts 73 animated mesh draws versus 14 parked batches, both with 42,276 triangles.
-These counts exclude browser-generated transparent labels and are not an FPS
-benchmark. The previous two-stage arrival had 118,132 triangles in the same check.
+The secured rig is batched by material after the model finishes loading.
 The static view shares materials and textures. Both
 variants are warmed behind the opening; handoff creates no geometry. Animated
 pieces are excluded from exploration's per-frame detail-distance bookkeeping.
@@ -50,14 +50,17 @@ retains its previous choreography and source-hash verification.
 separate from the standalone Starbase dimensions. The game selects the reusable
 geometry explicitly; the default preview keeps its existing booster and upper
 stage. Each renderer retains its vehicle nodes and materials throughout its shots;
-both use the same model definition. Parked geometry is baked during loading, with no reparenting or mesh construction
+both use the same model definition. The six original exhaust effects are aligned
+to measured nozzle rims, and original catch adapters bridge the narrower hull to
+the unchanged rails. A failed model load retains the procedural crew vehicle.
+Late model results are disposed if their renderer has already unmounted.
+Parked geometry is baked during loading, with no reparenting or mesh construction
 at capture. The arms close from 23–26 seconds while the pins remain above their
 rails; the final 1.2 metres settle by 29 seconds and thrust then turns off.
 
-Verification for this revision: 341 automated tests, TypeScript, both production
-builds, and headless Chrome checks of Earth/orbit/Mars/capture, pause/resume,
-Escape skip, the persistent tower from spawn, and reduced-motion Mobile entry.
-Screenshots and command logs are local review artifacts, not shipped assets.
+Verification covers 349 automated tests, TypeScript, both production builds and
+browser checks of model loading, arrival, skip and reduced-motion Mobile entry.
+Screenshots and command logs remain local review artifacts, not shipped assets.
 Repository lint still reports one existing effect-state error and three hook
-dependency warnings in `ui/MarsWorld.tsx`, plus an unused-import warning in
-`tests/solarPanels.test.mjs`. Those unrelated files are unchanged by this revision.
+dependency warnings in `ui/MarsWorld.tsx`. Those findings are unrelated to the
+model-loading readiness and diagnostic additions in this revision.
