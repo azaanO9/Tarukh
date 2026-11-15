@@ -8,6 +8,7 @@ import {GREENHOUSE_PAD, GREENHOUSE_SCALE, GREENHOUSE_SITES} from '../../game/gre
 import {createGreenhouseStates, type GreenhouseLayout, type GreenhouseState} from '../../game/greenhouses.ts';
 import {nearestOutpostDoor, stepOutpostDoor, toggleOutpostDoor, type OutpostDoor} from '../../game/outpost.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
+import {loadSolarPanelAsset, createGreenhouseSolarMesh} from './createSolarPanels.ts';
 
 type Batch = {
   mesh: T.InstancedMesh; part: string; template: T.Matrix4; travel: T.Vector3;
@@ -49,10 +50,14 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
   const modelReady = loader.loadAsync(assetUrl('/models/greenhouse/cultivation.glb')).then(model => {
     remember(model.scene); if (disposed) freeResources(); return model;
   });
-  const ready = Promise.all([modelReady, fetch(assetUrl('/models/greenhouse/layout.json')).then(response => {
-    if (!response.ok) throw new Error('Greenhouse floor plan could not load');
-    return response.json() as Promise<GreenhouseLayout>;
-  })]).then(([model, data]) => {
+  const ready = Promise.all([
+    modelReady,
+    fetch(assetUrl('/models/greenhouse/layout.json')).then(response => {
+      if (!response.ok) throw new Error('Greenhouse floor plan could not load');
+      return response.json() as Promise<GreenhouseLayout>;
+    }),
+    loadSolarPanelAsset(),
+  ]).then(([model, data, solarAsset]) => {
     if (disposed) { freeResources(); return; }
     layout = data; states = createGreenhouseStates(layout,GREENHOUSE_GROUND_HEIGHTS);
     doors = states.flatMap(state => state.doors);
@@ -88,6 +93,10 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
         cameraBoxes.push({obstacle,inverse,box:new T.Box3(new T.Vector3(-hx,-.1 * GREENHOUSE_SCALE,-hz),new T.Vector3(hx,(obstacle.id?.includes('equipment')?2.4:3.1) * GREENHOUSE_SCALE,hz))});
       }
     }
+    const solarResult = createGreenhouseSolarMesh(solarAsset, obstacles);
+    root.add(solarResult.mesh);
+    cameraBoxes.push(...solarResult.cameraBoxes);
+    remember(solarResult.mesh);
     buildRamps(); buildLabels();
     loaded = true;
     // Populate every batch once before shader/texture warmup. Distance culling
