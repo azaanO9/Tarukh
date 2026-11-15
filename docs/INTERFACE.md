@@ -91,7 +91,7 @@ Game GLBs and WebPs, including the prepared outpost, greenhouse and garage, are 
 
 `vite.pages.config.ts` builds `dist-pages/`; the GitHub workflow publishes it and records `source_commit` in `version.json`. `vite.config.ts`, `worker/`, `db/`, `lib/connectors*` and `scripts/connector-preview/` support the separate Sites build. Their dependencies may be unused by the static game while still required by that integration. Do not remove them based solely on the active UI import graph.
 
-`vercel.json` explicitly selects Vite instead of Next.js auto-detection. `build:vercel` reuses the static configuration with `--base / --outDir ../dist-vercel`; it publishes the same game, public assets and source-version marker at the domain root. These command-line overrides leave the Pages subpath and Sites build intact. Vercel must consume `dist-vercel/`, not `.next` or the Cloudflare server bundle. Configuration properties override the corresponding Vercel dashboard build settings; no deployment token or project identifier is stored in the repository.
+`vercel.json` selects Vite and publishes `dist-vercel/`. `build:vercel` extends the Pages configuration in `vite.vercel.config.ts` with a root base path and a separate output directory. The production Vercel build includes the Web Analytics SDK via `static-app/vercelAnalytics.ts`. It reports page views with query strings and fragments removed. Enable Web Analytics in the Vercel project settings so Vercel exposes the script and collection endpoints on the next deployment.
 
 ## Persistence and shared systems
 
