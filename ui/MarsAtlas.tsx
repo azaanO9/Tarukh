@@ -47,7 +47,6 @@ export interface AtlasSite {
   name: string;
   kind: "volcano" | "crater" | "valley" | "plain" | "landing site" | "base" | "infrastructure" | "waypoint";
   typeLabel: string;
-  glyph: string;
   x: number;
   z: number;
   latitude?: number;
@@ -64,7 +63,6 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     name: "Landing Shuttle Base",
     kind: "base",
     typeLabel: "Base",
-    glyph: "🚀",
     x: 0,
     z: 12,
     description: "Primary landing craft and pressurized environmental shelter. Full 100% radiation shielding.",
@@ -74,7 +72,6 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     name: "Habitat Campus Outpost",
     kind: "base",
     typeLabel: "Base",
-    glyph: "🏛️",
     x: OUTPOST_SITE.x,
     z: OUTPOST_SITE.z,
     description: "Main surface habitat modules, airlocks, and life support control systems.",
@@ -84,7 +81,6 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     name: "Rover Garage & Charger",
     kind: "infrastructure",
     typeLabel: "Infrastructure",
-    glyph: "🚙",
     x: GARAGE_SITE.x,
     z: GARAGE_SITE.z,
     description: "MMSEV maintenance bay, 1,200W solar inverter array, and automated battery dock.",
@@ -94,12 +90,34 @@ export const EXPEDITION_BASES: AtlasSite[] = [
     name: "Hydroponic Greenhouse Farm",
     kind: "infrastructure",
     typeLabel: "Infrastructure",
-    glyph: "🌿",
     x: GREENHOUSE_SITES[0].x,
     z: GREENHOUSE_SITES[0].z,
     description: "Six circular pressurized crop domes producing oxygen and expedition food rations.",
   },
 ];
+
+const ATLAS_SITE_LOGOS: Record<string, string[]> = {
+  shuttle: ["M12 3c3 2.2 4.2 5.1 4.2 10.3L12 16l-4.2-2.7C7.8 8.1 9 5.2 12 3Z", "m8 11-3 4 5-1", "m16 11 3 4-5-1", "m10 18 2 3 2-3"],
+  outpost: ["M3 20h18", "M5 20V9l7-5 7 5v11", "M9 20v-7h6v7", "M8 10h.01M16 10h.01"],
+  garage: ["M3 16h18l-2-6H7l-4 6Z", "M6 16v2M18 16v2", "M7 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM17 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M9 10V7h6v3"],
+  greenhouses: ["M3 20h18", "M5 19v-5a7 7 0 0 1 14 0v5", "M12 7V4", "M8 14h.01M16 14h.01"],
+  elysium: ["m3 20 8-14 3 6 2-3 5 11H3Z", "M10 11h2M13 15h2"],
+  albor: ["m4 20 7-11 2 3 2-5 5 13H4Z", "M11 13h2"],
+  hecates: ["m3 20 9-15 9 15H3Z", "M10 10h4", "M11 7h2"],
+  gale: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z", "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z", "M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"],
+  hebrus: ["M3 7c3 0 3 3 6 3s3-3 6-3 3 3 6 3", "M3 12c3 0 3 3 6 3s3-3 6-3 3 3 6 3", "M3 17c3 0 3 3 6 3s3-3 6-3 3 3 6 3"],
+  plains: ["M3 7h18", "M3 12h18", "M3 17h18", "M7 4v16M17 4v16"],
+  perseverance: ["M4 17h16", "M7 17v-5l5-3 5 3v5", "M12 9V5l3-2", "M6 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM18 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M14 5h3"],
+};
+
+function AtlasSiteLogo({ site }: { site: AtlasSite }) {
+  const paths = ATLAS_SITE_LOGOS[site.id] ?? ["M4 18 12 5l8 13H4Z", "M9 15h6"];
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {paths.map((d, index) => <path key={`${site.id}-${index}`} d={d} />)}
+    </svg>
+  );
+}
 
 interface Waypoint {
   x: number;
@@ -171,7 +189,6 @@ export default function MarsAtlas({
   const baseMapCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const reliefCanvasRef = useRef<HTMLCanvasElement>(null);
-  const wireCanvasRef = useRef<HTMLCanvasElement>(null);
   const baseMapImageRef = useRef<HTMLImageElement | null>(null);
   const reliefSceneRef = useRef<THREE.Scene | null>(null);
   const reliefCameraRef = useRef<THREE.OrthographicCamera | null>(null);
@@ -485,7 +502,6 @@ export default function MarsAtlas({
               : lm.kind === "landing site"
                 ? "Landing site"
                 : "Plain",
-      glyph: lm.kind === "volcano" ? "⌁" : lm.kind === "crater" ? "◇" : lm.kind === "valley" ? "◉" : lm.kind === "landing site" ? "◆" : "◉",
       x: lm.x,
       z: lm.z,
       latitude: lm.latitude,
@@ -1009,78 +1025,6 @@ export default function MarsAtlas({
     regionWidth,
   ]);
 
-  // Render 3D Terrain Wireframe Mesh Canvas (`wire` canvas)
-  useEffect(() => {
-    const canvas = wireCanvasRef.current;
-    if (!canvas) return;
-
-    const w = canvas.clientWidth || 290;
-    const h = canvas.clientHeight || 80;
-    canvas.width = Math.round(w * 2);
-    canvas.height = Math.round(h * 2);
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.save();
-    ctx.scale(2, 2);
-    ctx.clearRect(0, 0, w, h);
-
-    const site = activeSite;
-    const r = 800; // 800m sample radius
-    const cols = 35;
-    const rows = 23;
-    const mesh: [number, number][][] = [];
-
-    for (let l = 0; l < rows; l++) {
-      mesh[l] = [];
-      for (let g = 0; g < cols; g++) {
-        const u = (g / (cols - 1) - 0.5) * 2;
-        const v = (l / (rows - 1) - 0.5) * 2;
-        const wx = site.x + u * r;
-        const wz = site.z + v * r;
-        const elev = sampleMarsElevation(worldToMars(wx, wz).longitude, worldToMars(wx, wz).latitude);
-
-        // Isometric projection math from reference
-        mesh[l].push([
-          w * (0.51 + 0.32 * u + 0.13 * v),
-          h * (0.52 + 0.12 * u - 0.22 * v) - (elev / 5000) * h * 1.14,
-        ]);
-      }
-    }
-
-    // Normalize mesh height to cleanly fit inside canvas
-    const allY = mesh.flat().map((p) => p[1]);
-    const minY = Math.min(...allY);
-    const maxY = Math.max(...allY);
-    const diffY = maxY - minY || 1;
-
-    for (const row of mesh) {
-      for (const pt of row) {
-        pt[1] = 9 + ((h - 18) * (pt[1] - minY)) / diffY;
-      }
-    }
-
-    // Draw rows with `#afc6b497`
-    ctx.lineWidth = 0.75;
-    for (const row of mesh) {
-      ctx.strokeStyle = "#afc6b497";
-      ctx.beginPath();
-      row.forEach((pt, idx) => (idx === 0 ? ctx.moveTo(pt[0], pt[1]) : ctx.lineTo(pt[0], pt[1])));
-      ctx.stroke();
-    }
-
-    // Draw columns with `#89b4aa64`
-    for (let col = 0; col < cols; col++) {
-      ctx.strokeStyle = "#89b4aa64";
-      ctx.beginPath();
-      mesh.forEach((row, idx) => (idx === 0 ? ctx.moveTo(row[col][0], row[col][1]) : ctx.lineTo(row[col][0], row[col][1])));
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }, [activeSite]);
-
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1246,7 +1190,7 @@ export default function MarsAtlas({
                   <button
                     key={site.id}
                     type="button"
-                    className={`pin ${isChosen ? "chosen" : ""}`}
+                    className={`pin pin-site pin-${site.kind.replace(/\s+/g, "-")} ${isChosen ? "chosen" : ""}`}
                     style={{ left: `${sx}px`, top: `${sy}px` }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1255,7 +1199,7 @@ export default function MarsAtlas({
                     aria-label={`Select ${site.name}`}
                     title={`${site.name} (${site.typeLabel})`}
                   >
-                    <i />
+                    <i className="atlas-site-logo"><AtlasSiteLogo site={site} /></i>
                     <span>{site.name}</span>
                   </button>
                 );
@@ -1399,7 +1343,7 @@ export default function MarsAtlas({
                 className={activeTab === "sites" ? "on" : ""}
                 onClick={() => setActiveTab("sites")}
               >
-                Survey sites
+                Landmarks
               </button>
               <button
                 type="button"
@@ -1412,7 +1356,7 @@ export default function MarsAtlas({
             </div>
 
             <div className="panelbody">
-              {/* Tab 1: Survey Sites Directory & Profile */}
+              {/* Tab 1: Landmarks Directory & Detail */}
               {activeTab === "sites" && (
                 <div id="sites">
                   {/* Category Filter Pills */}
@@ -1447,7 +1391,7 @@ export default function MarsAtlas({
                     </button>
                   </div>
 
-                  {/* List of Sites */}
+                  {/* Landmark and expedition site list */}
                   <div className="list" id="list">
                     {filteredSites.map((site) => {
                       const isChosen = site.id === activeSite.id && !waypoint;
@@ -1465,7 +1409,7 @@ export default function MarsAtlas({
                           }}
                           aria-pressed={isChosen}
                         >
-                          <span className="g">{site.glyph}</span>
+                          <span className="g"><AtlasSiteLogo site={site} /></span>
                           <span className="site-title">{site.name}</span>
                           <span className="dist-chip">{distLabel}</span>
                           <span className="type">{site.typeLabel}</span>
@@ -1477,7 +1421,7 @@ export default function MarsAtlas({
                   {/* Selected Site Detail Profile */}
                   <section className="detail">
                     <div className="topline">
-                      <span className="kicker">Site profile</span>
+                      <span className="kicker">Landmark details</span>
                       <span id="type" className="typechip">
                         {activeSite.typeLabel}
                       </span>
@@ -1485,14 +1429,6 @@ export default function MarsAtlas({
 
                     <h2 id="name">{waypoint ? "Custom GPS Waypoint" : activeSite.name}</h2>
                     <p id="desc">{waypoint ? waypoint.label : activeSite.description}</p>
-
-                    {/* Real 3D Terrain Wireframe Mesh Canvas */}
-                    <canvas
-                      className="wire"
-                      id="wire"
-                      ref={wireCanvasRef}
-                      aria-label="Local terrain elevation mesh"
-                    />
 
                     {/* Route Readings */}
                     <div className="readings">

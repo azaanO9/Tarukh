@@ -918,6 +918,14 @@
 }
 
 .atlas-expedition-wrap .vignette {
+  z-index: 3;
+}
+
+.atlas-expedition-wrap #pins {
+  z-index: 4;
+}
+
+.atlas-expedition-wrap .vignette {
   background: linear-gradient(180deg, rgba(21, 20, 17, 0.48), transparent 21%, transparent 75%, rgba(18, 20, 19, 0.54));
   box-shadow: inset 0 0 90px rgba(29, 23, 19, 0.3);
 }
@@ -927,6 +935,7 @@
   left: 20px;
   top: 18px;
   pointer-events: none;
+  z-index: 6;
   color: #fff1dc;
   text-shadow: 0 2px 10px #1b0e08;
 }
@@ -978,6 +987,7 @@
   right: 16px;
   display: grid;
   gap: 4px;
+  z-index: 6;
   z-index: 10;
 }
 
@@ -1021,6 +1031,7 @@
   justify-content: space-between;
   align-items: flex-end;
   pointer-events: none;
+  z-index: 6;
   font: 10px var(--mono);
   color: #fff3df;
   text-shadow: 0 1px 4px #241206;
@@ -1122,6 +1133,48 @@
 
 .atlas-expedition-wrap .pin.waypoint-pin:after {
   border-color: rgba(255, 82, 82, 0.8) !important;
+}
+
+.atlas-expedition-wrap .pin i.atlas-site-logo {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--marker-color, #99d9d0);
+  border-radius: 8px 8px 8px 3px;
+  background: rgba(12, 22, 24, 0.96);
+  color: var(--marker-color, #99d9d0);
+  transform: none;
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.68), 0 0 8px color-mix(in srgb, var(--marker-color, #99d9d0) 30%, transparent);
+}
+
+.atlas-expedition-wrap .pin i.atlas-site-logo svg,
+.atlas-expedition-wrap .site .g svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.atlas-expedition-wrap .pin-volcano { --marker-color: #ffc37f; }
+.atlas-expedition-wrap .pin-crater { --marker-color: #ff9b83; }
+.atlas-expedition-wrap .pin-valley { --marker-color: #8cdaea; }
+.atlas-expedition-wrap .pin-plain { --marker-color: #c9df92; }
+.atlas-expedition-wrap .pin-landing-site { --marker-color: #a8bfff; }
+.atlas-expedition-wrap .pin-base { --marker-color: #99d9d0; }
+.atlas-expedition-wrap .pin-infrastructure { --marker-color: #e4cb98; }
+
+.atlas-expedition-wrap .pin.chosen i.atlas-site-logo {
+  width: 34px;
+  height: 34px;
+  border-color: var(--gold);
+  background: #302418;
+  color: var(--marker-color, var(--gold));
+  transform: none;
+}
+
+.atlas-expedition-wrap .pin:hover i.atlas-site-logo {
+  border-color: var(--gold);
+  transform: translateY(-1px);
 }
 
 .atlas-expedition-wrap .roverPin {
@@ -1240,7 +1293,7 @@
 .atlas-expedition-wrap .list {
   display: grid;
   gap: 3px;
-  max-height: 160px;
+  max-height: min(40vh, 420px);
   overflow-y: auto;
   scrollbar-width: thin;
   padding-right: 2px;
@@ -1267,6 +1320,10 @@
   font-size: 16px;
   color: #a0bab5;
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
 }
 
 .atlas-expedition-wrap .site .site-title {
@@ -1337,16 +1394,6 @@
   line-height: 1.45;
   color: #b0bbb7;
   margin: 4px 0 8px;
-}
-
-/* 3D Local Wireframe Mesh Canvas */
-.atlas-expedition-wrap .wire {
-  width: 100%;
-  height: 80px;
-  display: block;
-  background: linear-gradient(0deg, #192122, #131a1b);
-  border: 1px solid #303c3b;
-  border-radius: 3px;
 }
 
 .atlas-expedition-wrap .readings {
@@ -1551,9 +1598,6 @@
   .atlas-expedition-wrap .titlebar h1 {
     font-size: 24px;
   }
-  .atlas-expedition-wrap .wire {
-    height: 60px;
-  }
   .atlas-expedition-wrap .site {
     padding: 4px 6px;
   }
@@ -1585,7 +1629,7 @@
   }
   .atlas-expedition-wrap .list {
     grid-template-columns: 1fr 1fr;
-    max-height: 120px;
+    max-height: min(42vh, 300px);
   }
   .atlas-expedition-wrap .site .type {
     display: none;

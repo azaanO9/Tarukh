@@ -9,6 +9,7 @@ import {createArrivalPlayback} from '../game/starshipArrival';
 import MarsWorld, { type View } from "./MarsWorld";
 import { isCoarsePointerDevice, tryEnterLandscape } from "./mobileDevice";
 import { RotateToLandscapeGate } from "./RotateToLandscapeGate";
+import TarukhMainMenu from "./TarukhMainMenu";
 import "./world.css";
 import "./mars.css";
 import "./mobileCockpit.css";
@@ -16,6 +17,22 @@ import "./freeRoam.css";
 import "./outpost.css";
 
 const ElysiumStory = lazy(() => import('./ElysiumStory'));
+function hasStorySaveCandidate() {
+  try {
+    const raw = window.localStorage.getItem("tarukh.elysium.v1");
+    if (!raw || raw.length > 50000) return false;
+    const saved: unknown = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return false;
+    const record = saved as Record<string, unknown>;
+    return record.version === 1
+      && ["briefing", "active", "ready"].includes(String(record.phase))
+      && Number.isInteger(record.sol)
+      && Number.isInteger(record.seed)
+      && Boolean(record.resources && typeof record.resources === "object");
+  } catch {
+    return false;
+  }
+}
 export interface StoryPresentation {
   controlMode:'pc'|'mobile'; modalOpen:boolean; overlay:ReactNode;
   world:ElysiumWorldBridge; onView:(view:View)=>void; onInspect?:(id:string)=>void;
@@ -27,6 +44,8 @@ export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
   const storyRef = useRef(story);
   useEffect(() => {storyRef.current = story;},[story]);
   const [storyRequested,setStoryRequested] = useState(false);
+  const [storyLaunchIsNew,setStoryLaunchIsNew] = useState(false);
+  const [hasStorySave,setHasStorySave] = useState(false);
   const [streamed, setStreamed] = useState(false);
   const [mode, setMode] = useState<"pc" | "mobile">(story?.controlMode ?? "pc");
   const [sceneReady, setSceneReady] = useState(false);
@@ -59,6 +78,7 @@ export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
   const showArrival = story ? story.arrival === 'earth' : !arrived;
 
   useEffect(() => { if (!storyRef.current && isCoarsePointerDevice()) setMode("mobile"); }, []);
+  useEffect(() => { if (!story) setHasStorySave(hasStorySaveCandidate()); }, [story]);
   useEffect(() => {
     if (!modal) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -84,21 +104,29 @@ export default function MarsFreeRoam({story}:{story?:StoryPresentation} = {}) {
     }); };
   }, [modal, failed, atlas]);
 
-  if (storyRequested && !story) return <Suspense fallback={<main className="roam-launch"><p>Opening Elysium briefing…</p></main>}><ElysiumStory controlMode={mode} onExit={()=>setStoryRequested(false)}/></Suspense>;
+  const startExplorer = () => {
+    if (mode === "mobile") void tryEnterLandscape();
+    setView(null); setSceneReady(false); setArrived(false); setStarted(true);
+  };
+  const launchStory = (startNew: boolean) => {
+    if (mode === "mobile") void tryEnterLandscape();
+    setStoryLaunchIsNew(startNew); setStoryRequested(true);
+  };
+  const exitStory = () => {
+    setStoryRequested(false); setStoryLaunchIsNew(false);
+    setHasStorySave(hasStorySaveCandidate());
+  };
 
-  if (!started) return <main className="roam-launch">
-    <section><p>TARUKH</p><h1>Mars Open World</h1>
-      <p>Touch down in the Elysium region. Walk measured Martian terrain, drive to real volcanoes and explore with your field map. Travel distances are compressed for play.</p>
-      <fieldset><legend>Choose your controls</legend>
-        <button aria-pressed={mode === "pc"} onClick={() => setMode("pc")}>PC · Keyboard & mouse</button>
-        <button aria-pressed={mode === "mobile"} onClick={() => setMode("mobile")}>Mobile · Touch controls</button>
-      </fieldset>
-      <p>{mode === "pc" ? "WASD move · Space jump · V camera · F enter/exit rover · E inspect science rovers · M map" : "Use the movement stick, swipe to look and use the rover buttons when nearby. Tap Atlas below the minimap for the full region."}</p>
-      <button className="roam-primary" onClick={() => { if (mode === "mobile") void tryEnterLandscape(); setView(null); setSceneReady(false); setArrived(false); setStarted(true); }}>Explore Mars</button>
-      <button className="roam-primary" onClick={() => {if(mode==='mobile')void tryEnterLandscape();setStoryRequested(true);}}>Elysium Story · New / Resume</button>
-      <p>Free Exploration stays available. In Story, become Kaelen Reeves and prove the outpost is ready for its next crew.</p>
-    </section>
-  </main>;
+  if (storyRequested && !story) return <Suspense fallback={<main className="roam-launch"><p>Opening Elysium briefing…</p></main>}><ElysiumStory controlMode={mode} launchNew={storyLaunchIsNew} onExit={exitStory}/></Suspense>;
+
+  if (!started) return <TarukhMainMenu
+    mode={mode}
+    onModeChange={setMode}
+    hasStorySave={hasStorySave}
+    onStartExplorer={startExplorer}
+    onResumeStory={() => launchStory(false)}
+    onNewStory={() => launchStory(true)}
+  />;
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase={story?'story':'explore'}>

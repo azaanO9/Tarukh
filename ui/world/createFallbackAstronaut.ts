@@ -20,16 +20,17 @@ export function createMarsAstronaut() {
   b.pipe(root,[[-.25,1.35,.33],[-.36,1.23,.31],[-.35,1.05,.05],[-.26,1.1,-.16]],.028,m.orange);
   for(const x of [-.12,.12])b.cylinder(root,.024,.11,x,1.65,.35,m.alloy);
   b.add(root,new T.TorusGeometry(.193,.034,8,24).rotateX(Math.PI/2),m.orange,0,1.62,0);
-  const helmet=b.add(root,new T.SphereGeometry(.295,32,22),fabric,0,1.88,0);helmet.scale.set(1.04,1,.98);
-  const face=b.add(root,new T.SphereGeometry(.268,32,20),visor,0,1.88,-.083);face.scale.set(.95,.77,.87);
+  const head=new T.Group();root.add(head);
+  const helmet=b.add(head,new T.SphereGeometry(.295,32,22),fabric,0,1.88,0);helmet.scale.set(1.04,1,.98);
+  const face=b.add(head,new T.SphereGeometry(.268,32,20),visor,0,1.88,-.083);face.scale.set(.95,.77,.87);
   for(const x of [-.3,.3]){
-    const ear=b.cylinder(root,.092,.075,x,1.87,.015,m.graphite);ear.rotation.z=Math.PI/2;
-    const cover=b.cylinder(root,.072,.085,x,1.87,.015,m.alloy);cover.rotation.z=Math.PI/2;
+    const ear=b.cylinder(head,.092,.075,x,1.87,.015,m.graphite);ear.rotation.z=Math.PI/2;
+    const cover=b.cylinder(head,.072,.085,x,1.87,.015,m.alloy);cover.rotation.z=Math.PI/2;
   }
-  b.box(root,.13,.055,.07,0,2.13,-.04,m.alloy);
+  b.box(head,.13,.055,.07,0,2.13,-.04,m.alloy);
   b.add(root,new T.TorusGeometry(.257,.012,6,28).rotateX(Math.PI/2),m.alloy,0,1.72,0);
-  b.box(root,.17,.055,.025,0,1.9,.286,m.alloy);
-  for(const x of [-.09,-.03,.03,.09])b.box(root,.015,.06,.018,x,1.82,.284,m.graphite,false);
+  b.box(head,.17,.055,.025,0,1.9,.286,m.alloy);
+  for(const x of [-.09,-.03,.03,.09])b.box(head,.015,.06,.018,x,1.82,.284,m.graphite,false);
   // Wrinkled fabric profiles give arms and legs natural volume rather than straight rods.
   const sleeve=(length:number,radius:number)=>{
     const profile:T.Vector2[]=[];
@@ -57,7 +58,7 @@ export function createMarsAstronaut() {
     const glove=b.add(arm,new T.SphereGeometry(.104,16,10),m.graphite,side*.04,-.58,-.01);glove.scale.set(.8,1.14,.9);
     batchStaticMeshes(leg,new Set());batchStaticMeshes(arm,new Set());
   }
-  batchStaticMeshes(root,new Set(limbs));
+  batchStaticMeshes(root,new Set([...limbs,head]));
   const seatedLegs=new T.Group();seatedLegs.visible=false;root.add(seatedLegs);
   for(const side of [-1,1]){
     const thigh=new T.Group();thigh.position.set(side*.19,.96,0);thigh.rotation.x=1.8;seatedLegs.add(thigh);
@@ -75,5 +76,5 @@ export function createMarsAstronaut() {
   },setSeated(value:boolean){
     seated=value;seatedLegs.visible=value;limbs[0].visible=limbs[2].visible=!value;
     root.position.y=value?-.96:0;
-  }};
+  },setFirstPersonView(value:boolean){head.visible=!value;}};
 }

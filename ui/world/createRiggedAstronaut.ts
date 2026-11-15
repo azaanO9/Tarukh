@@ -38,7 +38,9 @@ export type RiggedAstronautHandle = {
   root: T.Group;
   isModelLoaded: boolean;
   modelType: "rigged-gltf" | "procedural-fallback";
+  getEyeHeight: () => number;
   setSeated: (seated: boolean, firstPerson?: boolean) => void;
+  setFirstPersonView: (firstPerson: boolean) => void;
   update: (
     dt: number,
     speed: number,
@@ -260,9 +262,15 @@ export function createRiggedAstronaut(
   let baseModelZ = 0;
   let modelRef: T.Object3D | null = null;
   let seated = false;
+  let firstPersonView = false;
   let seatedPoseApplied = false;
+  let eyeHeight = 1.88;
   const headScale = new T.Vector3(1,1,1);
-  const hipCenter = new T.Vector3(), otherHip = new T.Vector3();
+  const hipCenter = new T.Vector3(), otherHip = new T.Vector3(), headPosition = new T.Vector3();
+  const updateHeadVisibility = () => {
+    if (bones.head) bones.head.bone.scale.copy(headScale).multiplyScalar(firstPersonView ? .001 : 1);
+    fallback.setFirstPersonView(firstPersonView);
+  };
 
   // Initialize with procedural astronaut fallback immediately so the scene is never empty
   const fallback = createMarsAstronaut();
@@ -273,12 +281,23 @@ export function createRiggedAstronaut(
     root,
     isModelLoaded: false,
     modelType: "procedural-fallback",
-    setSeated(value, firstPerson = false) {
-      if(value !== seated)seatedPoseApplied=false;
-      seated = value;
-      if (bones.head) bones.head.bone.scale.copy(headScale).multiplyScalar(value && firstPerson ? .001 : 1);
-      fallback.setSeated(value);
-      fallback.root.visible = !(value && firstPerson);
+    getEyeHeight() { return eyeHeight; },
+    setSeated(value, firstPerson) {
+      if (value !== seated) {
+        seatedPoseApplied = false;
+        seated = value;
+        fallback.setSeated(value);
+      }
+      if (firstPerson !== undefined && firstPersonView !== firstPerson) {
+        firstPersonView = firstPerson;
+        updateHeadVisibility();
+      }
+      fallback.root.visible = !(value && firstPersonView);
+    },
+    setFirstPersonView(firstPerson) {
+      if (firstPersonView === firstPerson) return;
+      firstPersonView = firstPerson;
+      updateHeadVisibility();
     },
     update(
       dt: number,
@@ -518,6 +537,12 @@ export function createRiggedAstronaut(
       bones = resolved;
       seatedPoseApplied = false;
       if (bones.head) headScale.copy(bones.head.bone.scale);
+      if (bones.head) {
+        root.updateWorldMatrix(true, true);
+        bones.head.bone.getWorldPosition(headPosition);
+        eyeHeight = root.worldToLocal(headPosition).y;
+      }
+      updateHeadVisibility();
       handle.isModelLoaded = true;
       handle.modelType = "rigged-gltf";
 

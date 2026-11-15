@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 850" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="storm-sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#181a20"/><stop offset=".46" stop-color="#4b3939"/><stop offset=".75" stop-color="#a75c43"/><stop offset="1" stop-color="#322725"/></linearGradient>
+            <linearGradient id="storm-land" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#794532"/><stop offset="1" stop-color="#171a1b"/></linearGradient>
+            <radialGradient id="storm-moon"><stop stop-color="#efd3ac" stop-opacity=".65"/><stop offset="1" stop-color="#efc28d" stop-opacity="0"/></radialGradient>
+            <pattern id="storm-speckle" width="68" height="54" patternUnits="userSpaceOnUse"><circle cx="9" cy="18" r="1.1" fill="#ffd2a0" opacity=".2"/><circle cx="45" cy="39" r=".8" fill="#150f0e" opacity=".34"/><path d="m24 7 11-2m9 35 7-1" stroke="#e99b70" opacity=".18"/></pattern>
+          </defs>
+          <rect width="1100" height="850" fill="url(#storm-sky)"/>
+          <circle cx="914" cy="262" r="170" fill="url(#storm-moon)"/><circle cx="914" cy="262" r="21" fill="#e8d1b4" opacity=".7"/>
+          <path d="M0 418c123-35 171-5 281-50s208-53 313-7c122 53 191 22 300-30 87-41 135-25 206-4v206H0Z" fill="#60413a" opacity=".86"/>
+          <path d="M0 473c108-53 173-9 275-54s201-48 311 2c114 52 196 12 306-31 76-30 141-19 208 4" fill="none" stroke="#d7865f" stroke-opacity=".36" stroke-width="3"/>
+          <path d="M0 537 107 501 213 514 314 463 402 499 509 447 604 491 702 445 800 490 901 439 1001 483 1100 455V850H0Z" fill="url(#storm-land)"/>
+          <path d="M0 594c118-37 202-16 306-48 103-31 177-10 274 14 99 25 194-9 294-42 86-29 148-12 226 8" fill="none" stroke="#bf704d" stroke-opacity=".58" stroke-width="2"/>
+          <path d="M0 643c121-27 201-6 307-35 104-29 180-2 279 20 99 22 191-10 290-36 89-24 152-10 224 2" fill="none" stroke="#e19a69" stroke-opacity=".26" stroke-width="1.3"/>
+          <path d="M0 699c114-19 210 3 310-22 106-26 181 5 281 24 102 20 196-8 293-29 84-18 147-8 216 1" fill="none" stroke="#d27e58" stroke-opacity=".2" stroke-width="1"/>
+          <path d="M0 537 107 501 213 514 314 463 402 499 509 447 604 491 702 445 800 490 901 439 1001 483 1100 455V850H0Z" fill="url(#storm-speckle)"/>
+          <g transform="translate(744 591)" stroke="#182020" stroke-width="6" fill="#242628">
+            <path d="M-100 0h200v82h-200z"/><path d="M-123 3h246v18h-246z" fill="#42403a" stroke-width="4"/>
+            <path d="M-80-7v-48h47v48m20 0v-67h52v67m23 0v-40h34v40" fill="#282a28"/>
+            <path d="M-75-40h36m16-17h40m20 26h23" stroke="#e99d62" stroke-width="4"/>
+            <path d="M-90 29h28m39 0h28m40 0h31m20 0h28" stroke="#869c94" stroke-width="2" opacity=".8"/>
+            <path d="M-108 82v19m216-19v19M-77 83v16m154-16v16" stroke="#111719" stroke-width="8"/>
+            <path d="M-108 102h216" stroke="#c7734e" stroke-width="3"/>
+          </g>
+          <path d="M0 794 88 772l91 20 81-38 105 41 95-21 104 35 92-33 103 27 98-32 91 23 152-28v84H0Z" fill="#14191a"/>
+          <path d="M0 794 88 772l91 20 81-38 105 41 95-21 104 35 92-33 103 27 98-32 91 23 152-28" fill="none" stroke="#96573f" stroke-opacity=".47" stroke-width="2"/>
+        </svg>

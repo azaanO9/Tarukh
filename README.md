@@ -42,7 +42,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed by the development server, normally `http://localhost:5173`. Choose PC or Mobile, then **Explore Mars** for free exploration or **Elysium Story · New / Resume**. Keep the terminal running while playing.
+Open the URL printed by the development server, normally `http://localhost:5173`. The main menu offers **Start Free Explorer**, **Resume Story**, and **New Story**; **Settings** selects PC or Mobile controls. Keep the terminal running while playing.
 
 To preview the static production build:
 

@@ -48,7 +48,7 @@ NASA's [Rocknest view](https://science.nasa.gov/resource/rocknest-from-sol-52-lo
 - `createShuttleLanding.ts`: original fictional spacecraft, landing gear, hatch and stairs, now used as the settled Mars shelter. The active opening is the Starship cinematic described below. Neither spacecraft presentation is a NASA vehicle certification or validated descent simulation.
 - Procedural terrain details, streamed rocks, sky, footprints, fallback astronaut and fallback rover were created for the project. The fallback suit is preserved in `createFallbackAstronaut.ts` and `suitMaterials.ts`.
 - The bounded exploration area's perimeter mountains are original procedural geometry. They are artistic barriers added to the MOLA crop, not NASA elevation measurements; no new external assets are used.
-- `public/team/tarukh-logo.png` and its WebP derivative: team-supplied TARUKH branding retained as project identity assets; not loaded during exploration.
+- `public/team/tarukh-logo.png` and its WebP derivative: original team-supplied TARUKH identity marks. `public/team/tarukh-logo-menu.png` is the user-supplied blue illuminated logo used on the main menu. No logo files are loaded by the 3D exploration renderer.
 
 ## Outpost, greenhouses and garage
 

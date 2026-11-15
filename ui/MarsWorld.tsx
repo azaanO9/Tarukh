@@ -1958,12 +1958,13 @@ function MarsWorld(props: Props) {
         }
         else {
           marsAstronaut?.setSeated(false);
+          marsAstronaut?.setFirstPersonView(thirdBlend < .999);
           astronaut.rotation.x = 0;
           if (!isDeadRef.current) astronaut.rotation.z = 0;
           if (isDeadRef.current) {
             deathCollapse = Math.min(1, deathCollapse + dt * 1.5);
           }
-          astronaut.visible = thirdBlend>.24;
+          astronaut.visible = !isDeadRef.current || thirdBlend>.24;
           const groundHeight = activeHeightAt(walker.x, walker.z);
           const collapseY = isDeadRef.current ? -deathCollapse * 0.5 : 0;
           astronaut.position.set(walker.x, groundHeight + jump.height + collapseY, walker.z);
@@ -2005,7 +2006,8 @@ function MarsWorld(props: Props) {
             cameraGround = groundHeight;
           else
             cameraGround += (groundHeight - cameraGround) * (1 - Math.exp(-14 * dt));
-          const eyeHeight = isDeadRef.current ? Math.max(.35,1.7-deathCollapse*1.35) : 1.7;
+          const astronautEyeHeight = marsAstronaut?.getEyeHeight() ?? 1.7;
+          const eyeHeight = isDeadRef.current ? Math.max(.35,astronautEyeHeight-deathCollapse*1.35) : astronautEyeHeight;
           eyeCamera.set(walker.x,cameraGround+eyeHeight+jump.height,walker.z);
           const eyeRoll = isDeadRef.current ? camera.rotation.z+(.35-camera.rotation.z)*(1-Math.exp(-4*dt)) : 0;
           eyeRotation.setFromEuler(eyeAngles.set(pitch,cameraYaw,eyeRoll,"YXZ"));

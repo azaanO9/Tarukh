@@ -111,13 +111,13 @@ function RouteDiagram({selected}:{selected:string|null}){
   </figure>;
 }
 
-export default function ElysiumStory({controlMode,onExit}:{controlMode:'pc'|'mobile';onExit:()=>void}){
+export default function ElysiumStory({controlMode,onExit,launchNew=false}:{controlMode:'pc'|'mobile';onExit:()=>void;launchNew?:boolean}){
   const [initial]=useState(()=>loadElysiumSave());
   const [state,setState]=useState<ElysiumState>(()=>initial.state??newExpedition());
   const stateRef=useRef(state);
   const [worldSeed,setWorldSeed]=useState(state.seed);
   const [session,setSession]=useState(0);
-  const [panel,setPanel]=useState<Panel>(initial.state?'resume':'prologue');
+  const [panel,setPanel]=useState<Panel>(initial.state?(launchNew?'restart':'resume'):'prologue');
   const [activity,setActivity]=useState<OpenActivity|null>(null);
   const [selected,setSelected]=useState<MissionId>(()=>availableMissions(state).find(id=>!state.completed.includes(id))??(state.phase==='ready'?'m7':'m1'));
   const [site,setSite]=useState('command');
