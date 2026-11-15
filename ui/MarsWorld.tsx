@@ -228,7 +228,6 @@ function MarsWorld(props: Props) {
   const [isShielded, setIsShielded] = useState(false);
   const isShieldedRef = useRef(false);
   isShieldedRef.current = isShielded;
-  const [geigerMuted, setGeigerMuted] = useState(false);
 
   // Environmental Radiation Shielding States & Notifications
   const [baseShieldPopup, setBaseShieldPopup] = useState<{ visible: boolean; fading: boolean }>({ visible: false, fading: false });
@@ -353,13 +352,6 @@ function MarsWorld(props: Props) {
     }
   }, []);
 
-  const handleToggleGeigerMute = useCallback(() => {
-    geigerAudio.current?.resume();
-    if (geigerAudio.current) {
-      const nextMuted = geigerAudio.current.toggleMute();
-      setGeigerMuted(nextMuted);
-    }
-  }, []);
 
   const toggleSpaceWeatherAction = useRef(toggleSpaceWeatherMode);
   toggleSpaceWeatherAction.current = toggleSpaceWeatherMode;
@@ -2559,7 +2551,7 @@ function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`${"Mars"} ${"open world"}. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : "WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. Y toggles space weather mode. M opens map."}`} tabIndex={0}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
@@ -3670,17 +3662,8 @@ function MarsWorld(props: Props) {
 
                   {/* Row 5: 📦 Payload & Tools */}
                   <div
-                    className="mars-system-row-card clickable"
-                    onClick={handleToggleGeigerMute}
-                    title="Click to toggle Geiger Counter click audio"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleToggleGeigerMute();
-                      }
-                    }}
+                    className="mars-system-row-card"
+                    title="Mission Payload & Scientific Instruments: Operational"
                   >
                     <div className="sys-row-left">
                       <div className="sys-row-icon">
@@ -3694,8 +3677,8 @@ function MarsWorld(props: Props) {
                     </div>
 
                     <div className="sys-row-right">
-                      <span className={`sys-row-value ${geigerMuted ? "sys-val-muted" : "sys-val-green"}`}>
-                        {geigerMuted ? "MUTED" : "READY"}
+                      <span className="sys-row-value sys-val-green">
+                        READY
                       </span>
                       <span className="sys-row-chevron">›</span>
                     </div>
