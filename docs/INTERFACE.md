@@ -64,6 +64,15 @@ The garage incorporates an integrated base battery inverter system, automated ma
 
 `?debug=1&sitePreview=garage` opens a reproducible approach checkpoint. Diagnostics expose the garage phase, door fraction, blockage and existing crew-rover position; they create no extra vehicle. The prepared garage binary is included with the integration.
 
+### Environmental Radiation Shielding & Notification Contract
+
+Environmental protection states dynamically mitigate Solar Energetic Particle (SEP) solar flare radiation based on player location:
+- **Base Shielding (100% Mitigation)**: Triggered when the player enters any Habitat base interior (`inBase = true`), including the Outpost campus rooms (`outpost.indoors`), Greenhouse biodomes (`greenhouses.indoors`), Rover Garage (`garageIndoors`), Landing Habitat shuttle (`(0, 12)` radius 10.5m), and Regolith Bunker (`(-24, 24)` radius 8.5m). While sheltered, a 100% mitigation multiplier (0x damage) applies to the radiation drain logic, astronaut vitals/suit integrity are completely safe, and active radiation exposure decontaminates at −1.5 mSv/s.
+- **Rover Shielding (50% Mitigation)**: Triggered when the player boards the 6-wheel rover (`inRover = true` via `rover.driving`). While inside the pressurized rover chassis, a 50% mitigation multiplier (0.5x damage) applies to the radiation drain logic and exposure accumulation rate.
+- **Base Shielding Notification**: Transitioning into the base interior triggers a top/center high-tech CSS UI popup displaying `SHIELD ACTIVE: 100% (HABITAT)`. It remains visible for exactly 5 seconds using `setTimeout`, then completely fades out.
+- **Rover Shielding Notification & HUD Handoff**: Boarding the rover triggers a top/center UI popup displaying `SHIELD ACTIVE: 50% (ROVER)`. After 5 seconds via `setTimeout`, it animates fading out and minimizing downward into a permanent shield indicator (`.sv-rover-shield-status`) on the GTA V-style Rover HUD displaying `50% ROVER` and `0.5x DRAIN`. Exiting the rover immediately removes this indicator and resets handoff state.
+- **Simulation Pure Rules**: `getEnvironmentalShielding`, `calculateExposureDelta`, and `calculateRadiationDrain` reside in `game/spaceWeatherService.ts` with test coverage in `tests/spaceWeather.test.mjs`.
+
 ### Outpost asset and collision contract
 
 The cultivation district surrounds the campus with two greenhouses west, two east and two north. `GREENHOUSE_SCALE` is 1.6: the shared model, doors, furniture footprints, floors, ramps, camera limits and visibility bounds use the same scale. The buildings are approximately 17 metres across, with about a metre of clearance at the circular growing-bed entrance. Plant beds opt into their convex footprints for walking rather than oversized bounding circles; other game obstacles retain their existing collision behavior. The reachable central grow computer has a solid measured footprint.

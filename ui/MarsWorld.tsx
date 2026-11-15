@@ -62,6 +62,8 @@ import {
   SpaceWeatherService,
   type SpaceWeatherTelemetry,
   calculateExposureDelta,
+  getEnvironmentalShielding,
+  calculateRadiationDrain,
 } from "../game/spaceWeatherService";
 import { GeigerAudio } from "../game/geigerAudio";
 function shortestAngleDiff(from: number, to: number): number {
@@ -223,6 +225,58 @@ export default function MarsWorld(props: Props) {
   isShieldedRef.current = isShielded;
   const [geigerMuted, setGeigerMuted] = useState(false);
   const snowCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Environmental Radiation Shielding States & Notifications
+  const [baseShieldPopup, setBaseShieldPopup] = useState<{ visible: boolean; fading: boolean }>({ visible: false, fading: false });
+  const baseShieldTimeoutRef = useRef<number | null>(null);
+  const baseShieldFadeTimeoutRef = useRef<number | null>(null);
+  const prevInBaseRef = useRef<boolean>(false);
+
+  const [roverShieldPopup, setRoverShieldPopup] = useState<{ visible: boolean; fading: boolean }>({ visible: false, fading: false });
+  const [roverShieldHudActive, setRoverShieldHudActive] = useState<boolean>(false);
+  const roverShieldTimeoutRef = useRef<number | null>(null);
+  const roverShieldFadeTimeoutRef = useRef<number | null>(null);
+  const prevInRoverRef = useRef<boolean>(false);
+
+  const triggerBaseShieldPopup = useCallback(() => {
+    if (baseShieldTimeoutRef.current) window.clearTimeout(baseShieldTimeoutRef.current);
+    if (baseShieldFadeTimeoutRef.current) window.clearTimeout(baseShieldFadeTimeoutRef.current);
+    setBaseShieldPopup({ visible: true, fading: false });
+    baseShieldTimeoutRef.current = window.setTimeout(() => {
+      setBaseShieldPopup((prev) => ({ ...prev, fading: true }));
+      baseShieldFadeTimeoutRef.current = window.setTimeout(() => {
+        setBaseShieldPopup({ visible: false, fading: false });
+      }, 500);
+    }, 5000);
+  }, []);
+
+  const triggerRoverShieldPopup = useCallback(() => {
+    if (roverShieldTimeoutRef.current) window.clearTimeout(roverShieldTimeoutRef.current);
+    if (roverShieldFadeTimeoutRef.current) window.clearTimeout(roverShieldFadeTimeoutRef.current);
+    setRoverShieldHudActive(false);
+    setRoverShieldPopup({ visible: true, fading: false });
+    roverShieldTimeoutRef.current = window.setTimeout(() => {
+      setRoverShieldPopup((prev) => ({ ...prev, fading: true }));
+      setRoverShieldHudActive(true);
+      roverShieldFadeTimeoutRef.current = window.setTimeout(() => {
+        setRoverShieldPopup({ visible: false, fading: false });
+      }, 600);
+    }, 5000);
+  }, []);
+
+  const clearRoverShieldState = useCallback(() => {
+    if (roverShieldTimeoutRef.current) window.clearTimeout(roverShieldTimeoutRef.current);
+    if (roverShieldFadeTimeoutRef.current) window.clearTimeout(roverShieldFadeTimeoutRef.current);
+    setRoverShieldPopup({ visible: false, fading: false });
+    setRoverShieldHudActive(false);
+  }, []);
+
+  const triggerBaseShieldRef = useRef(triggerBaseShieldPopup);
+  triggerBaseShieldRef.current = triggerBaseShieldPopup;
+  const triggerRoverShieldRef = useRef(triggerRoverShieldPopup);
+  triggerRoverShieldRef.current = triggerRoverShieldPopup;
+  const clearRoverShieldRef = useRef(clearRoverShieldState);
+  clearRoverShieldRef.current = clearRoverShieldState;
 
   const handleRestartWorld = useCallback(() => {
     if (props.onRestart) {
@@ -811,6 +865,7 @@ export default function MarsWorld(props: Props) {
             cameraYaw = rover.yaw;
             characterYaw = rover.yaw;
             lastMouseMoveTime = performance.now();
+            triggerRoverShieldRef.current();
           }
         }
         else {
@@ -832,6 +887,7 @@ export default function MarsWorld(props: Props) {
           walker.vz = 0;
           keys.clear();
           setRoverDriving(false);
+          clearRoverShieldRef.current();
         }
       };
       let lastQuality = "";
@@ -1619,12 +1675,43 @@ export default function MarsWorld(props: Props) {
         }
         // Space Weather & Radiation Telemetry Loop
         if (p.enabled && !landingIntro?.isActive()) {
-          const playerPosX = rover.driving ? rover.x : walker.x;
-          const playerPosZ = rover.driving ? rover.z : walker.z;
-          // Shielded within 10.5m of Landing Shuttle/Hab at (0, 12) or Regolith Bunker at (-24, 24)
+          const inRover = Boolean(rover.driving);
+          const playerPosX = inRover ? rover.x : walker.x;
+          const playerPosZ = inRover ? rover.z : walker.z;
+
+          // Habitat Base Interior State Check (100% Mitigation):
+          // Player is sheltered inside Outpost campus, Greenhouse biodomes, Rover Garage,
+          // Landing Habitat at (0, 12), or Regolith Bunker at (-24, 24)
           const distToShuttle = Math.hypot(playerPosX - 0, playerPosZ - 12);
           const distToBunker = Math.hypot(playerPosX - (-24), playerPosZ - 24);
-          const shieldedNow = distToShuttle <= 10.5 || distToBunker <= 8.5;
+          const inBase = !inRover && (
+            outpost.indoors(playerPosX, playerPosZ) ||
+            greenhouses.indoors(playerPosX, playerPosZ) ||
+            garageIndoors(playerPosX, playerPosZ) ||
+            distToShuttle <= 10.5 ||
+            distToBunker <= 8.5
+          );
+
+          // Handle Base Shielding Transition & 5s Popup
+          if (inBase && !prevInBaseRef.current) {
+            triggerBaseShieldRef.current();
+          } else if (!inBase && prevInBaseRef.current) {
+            if (baseShieldTimeoutRef.current) window.clearTimeout(baseShieldTimeoutRef.current);
+            if (baseShieldFadeTimeoutRef.current) window.clearTimeout(baseShieldFadeTimeoutRef.current);
+            setBaseShieldPopup({ visible: false, fading: false });
+          }
+          prevInBaseRef.current = inBase;
+
+          // Handle Rover Boarding Transition & 5s Popup
+          if (inRover && !prevInRoverRef.current) {
+            triggerRoverShieldRef.current();
+          } else if (!inRover && prevInRoverRef.current) {
+            clearRoverShieldRef.current();
+          }
+          prevInRoverRef.current = inRover;
+
+          const { mitigationMultiplier } = getEnvironmentalShielding(inBase, inRover);
+          const shieldedNow = inBase;
 
           if (shieldedNow !== isShieldedRef.current) {
             isShieldedRef.current = shieldedNow;
@@ -1633,14 +1720,14 @@ export default function MarsWorld(props: Props) {
 
           if (spaceWeatherService.current) {
             const telemetry = spaceWeatherService.current.update(dt);
-            const expDelta = calculateExposureDelta(telemetry.sepFluxPFU, shieldedNow, dt);
+            const expDelta = calculateExposureDelta(telemetry.sepFluxPFU, shieldedNow, dt, mitigationMultiplier);
             const updatedExp = Math.max(0, Math.min(100, radiationExposureRef.current + expDelta));
             radiationExposureRef.current = updatedExp;
 
             let currentHp = astronautHealthRef.current;
-            if (updatedExp >= 75 && !shieldedNow) {
-              const drainMultiplier = updatedExp >= 90 ? 4.5 : 2.5;
-              currentHp = Math.max(0, currentHp - drainMultiplier * dt);
+            const damageDrain = calculateRadiationDrain(updatedExp, shieldedNow, mitigationMultiplier, dt);
+            if (damageDrain > 0) {
+              currentHp = Math.max(0, currentHp - damageDrain);
             } else if (shieldedNow && currentHp < 100 && !isDeadRef.current) {
               currentHp = Math.min(100, currentHp + 2.5 * dt);
             }
@@ -1652,7 +1739,7 @@ export default function MarsWorld(props: Props) {
             astronautHealthRef.current = currentHp;
 
             if (!isDeadRef.current) {
-              geigerAudio.current?.update(dt, telemetry.sepFluxPFU, shieldedNow);
+              geigerAudio.current?.update(dt, telemetry.sepFluxPFU * (inRover ? 0.5 : 1.0), shieldedNow);
             }
 
             if (time - lastSpaceWeatherUpdate > 100 || Math.abs(updatedExp - lastReportedExposure) > 0.08 || Math.abs(currentHp - lastReportedHp) > 0.5) {
@@ -2410,6 +2497,10 @@ export default function MarsWorld(props: Props) {
     return () => {
       cancelled = true;
       window.clearTimeout(backgroundTimer);
+      if (baseShieldTimeoutRef.current) window.clearTimeout(baseShieldTimeoutRef.current);
+      if (baseShieldFadeTimeoutRef.current) window.clearTimeout(baseShieldFadeTimeoutRef.current);
+      if (roverShieldTimeoutRef.current) window.clearTimeout(roverShieldTimeoutRef.current);
+      if (roverShieldFadeTimeoutRef.current) window.clearTimeout(roverShieldFadeTimeoutRef.current);
       dispose();
     };
   }, []);
@@ -2672,6 +2763,26 @@ export default function MarsWorld(props: Props) {
          </small>
         </div>
        </div>
+       {roverShieldHudActive && (
+         <div
+           className="sv-rover-shield-status"
+           role="status"
+           aria-label="Rover radiation shield 50%"
+           title="Rover Pressurized Chassis Shielding: 50% mitigation (0.5x radiation damage)"
+         >
+           <span className="sv-shield-icon" aria-hidden="true">
+             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+               <path d="M12 7v10" strokeDasharray="2 2" />
+             </svg>
+           </span>
+           <div className="sv-shield-meta">
+             <span className="sv-shield-title">SHIELD</span>
+             <strong className="sv-shield-val">50% ROVER</strong>
+             <small className="sv-shield-sub">0.5x DRAIN</small>
+           </div>
+         </div>
+       )}
        <button type="button" className="sv-rover-exit-btn" onClick={() => toggleRoverAction.current()}>
         <span className="sv-key-badge">F</span> Exit Rover
        </button>
@@ -2724,6 +2835,59 @@ export default function MarsWorld(props: Props) {
               {spaceWeather.activeEvent ? `${spaceWeather.activeEvent.name} [${spaceWeather.activeEvent.flareClass}] — ` : ""}
               SEEK HABITAT OR REGOLITH SHELTER IMMEDIATELY
             </span>
+          </div>
+        </aside>
+      )}
+
+      {/* Environmental Radiation Shielding Notifications (Base 100% / Rover 50%) */}
+      {baseShieldPopup.visible && (
+        <aside
+          className={`mars-shield-popup base ${baseShieldPopup.fading ? "fading" : ""}`}
+          role="status"
+          aria-live="polite"
+          aria-label="Habitat Base Shield Active: 100%"
+        >
+          <div className="mars-shield-popup-pulse base" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
+          <div className="mars-shield-popup-content">
+            <div className="mars-shield-popup-header">
+              <span className="mars-shield-popup-badge base">ENVIRONMENTAL PROTECTION</span>
+              <span className="mars-shield-popup-metric base">0x DAMAGE · 100% MITIGATION</span>
+            </div>
+            <div className="mars-shield-popup-body">
+              <strong>SHIELD ACTIVE: 100% (HABITAT)</strong>
+              <span>Habitat radiation deflection engaged · Complete environmental isolation</span>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {roverShieldPopup.visible && (
+        <aside
+          className={`mars-shield-popup rover ${roverShieldPopup.fading ? "fade-minimize" : ""}`}
+          role="status"
+          aria-live="polite"
+          aria-label="Rover Shield Active: 50%"
+        >
+          <div className="mars-shield-popup-pulse rover" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M12 7v10" strokeDasharray="2 2" />
+            </svg>
+          </div>
+          <div className="mars-shield-popup-content">
+            <div className="mars-shield-popup-header">
+              <span className="mars-shield-popup-badge rover">VEHICLE PROTECTION</span>
+              <span className="mars-shield-popup-metric rover">0.5x DAMAGE · 50% MITIGATION</span>
+            </div>
+            <div className="mars-shield-popup-body">
+              <strong>SHIELD ACTIVE: 50% (ROVER)</strong>
+              <span>Pressurized chassis deflection engaged · Minimizing to cockpit HUD</span>
+            </div>
           </div>
         </aside>
       )}
