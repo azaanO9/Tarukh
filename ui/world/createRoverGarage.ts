@@ -13,7 +13,9 @@ export function createRoverGarage(scene:T.Scene,state:GarageState,datum:number,o
   const interiors:T.Object3D[]=[];
   const light=new T.PointLight('#e5efff',24,10,2),accent=new T.PointLight('#9784ed',5,6,2);
   light.visible=accent.visible=false;
-  light.position.set(0,3.7,1.4);accent.position.set(0,3.2,-2.5);root.add(light,accent);
+  // Keep lights outside the distance-culled model: changing their global count
+  // would compile new material variants when the garage enters or leaves view.
+  light.position.set(0,3.7,1.4).add(root.position);accent.position.set(0,3.2,-2.5).add(root.position);scene.add(light,accent);
   const ray=new T.Ray(),origin=new T.Vector3(),direction=new T.Vector3(),hit=new T.Vector3();
   const cameraBoxes=state.obstacles.map(obstacle=>({obstacle,box:new T.Box3(
     new T.Vector3(obstacle.x-obstacle.halfX!,datum,obstacle.z-obstacle.halfZ!),
@@ -96,6 +98,6 @@ export function createRoverGarage(scene:T.Scene,state:GarageState,datum:number,o
   }
   return{ready,update,setPerformance,ceilingAt,constrainCamera,floorAt:(x:number,z:number,ground:number)=>garageFloorAt(x,z,ground,datum),
     get loaded(){return loaded;},
-    dispose(){disposed=true;root.removeFromParent();mixer?.stopAllAction();if(mixer)mixer.uncacheRoot(mixer.getRoot());free();light.dispose();accent.dispose();},
+    dispose(){disposed=true;root.removeFromParent();light.removeFromParent();accent.removeFromParent();mixer?.stopAllAction();if(mixer)mixer.uncacheRoot(mixer.getRoot());free();light.dispose();accent.dispose();},
   };
 }

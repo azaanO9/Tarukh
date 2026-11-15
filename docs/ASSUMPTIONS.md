@@ -8,7 +8,7 @@ The supplied Mars Trek extent uses an equirectangular projection centred at 134.
 
 The 16-pixel/degree MOLA product includes measured and interpolated altimetry. The downsampled crop has roughly 0.316° × 0.318° cells, about 19 km north/south before gameplay compression. It cannot resolve individual rocks, narrow channels or an actual landing pad. Surface grains, local rocks and flattened spawn areas are artistic additions.
 
-Landmarks mark gazetteer feature centres, not necessarily summits or boundaries. Outside the supplied crop, heights clamp to its edge while procedural terrain continues. The interface labels that continuation as a procedural frontier. Perseverance's coordinates mark its historical touchdown; the model and surrounding rocks are original approximations, not a live position feed or measured reconstruction.
+Landmarks mark gazetteer feature centres, not necessarily summits or boundaries. Exploration is restricted to the supplied MOLA region: approximately 1.74 × 1.32 game kilometres inside an authored mountain perimeter. These perimeter ridges and their impassable collision walls are gameplay boundaries, not measured Martian features. Detail tiles are only generated where they intersect the survey crop. All seven landmark positions are retained. Perseverance's coordinates mark its historical touchdown; the model and surrounding rocks are original approximations, not a live position feed or measured reconstruction.
 
 ## Movement, vehicles and time
 
@@ -31,7 +31,7 @@ The opening is a 32-second, SpaceX-inspired Earth recovery montage before Mars e
 Real-world Mars surface radiation doses accumulate over months to years (typically ~0.21 mSv/day quiet GCR background, climbing during rare SEP events). For real-time interactive gameplay and demonstrations, radiation accumulation is time-compressed:
 - Baseline EVA exposure rate: `+0.05 mSv/s` (representing unshielded ambient cosmic radiation).
 - Active SEP storm exposure rate (`sepFluxPFU >= 10`): `0.6 + Math.log10(sepFluxPFU) * 1.4 mSv/s` (scaling logarithmically with proton flux up to extreme storm levels).
-- Habitat and bunker shielding: inside the landing shuttle (`(0, 12)`) or the regolith water bunker (`(-24, 24)`), incoming SEP protons are completely blocked (`0 mSv/s`) and the astronaut undergoes medical decontamination/recovery at `-1.5 mSv/s` down to 0 mSv.
+- Habitat shielding: the landing-habitat zone (`(0, 12)`, 10.5-metre radius), outpost interiors, greenhouses and garage use 100% simulated protection. The crew rover uses 50% protection. These fixed percentages and the sheltered exposure-meter recovery of `-1.5 mSv/s` are gameplay rules, not calculated shielding performance or removal of a real accumulated radiation dose. The former standalone bunker has been removed, including its shelter zone.
 - Acute Radiation Sickness (ARS) symptoms: vision blur (`backdrop-filter: blur()`), red peripheral vignette, CMOS sensor static snow, audio Geiger clicks, 30% movement speed penalty (`radiationExposure >= 70 mSv`), and progressive health degradation above 75 mSv. These represent acute deterministic radiation sickness thresholds in a compressed interactive format rather than a certified medical simulation.
 
 ## Separate Starbase preview

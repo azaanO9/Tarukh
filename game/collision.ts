@@ -17,6 +17,15 @@ type Contact = { nx: number; nz: number; depth: number };
 const SKIN = .0001;
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 
+/** Reuse a caller-owned broadphase buffer; oversized boundary walls remain included. */
+export function nearbyObstacles(source: readonly CollisionObstacle[], x: number, z: number, reach: number, result: CollisionObstacle[]) {
+  result.length=0;
+  for(const obstacle of source) {
+    if(Math.abs(x-obstacle.x)<=obstacle.radius+reach && Math.abs(z-obstacle.z)<=obstacle.radius+reach)result.push(obstacle);
+  }
+  return result;
+}
+
 function localPoint(x: number, z: number, o: CollisionObstacle) {
   const c = Math.cos(o.yaw ?? 0), s = Math.sin(o.yaw ?? 0);
   return { x: (x - o.x) * c - (z - o.z) * s, z: (x - o.x) * s + (z - o.z) * c, c, s };

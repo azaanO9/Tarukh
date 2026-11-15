@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MARS_LANDMARKS, MARS_TREK_URL } from "../content/marsLandmarks";
 import {
@@ -9,6 +10,7 @@ import {
   isSurveyedRegion,
 } from "../game/marsRegion";
 import { atlasBounds, type AtlasView } from "../game/marsAtlas";
+import { PLAYABLE_BOUNDS } from "../game/explorationBounds";
 import { assetUrl } from "../lib/assetUrl";
 import { OUTPOST_SITE } from "../game/outpostSite";
 import { GARAGE_SITE } from "../game/garageSite";

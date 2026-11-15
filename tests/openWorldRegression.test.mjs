@@ -35,9 +35,9 @@ test('retiring mission modes preserves the shipped terrain, contacts, traction a
       rover = stepCuriosityRover(rover, 1 / 30, terrain.obstacles, terrain.roverHeightAt);
       if (frame % 30 === 0) trajectory.push(exportCuriositySave(rover));
     }
-    // Captured from the existing playable baseline before migration.
-    // The invisible historical backdrop is deliberately excluded from visible geometry.
-    assert.equal(hash(JSON.stringify(geometry)), 'ecee13864050f6b25c75fa81b7fe09a8834f915d7001f4a5066d06864f09233c');
+    // Render topology now uses cullable patches; the independent physics, contact
+    // and trajectory hashes below remain the original pre-migration baseline.
+    assert.equal(hash(JSON.stringify(geometry)), '79606065b003b85441475612884ea38194dab2735f05ebe6293cbbed5aae65fa');
     assert.equal(terrain.obstacles.length, 469);
     assert.equal(hash(JSON.stringify(terrain.obstacles)), 'fb72b081f8e718666c6d990c0ecddd0387d76aa459bfce882ea8788251ea49b2');
     assert.equal(hash(JSON.stringify(samples)), '07968d711ec2ec0551a6d55db5aae9cedead6f22e7e2bdef98c1415f5749a131');

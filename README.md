@@ -11,12 +11,12 @@ The game is free exploration. The repository contains the current Mars game and 
 
 ## Features
 
-- An explorable MOLA-based Mars region with continuous procedural terrain beyond its surveyed extent.
+- A bounded MOLA-based Mars region, with about 1.74 × 1.32 km of playable terrain, seven real landmark locations and an impassable mountain perimeter.
 - A Starship opening cinematic: stage separation, upper-stage return and landing flip, engine braking, ground dust and a timed chopstick catch. Mars loads concurrently; pause or skip the sequence, with a calm presentation for reduced motion.
-- Walking, sprinting, jumping, mouse look and switchable first- and third-person cameras.
+- Walking, sprinting, jumping, mouse look and switchable first- and third-person cameras. Entering the outpost or a greenhouse smoothly selects first person; leaving restores your previous outdoor view.
 - One driveable six-wheel crew rover with a cockpit, suspension, headlights, terrain contacts, tracks and a simulated LiDAR display. It starts inside a solar-powered garage beside the base; a contextual action opens the canopy door and rolls it out. Return to the marked bay and exit to park it automatically.
 - An autonomous Curiosity rover and a stationary Perseverance model at its historical Jezero landing site.
-- A furnished, human-scale outpost near the landing zone, with a graded Mars foundation, accessible ramp and eleven interactive lift gates.
+- A furnished, human-scale outpost near the landing zone, with a graded Mars foundation, accessible ramp and eleven interactive lift gates. Gates close automatically after the doorway clears; paired airlocks seal one side before opening the other.
 - Six enclosed cultivation greenhouses around the base, with retained crops and equipment, level Mars-ground pads, access ramps, E/touch airlocks and leaf markers on the local minimap.
 - A minimap and full-region atlas with seven landmark pins and NASA/IAU source links.
 - A smooth ten-minute day/night cycle during active exploration.
@@ -117,4 +117,4 @@ See [architecture and validation](docs/INTERFACE.md) and the [collaboration work
 
 [ASSET_CREDITS.md](ASSET_CREDITS.md) identifies the NASA, CC BY, CC0 and original assets. Third-party license notices remain with their files. The repository does not currently contain a project-wide source-code `LICENSE`; asset-specific terms should not be treated as a license for the entire project.
 
-Performance on physical phones, thermal throttling and long-distance floating-point precision remain device-testing concerns. Public scientific data supports the regional terrain and landmarks; it does not validate the game's driving speeds or fictional spacecraft.
+Performance on physical phones and thermal throttling remain device-testing concerns. Public scientific data supports the regional terrain and landmarks; it does not validate the game's driving speeds, fictional spacecraft or authored boundary mountains.

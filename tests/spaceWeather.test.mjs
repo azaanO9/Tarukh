@@ -3,9 +3,32 @@ import assert from "node:assert/strict";
 import {
   getStormScale,
   calculateExposureDelta,
+  isBaseShelter,
+  getEnvironmentalShielding,
+  calculateRadiationDrain,
   HISTORICAL_SEP_EVENTS,
   SpaceWeatherService,
 } from "../game/spaceWeatherService.ts";
+
+test("removed bunker ground is exposed while existing habitats still provide shelter", () => {
+  assert.equal(isBaseShelter(-24, 24, false), false);
+  assert.equal(isBaseShelter(-20, 24, false), false);
+  assert.equal(isBaseShelter(0, 12, false), true);
+  assert.equal(isBaseShelter(10.5, 12, false), true);
+  assert.equal(isBaseShelter(10.51, 12, false), false);
+  assert.equal(isBaseShelter(0, -65, true), true);
+  assert.equal(isBaseShelter(0, -65, false), false);
+  const outside = getEnvironmentalShielding(isBaseShelter(-24, 24, false), false);
+  assert.ok(calculateExposureDelta(100, outside.inBase, 1, outside.mitigationMultiplier) > 0);
+});
+
+test("radiation shielding reuses immutable states in the frame loop", () => {
+  for (const [base, rover] of [[true, false], [false, true], [false, false]]) {
+    const state = getEnvironmentalShielding(base, rover);
+    assert.equal(getEnvironmentalShielding(base, rover), state);
+    assert.ok(Object.isFrozen(state));
+  }
+});
 
 test("getStormScale maps proton flux to NOAA solar radiation scales accurately", () => {
   assert.equal(getStormScale(0.2), "S0 NOMINAL");
@@ -84,4 +107,61 @@ test("SpaceWeatherService handles mode switching and historical event ramping", 
   assert.notEqual(nextEvent.id, event.id);
 
   service.dispose();
+});
+
+test("getEnvironmentalShielding correctly categorizes habitat base, rover chassis, and exposed surface", () => {
+  const base = getEnvironmentalShielding(true, false);
+  assert.equal(base.inBase, true);
+  assert.equal(base.inRover, false);
+  assert.equal(base.mitigationMultiplier, 0);
+  assert.equal(base.label, "100% (HABITAT)");
+
+  const rover = getEnvironmentalShielding(false, true);
+  assert.equal(rover.inBase, false);
+  assert.equal(rover.inRover, true);
+  assert.equal(rover.mitigationMultiplier, 0.5);
+  assert.equal(rover.label, "50% (ROVER)");
+
+  const surface = getEnvironmentalShielding(false, false);
+  assert.equal(surface.inBase, false);
+  assert.equal(surface.inRover, false);
+  assert.equal(surface.mitigationMultiplier, 1.0);
+  assert.equal(surface.label, "0% (UNSHIELDED)");
+});
+
+test("calculateExposureDelta applies mitigation multiplier and habitat decontamination", () => {
+  // Inside habitat base (100% mitigation, multiplier = 0): decontaminates at -1.5 mSv/s
+  const baseDelta = calculateExposureDelta(1000, false, 1.0, 0);
+  assert.equal(baseDelta, -1.5);
+
+  // Inside rover (50% mitigation, multiplier = 0.5):
+  // At 100 PFU normal is 3.4 mSv/s -> rover is 1.7 mSv/s
+  const roverDelta = calculateExposureDelta(100, false, 1.0, 0.5);
+  assert.ok(Math.abs(roverDelta - 1.7) < 0.001);
+
+  // Outside unshielded (0% mitigation, multiplier = 1.0): 3.4 mSv/s
+  const surfaceDelta = calculateExposureDelta(100, false, 1.0, 1.0);
+  assert.ok(Math.abs(surfaceDelta - 3.4) < 0.001);
+});
+
+test("calculateRadiationDrain applies 0x damage in base, 0.5x damage in rover, and 1.0x on surface", () => {
+  // High exposure (95%) on surface: 4.5 * 1.0 = 4.5 HP/s
+  const surfaceDrain = calculateRadiationDrain(95, false, 1.0, 1.0);
+  assert.equal(surfaceDrain, 4.5);
+
+  // High exposure (95%) in rover (50% shielding): 4.5 * 0.5 = 2.25 HP/s
+  const roverDrain = calculateRadiationDrain(95, false, 0.5, 1.0);
+  assert.equal(roverDrain, 2.25);
+
+  // High exposure (95%) in habitat base (100% shielding): 0x damage
+  const baseDrain = calculateRadiationDrain(95, true, 0, 1.0);
+  assert.equal(baseDrain, 0);
+
+  // Moderate storm exposure (80%): base rate is 2.5
+  assert.equal(calculateRadiationDrain(80, false, 1.0, 1.0), 2.5);
+  assert.equal(calculateRadiationDrain(80, false, 0.5, 1.0), 1.25);
+  assert.equal(calculateRadiationDrain(80, false, 0, 1.0), 0);
+
+  // Below danger threshold (< 75%): 0 damage regardless
+  assert.equal(calculateRadiationDrain(70, false, 1.0, 1.0), 0);
 });

@@ -1,13 +1,14 @@
 import * as T from 'three';
 import {REGION_WORLD_BOUNDS as B} from '../../game/marsRegion.ts';
-import {marsExpeditionHeight} from '../../game/marsExpeditionTerrain.ts';
+import {marsOutpostHeight} from '../../game/marsExpeditionTerrain.ts';
+import {terrainPatches} from './terrainPatches.ts';
 
-/** One cheap, reachable far LOD of the SAME surface. Never a fictional collision wall. */
+/** Frustum-cullable far LOD of the same bounded terrain, including the authored edge ridges. */
 export function createMarsRegionalLandscape(root:T.Group){
  const geometry=new T.PlaneGeometry(B.east-B.west,B.south-B.north,256,192);
  geometry.rotateX(-Math.PI/2);geometry.translate((B.east+B.west)/2,0,(B.north+B.south)/2);
  const p=geometry.attributes.position;
- for(let i=0;i<p.count;i++)p.setY(i,marsExpeditionHeight(p.getX(i),p.getZ(i))-.35);
+ for(let i=0;i<p.count;i++)p.setY(i,marsOutpostHeight(p.getX(i),p.getZ(i))-.35);
  geometry.computeVertexNormals();
  const colors=new Float32Array(p.count*3),color=new T.Color(),dust=new T.Color(0xb58865),rock=new T.Color(0x795b49);
  for(let i=0;i<p.count;i++){
@@ -27,6 +28,9 @@ export function createMarsRegionalLandscape(root:T.Group){
    if(regionalXZ.x>localCoverage.x && regionalXZ.y>localCoverage.y && regionalXZ.x<localCoverage.z && regionalXZ.y<localCoverage.w) discard;`);
  };
  material.customProgramCacheKey=()=> 'mola-far-lod-v1';
- const mesh=new T.Mesh(geometry,material);mesh.name='MOLA regional relief';root.add(mesh);
+ for(const [i,patch] of terrainPatches(geometry,8,6).entries()) {
+  const mesh=new T.Mesh(patch,material);mesh.name=`MOLA regional relief ${i}`;root.add(mesh);
+ }
+ geometry.dispose();
  return {setCoverage:(west:number,north:number,east:number,south:number)=>coverage.value.set(west,north,east,south)};
 }

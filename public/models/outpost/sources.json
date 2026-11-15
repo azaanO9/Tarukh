@@ -1148,9 +1148,9 @@
     "title": "TARUKH v9 campus game derivative",
     "file": "campus.glb",
     "source_sha256": "fb0e8d1addef72f2cc3315ee87c331b6e8ff0a8b3e7df51ad97b2027a89acf48",
-    "sha256": "c524dd59e457b2bf43c3a3a1ce76d9a60d7ddd36e2ad3a73043c0fa3d9d168cd",
+    "sha256": "c928ca0b2da1681b265a3cacd9bb1e328407f5cb96f2d4e0c1707e4b2305692d",
     "license": "Mixed original, CC0-1.0 and CC-BY-4.0; see individual source records and ATTRIBUTION.md",
-    "adaptations": "Presentation ground and basalt removed; conservative simplification, shared static GPU instances, per-building batching, Meshopt vertex quantization, WebP textures at quality 90 and maximum 1024 pixels; all 11 animated gates retained. Source files unchanged.",
+    "adaptations": "Presentation ground and basalt removed; observatory trim cut out of the doorway; ten fitted pressure collars seal internal gate frames. Conservative simplification, shared static GPU instances, per-building batching, Meshopt vertex quantization, WebP textures at quality 90 and maximum 1024 pixels; all 11 animated gates retained. Source files unchanged.",
     "runtime": "Placed on existing graded game terrain; floors, collisions and interactions implemented separately in TypeScript."
   }
 ]

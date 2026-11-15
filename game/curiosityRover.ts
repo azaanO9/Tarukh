@@ -799,9 +799,29 @@ export function stepCuriosityRover(
   if (dt <= 0) return state;
 
   const totalTime = state.totalTime + dt;
-  const solid = obstacles.filter((o) => o.id !== "curiosity" && !o.traversable);
-  const physicsObstacles = solid.filter((o) => o.id !== "walker");
-  const walkerObstacle = solid.find((o) => o.id === "walker");
+  // Heading probes reach 9m and cap clearance at 8m, with a 1.85m hull margin.
+  // Distant structures cannot affect these local decisions. Keep the full list
+  // below for choosing destinations and science targets anywhere in the patrol.
+  const solid: CollisionObstacle[] = [];
+  const physicsObstacles: CollisionObstacle[] = [];
+  let walkerObstacle: CollisionObstacle | undefined;
+  for (const obstacle of obstacles) {
+    if (obstacle.id === "curiosity" || obstacle.traversable) continue;
+    const reach = obstacle.radius + 20;
+    if (Math.abs(obstacle.x - state.x) > reach || Math.abs(obstacle.z - state.z) > reach) continue;
+    // The perimeter walls are long thin boxes. Their bounding circles cover the
+    // whole colony and would otherwise create false negative clearance scores.
+    if (obstacle.id?.startsWith("boundary-") && obstacle.halfX !== undefined && obstacle.halfZ !== undefined) {
+      const cos = Math.abs(Math.cos(obstacle.yaw ?? 0));
+      const sin = Math.abs(Math.sin(obstacle.yaw ?? 0));
+      const halfX = cos * obstacle.halfX + sin * obstacle.halfZ;
+      const halfZ = sin * obstacle.halfX + cos * obstacle.halfZ;
+      if (Math.abs(obstacle.x - state.x) > halfX + 20 || Math.abs(obstacle.z - state.z) > halfZ + 20) continue;
+    }
+    solid.push(obstacle);
+    if (obstacle.id === "walker") walkerObstacle ??= obstacle;
+    else physicsObstacles.push(obstacle);
+  }
 
   // Check if a dynamic entity (walker or MMSEV rover) is directly inside our forward personal space
   const fxCurr = -Math.sin(state.yaw);
@@ -1224,12 +1244,11 @@ export function stepCuriosityRover(
   const farScanReady = driveTimer >= minScanInterval;
 
   // Transition cleanly to stop-and-scan cycle mostly in outer far plains / craters
-  const forwardProbe = evaluateHeadingCandidate(x, z, yaw, yaw, solid, heightAt);
   const safeToScan =
     farScanReady &&
     recoveryTimer <= 0 &&
     !entityBlockingClosely &&
-    forwardProbe.clear &&
+    evaluateHeadingCandidate(x, z, yaw, yaw, solid, heightAt).clear &&
     Math.abs(attitude.pitch) < 0.22 &&
     Math.abs(attitude.roll) < 0.22 &&
     !solid.some((o) => overlapDisc(x - Math.sin(yaw) * 2.2, z - Math.cos(yaw) * 2.2, 1.4, o));
