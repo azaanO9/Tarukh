@@ -13,6 +13,38 @@ const roomLights = [
   [0,0],[-19,0],[18,0],[-11,-22],[12,-22],[0,-13],[-8.5,0],[9,0],[0,-8],
 ] as const;
 
+/** Bounding region of legacy solar array mounting frames, backplates and support poles */
+export const SOLAR_LEGACY_BOUNDS = new T.Box3(new T.Vector3(-20, -1, 11), new T.Vector3(-5, 4, 18));
+
+/**
+ * Strips legacy solar panel support frames, backplates and mounting poles from campus hull seam meshes.
+ * This completely removes the overriding legacy structures so the 2K 3D model stands on its own stand.
+ */
+export function stripLegacySolarGeometry(mesh: T.Mesh): number {
+  const geom = mesh.geometry;
+  const pos = geom.attributes.position;
+  const idx = geom.index;
+  if (!idx || !pos) return 0;
+  mesh.updateMatrixWorld(true);
+  const m = mesh.matrixWorld;
+  const v = new T.Vector3();
+  const newIndices: number[] = [];
+  let stripped = 0;
+  for (let i = 0; i < idx.count; i += 3) {
+    const a = idx.getX(i), b = idx.getX(i + 1), c = idx.getX(i + 2);
+    v.fromBufferAttribute(pos, a).applyMatrix4(m);
+    if (SOLAR_LEGACY_BOUNDS.containsPoint(v)) {
+      stripped++;
+      continue;
+    }
+    newIndices.push(a, b, c);
+  }
+  geom.setIndex(newIndices);
+  geom.computeBoundingBox();
+  geom.computeBoundingSphere();
+  return stripped;
+}
+
 /** The campus has no landscape of its own: only the game surface is rendered. */
 export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:CollisionObstacle[]) {
   const baseY=groundY+OUTPOST_SITE.foundationOffset;
@@ -86,11 +118,15 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
       actions.push({action,duration:clip.duration});
     }
     mixer.update(0);
+    const toRemoveMeshes: T.Mesh[] = [];
     gltf.scene.traverse(o=>{
       if(o.userData.outpostSector)sectors.push({object:o,bounds:new T.Box3().setFromObject(o),interior:Boolean(o.userData.interior)});
       if(o instanceof T.Mesh){
-        // Hide legacy low-res photovoltaic array meshes; replaced by 2K instanced model
-        if(/photovoltaic/i.test(o.name)){o.visible=false;return;}
+        // Remove legacy low-res photovoltaic array meshes and strip their support frames/poles
+        if(/photovoltaic/i.test(o.name)){o.visible=false;toRemoveMeshes.push(o);return;}
+        if(o.name === '02__CREW_LIVING__frame_seams' || o.name === '01__bolted_vertical_seams_and_belt_rails_2'){
+          stripLegacySolarGeometry(o);
+        }
         // Interior furnishings are lit locally; they do not need another full
         // rendering pass into the outdoor sun shadow map.
         let parent:T.Object3D|null=o,interior=false,sector:T.Object3D|null=null;
@@ -108,6 +144,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
         }
       }
     });
+    for (const mesh of toRemoveMeshes) mesh.removeFromParent();
     const crewSector = gltf.scene.getObjectByName('OUTPOST__shell__crew');
     const solarMesh = createOutpostSolarMesh(solarAsset);
     if (crewSector) crewSector.add(solarMesh);

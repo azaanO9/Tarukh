@@ -38,8 +38,8 @@ export function loadSolarPanelAsset(): Promise<SolarPanelAsset> {
     const geometry = sourceMesh.geometry.clone();
     geometry.applyMatrix4(sourceMesh.matrixWorld);
 
-    // Stand feet lowest vertex is at y = 10.215268 cm, stand center is at z = 7.467858 cm
-    geometry.translate(0, -10.215268, -7.467858);
+    // Stand feet lowest vertex is at y = 10.215252 cm, stand center is at z = 7.542927 cm
+    geometry.translate(0, -10.215252, -7.542927);
     // Scale 0.02 converts cm to meters (165.26cm -> 3.305m width, 65.13cm -> 1.303m height, 66.43cm -> 1.329m depth)
     geometry.scale(0.02, 0.02, 0.02);
 
@@ -82,18 +82,20 @@ export function loadSolarPanelAsset(): Promise<SolarPanelAsset> {
   return cachedAssetPromise;
 }
 
-/** Outpost solar array positions relative to OUTPOST_SITE */
+/** Outpost solar array positions relative to OUTPOST_SITE.
+ * Standing directly on the foundation ground level (y = 0.0) on the 3D model's own stand feet.
+ */
 export const OUTPOST_SOLAR_ARRAY_SLOTS = [
   // Front row (z = 12.88)
-  { x: -18.0, y: 1.1014, z: 12.88 },
-  { x: -14.4, y: 1.1014, z: 12.88 },
-  { x: -10.8, y: 1.1014, z: 12.88 },
-  { x: -7.2, y: 1.1014, z: 12.88 },
+  { x: -18.0, y: 0.0, z: 12.88 },
+  { x: -14.4, y: 0.0, z: 12.88 },
+  { x: -10.8, y: 0.0, z: 12.88 },
+  { x: -7.2, y: 0.0, z: 12.88 },
   // Rear row (z = 15.92)
-  { x: -18.0, y: 1.1014, z: 15.92 },
-  { x: -14.4, y: 1.1014, z: 15.92 },
-  { x: -10.8, y: 1.1014, z: 15.92 },
-  { x: -7.2, y: 1.1014, z: 15.92 },
+  { x: -18.0, y: 0.0, z: 15.92 },
+  { x: -14.4, y: 0.0, z: 15.92 },
+  { x: -10.8, y: 0.0, z: 15.92 },
+  { x: -7.2, y: 0.0, z: 15.92 },
 ] as const;
 
 /**

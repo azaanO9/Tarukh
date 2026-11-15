@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import * as THREE from 'three';
 import { GREENHOUSE_SITES, GREENHOUSE_PAD } from '../game/greenhouseSites.ts';
 import { GREENHOUSE_GROUND_HEIGHTS, OUTPOST_GROUND_HEIGHT } from '../game/marsExpeditionTerrain.ts';
-import { OUTPOST_SITE } from '../game/outpostSite.ts';
 import { OUTPOST_SOLAR_ARRAY_SLOTS } from '../ui/world/createSolarPanels.ts';
+import { stripLegacySolarGeometry, SOLAR_LEGACY_BOUNDS } from '../ui/world/createMarsOutpost.ts';
 
 test('solar panel GLB asset exists with full 2K resolution textures and CC-BY attribution', () => {
   const glbPath = 'public/models/solar-panel/solar-panel.glb';
@@ -21,7 +22,7 @@ test('solar panel GLB asset exists with full 2K resolution textures and CC-BY at
   assert.equal(json.materials[0].name, 'SolarPanel');
 });
 
-test('outpost solar array slots align with 4-column 2-row campus layout and foundation height', () => {
+test('outpost solar array slots align with 4-column 2-row campus layout and stand on foundation', () => {
   assert.equal(OUTPOST_SOLAR_ARRAY_SLOTS.length, 8, '8 solar panels at outpost');
   const expectedCols = [-18.0, -14.4, -10.8, -7.2];
   const expectedRows = [12.88, 15.92];
@@ -29,7 +30,7 @@ test('outpost solar array slots align with 4-column 2-row campus layout and foun
   for (const slot of OUTPOST_SOLAR_ARRAY_SLOTS) {
     assert.ok(expectedCols.includes(slot.x), `Column ${slot.x} should be in expected outpost array columns`);
     assert.ok(expectedRows.includes(slot.z), `Row ${slot.z} should be in expected outpost array rows`);
-    assert.equal(slot.y, 1.1014, 'Mounting height matches foundation deck');
+    assert.equal(slot.y, 0.0, 'Mounting height stands directly on foundation deck');
   }
 
   // Verify alignment with layout.json collision boxes
@@ -72,4 +73,29 @@ test('greenhouse solar panels sit safely on flat pads away from doors and ramps'
       }
     }
   }
+});
+
+test('stripLegacySolarGeometry removes legacy mounting frames and support poles within bounds', () => {
+  const geom = new THREE.BufferGeometry();
+  const positions = new Float32Array([
+    // Triangle 1 (outside solar array bounds: e.g. at origin)
+    0, 0, 0,
+    1, 0, 0,
+    0, 1, 0,
+    // Triangle 2 (inside solar legacy bounds: x = -10, y = 1.0, z = 13.0)
+    -10, 1, 13,
+    -11, 1, 13,
+    -10, 1.5, 13,
+  ]);
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geom.setIndex([0, 1, 2, 3, 4, 5]);
+
+  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial());
+  assert.ok(SOLAR_LEGACY_BOUNDS.containsPoint(new THREE.Vector3(-10, 1, 13)), 'Test point must lie inside legacy solar bounds');
+  const stripped = stripLegacySolarGeometry(mesh);
+  assert.equal(stripped, 1, 'Should strip exactly 1 triangle inside solar legacy bounds');
+  assert.equal(geom.index.count, 3, 'Should retain remaining 3 indices for triangle outside bounds');
+  assert.equal(geom.index.getX(0), 0);
+  assert.equal(geom.index.getX(1), 1);
+  assert.equal(geom.index.getX(2), 2);
 });
