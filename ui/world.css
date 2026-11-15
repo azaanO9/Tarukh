@@ -1233,23 +1233,23 @@
 }
 
 /* ==========================================================================
-   SpaceX Dragon & NASA Crew Flight Telemetry Avionics Display (Bottom-Right HUD)
+   SpaceX & NASA Minimalist Icon-Driven Mars Telemetry Communicator (Bottom-Right HUD)
    ========================================================================== */
 
-/* Aerospace Flight Display Housing (20% Peeking when closed, slides fully open) */
-.mars-radiation-hud.gta-phone.spacex-avionics {
+/* Aerospace Communicator Display Housing (20% Peeking when closed, slides fully open) */
+.mars-radiation-hud.gta-phone {
   position: absolute;
   right: max(20px, env(safe-area-inset-right));
   bottom: 0;
   left: auto;
   z-index: 24;
-  width: 276px;
+  width: 268px;
   box-sizing: border-box;
-  background: #090d15;
-  border: 1px solid #1e293b;
-  border-top: 2px solid #334155;
+  background: #090e17;
+  border: 1px solid #1e2b3c;
+  border-top: 2px solid #38bdf8;
   border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  border-radius: 8px 8px 0 0;
   box-shadow:
     0 -10px 32px rgba(0, 0, 0, 0.85),
     0 0 0 1px rgba(255, 255, 255, 0.04),
@@ -1262,176 +1262,178 @@
   overflow: hidden;
 }
 
-.mars-radiation-hud.gta-phone.spacex-avionics.phone-closed {
+.mars-radiation-hud.gta-phone.phone-closed {
   transform: translateY(80%);
   cursor: pointer;
 }
 
-.mars-radiation-hud.gta-phone.spacex-avionics.phone-closed:hover {
+.mars-radiation-hud.gta-phone.phone-closed:hover {
   transform: translateY(75%);
   box-shadow:
     0 -16px 40px rgba(0, 0, 0, 0.95),
     0 0 20px rgba(56, 189, 248, 0.25);
 }
 
-.mars-radiation-hud.gta-phone.spacex-avionics.phone-open {
+.mars-radiation-hud.gta-phone.phone-open {
   transform: translateY(0);
   cursor: default;
 }
 
-.mars-radiation-hud.gta-phone.spacex-avionics.driving {
+.mars-radiation-hud.gta-phone.driving {
   right: max(20px, env(safe-area-inset-right));
   bottom: 0;
   left: auto;
 }
 
 /* Top Bezel Bar */
-.mars-avionics-top-bar {
+.mars-phone-top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #101622;
-  border-bottom: 1px solid #1e293b;
-  padding: 5px 8px;
+  background: #0f1622;
+  border-bottom: 1px solid #1a2538;
+  padding: 4px 8px;
 }
 
-.mars-avionics-bezel-tag {
+.mars-bezel-brand {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
-.bezel-led-dot {
+.mars-bezel-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 6px #10b981;
+  box-shadow: 0 0 5px #10b981;
 }
 
-.bezel-title {
-  font: 800 7.5px/1 ui-monospace, "SF Mono", monospace;
+.mars-bezel-text {
+  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
   letter-spacing: 0.1em;
   color: #94a3b8;
 }
 
-.mars-avionics-bezel-actions {
+.mars-bezel-action {
   display: flex;
   align-items: center;
 }
 
-.bezel-expand-hint {
+.mars-bezel-peek-hint {
   font: 800 7px/1 ui-monospace, "SF Mono", monospace;
   color: #38bdf8;
   background: rgba(56, 189, 248, 0.15);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 2px;
-  padding: 2px 5px;
+  padding: 1.5px 5px;
   letter-spacing: 0.08em;
-  animation: avionicsPulse 1.8s infinite alternate;
+  animation: peekPulse 1.8s infinite alternate;
 }
 
-@keyframes avionicsPulse {
+@keyframes peekPulse {
   0% { opacity: 0.75; }
   100% { opacity: 1; filter: brightness(1.2); }
 }
 
-.bezel-minimize-btn {
+.mars-bezel-btn {
   background: transparent;
   border: 1px solid #334155;
   color: #94a3b8;
   border-radius: 2px;
-  width: 18px;
-  height: 15px;
+  width: 17px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   cursor: pointer;
   padding: 0;
   transition: all 0.15s ease;
 }
 
-.bezel-minimize-btn:hover {
+.mars-bezel-btn:hover {
   background: #1e293b;
   color: #fff;
   border-color: #64748b;
 }
 
 /* Peek Telemetry Strip (visible when 20% closed) */
-.mars-avionics-peek-strip {
+.mars-phone-peek-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #090d14;
-  border-bottom: 1px solid #1a2332;
+  background: #080d15;
+  border-bottom: 1px solid #162132;
   padding: 5px 8px;
 }
 
-.peek-metric {
+.peek-item {
   display: flex;
   flex-direction: column;
   gap: 1.5px;
 }
 
-.peek-label {
+.peek-lbl {
   font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
   color: #64748b;
   letter-spacing: 0.08em;
 }
 
-.peek-val {
+.peek-num {
   font-size: 9.5px;
   font-weight: 800;
   color: #f1f5f9;
   font-variant-numeric: tabular-nums;
 }
 
-.peek-val small {
+.peek-num small {
   font-size: 7px;
   color: #94a3b8;
   font-weight: normal;
 }
 
-.peek-val.caution { color: #f59e0b; }
-.peek-val.critical { color: #ef4444; }
-.peek-val.warning { color: #f59e0b; }
+.peek-num.caution { color: #f59e0b; }
+.peek-num.critical { color: #ef4444; }
+.peek-num.warning { color: #f59e0b; }
 
-.peek-divider {
+.peek-sep {
   width: 1px;
   height: 16px;
-  background: #1e293b;
+  background: #1a2538;
 }
 
-.peek-status-pill {
+.peek-badge {
   font: 800 7px/1 ui-monospace, "SF Mono", monospace;
   padding: 2.5px 5px;
   border-radius: 2px;
   letter-spacing: 0.06em;
 }
 
-.peek-status-pill.shielded {
+.peek-badge.shielded {
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
-.peek-status-pill.nominal {
+.peek-badge.nominal {
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
-.peek-status-pill.storm {
+.peek-badge.storm {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
-/* Inner Flight OLED Display */
+/* Inner OLED Display Screen */
 .mars-phone-screen {
-  background: #06090f;
-  padding: 7px 8px 6px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(234, 88, 12, 0.12) 0%, transparent 45%),
+    linear-gradient(180deg, #090e17 0%, #05080e 100%);
+  padding: 6px 8px 4px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -1439,7 +1441,7 @@
   overflow: hidden;
 }
 
-/* Subtle MOLA Vector Contours */
+/* Topographic Contour Lines Overlay */
 .mars-phone-topo-lines {
   position: absolute;
   inset: 0;
@@ -1447,461 +1449,566 @@
   height: 100%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-.mars-avionics-header,
-.mars-avionics-link-bar,
-.mars-avionics-nav,
-.mars-avionics-content {
+.mars-phone-brand-header,
+.mars-phone-status-bar,
+.mars-phone-hero,
+.mars-phone-tab-content,
+.mars-phone-nav-bar {
   position: relative;
   z-index: 1;
 }
 
-/* Flight Header Row */
-.mars-avionics-header {
+/* Top Header Row (NASA Meatball & TARUKH) */
+.mars-phone-brand-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #141c2b;
-  padding-bottom: 4px;
+  padding: 0 1px;
 }
 
-.avionics-mission-brand {
+.mars-nasa-wrap {
   display: flex;
   align-items: center;
-  gap: 7px;
 }
 
-.mars-nasa-vector {
+.mars-nasa-logo {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
 }
 
-.avionics-meta-text {
+.mars-tarukh-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 1.5px;
-}
-
-.mission-code {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: #f8fafc;
-  letter-spacing: 0.12em;
-}
-
-.mission-sub {
-  font-size: 6.5px;
-  color: #64748b;
-  letter-spacing: 0.08em;
-}
-
-.avionics-clock-block {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5px;
-}
-
-.avionics-met-label {
-  font-size: 7px;
-  color: #94a3b8;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-}
-
-.avionics-clock-val {
-  font-size: 9px;
-  color: #38bdf8;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Comms Link & Downlink Row */
-.mars-avionics-link-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #090e18;
-  border: 1px solid #1a2538;
-  border-radius: 3px;
-  padding: 3.5px 6px;
-}
-
-.avionics-downlink-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #cbd5e1;
-  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  text-align: left;
 }
 
-.avionics-downlink-btn:hover {
-  color: #fff;
+.mars-tarukh-star {
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.8));
 }
 
-.comm-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-
-.comm-dot.live {
-  background: #10b981;
-  box-shadow: 0 0 5px #10b981;
-}
-
-.comm-dot.historical {
-  background: #f59e0b;
-  box-shadow: 0 0 5px #f59e0b;
-}
-
-.comm-label {
-  color: #64748b;
-}
-
-.comm-target {
+.mars-tarukh-text {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.26em;
   color: #f1f5f9;
 }
 
-.comm-hotkey {
-  color: #38bdf8;
-  margin-left: 2px;
-}
-
-.avionics-sep-guide-btn {
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
-  border-radius: 2px;
-  padding: 2px 5px;
-  font: 800 6.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.avionics-sep-guide-btn:hover {
-  background: rgba(56, 189, 248, 0.3);
-  color: #fff;
-  border-color: #38bdf8;
-}
-
-/* SpaceX Style Segmented Tab Navigation Bar */
-.mars-avionics-nav {
+/* Status Bar */
+.mars-phone-status-bar {
   display: flex;
-  background: #0a0f1b;
-  border: 1px solid #172132;
-  border-radius: 3px;
+  justify-content: space-between;
+  align-items: center;
+  font: 700 8px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  padding: 0 1px;
+}
+
+.mars-sat-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.mars-sat-link-btn:hover {
+  opacity: 0.85;
+}
+
+.sat-title {
+  color: #94a3b8;
+}
+
+.sat-badge.live {
+  color: #34d399;
+  text-shadow: 0 0 4px #10b981;
+}
+
+.sat-badge.historical {
+  color: #f59e0b;
+  text-shadow: 0 0 4px #d97706;
+}
+
+.mars-phone-clock {
+  color: #e2e8f0;
+  font-weight: 800;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mars-phone-net-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mars-signal-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 8px;
+}
+
+.mars-signal-bars i {
+  width: 2px;
+  background: #38bdf8;
+  border-radius: 0.5px;
+}
+
+.mars-signal-bars i:nth-child(1) { height: 2px; }
+.mars-signal-bars i:nth-child(2) { height: 4px; }
+.mars-signal-bars i:nth-child(3) { height: 6px; }
+.mars-signal-bars i:nth-child(4) { height: 8px; }
+
+.mars-battery-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mars-battery-icon {
+  display: inline-flex;
+  width: 13px;
+  height: 7px;
+  border: 1px solid #94a3b8;
+  border-radius: 2px;
+  padding: 0.5px;
+  position: relative;
+}
+
+.mars-battery-icon::after {
+  content: "";
+  position: absolute;
+  right: -2.5px;
+  top: 1.5px;
+  width: 1.5px;
+  height: 3px;
+  background: #94a3b8;
+  border-radius: 0 1px 1px 0;
+}
+
+.mars-battery-icon i {
+  display: block;
+  height: 100%;
+  background: #34d399;
+  border-radius: 1px;
+}
+
+.mars-battery-pct {
+  font-size: 7.5px;
+  color: #94a3b8;
+}
+
+/* Illustrated Mars Planet Hero Banner */
+.mars-phone-hero {
+  position: relative;
+  background: rgba(12, 18, 28, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  padding: 5px 7px;
   overflow: hidden;
 }
 
-.avionics-tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-right: 1px solid #141c2a;
-  color: #64748b;
-  padding: 4px 1px;
+.mars-hero-illustration {
+  position: absolute;
+  right: -10px;
+  top: -12px;
+  width: 75px;
+  height: 75px;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.mars-vector-planet {
+  filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.45));
+}
+
+.mars-hero-header-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.mars-hero-sep-badge {
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font: 800 8px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
+}
+
+.mars-hero-sep-badge:hover {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: #38bdf8;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.mars-hero-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mars-hero-bar {
+  width: 3px;
+  height: 13px;
+  background: #ea580c;
+  border-radius: 1.5px;
+  box-shadow: 0 0 6px #ea580c;
+}
+
+.mars-hero-title {
+  font-size: 12px;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.mars-hero-title b {
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.mars-hero-title span {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.mars-hero-sub {
+  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #38bdf8;
+  opacity: 0.85;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+  padding-left: 8px;
+}
+
+/* Tab Contents */
+.mars-phone-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 3-Column Grid Layout for Top & Bottom Icon Cards */
+.mars-phone-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.mars-grid-card {
+  position: relative;
+  background: rgba(12, 18, 28, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 5px;
+  padding: 5px 2px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
+  text-align: center;
+  gap: 1.5px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.mars-grid-card:hover {
+  background: rgba(16, 24, 38, 0.95);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.mars-grid-card.clickable {
   cursor: pointer;
-  position: relative;
-  transition: color 0.12s ease, background 0.12s ease;
 }
 
-.avionics-tab-btn:last-child {
-  border-right: none;
+.mars-grid-card.clickable:hover {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(56, 189, 248, 0.12);
+  transform: translateY(-1px);
 }
 
-.avionics-tab-btn:hover {
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.avionics-tab-btn.active {
-  color: #f8fafc;
-  background: #0f1828;
-}
-
-.tab-active-indicator {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #38bdf8;
-  box-shadow: 0 0 6px #38bdf8;
-}
-
-/* Content Container */
-.mars-avionics-content {
+.mars-card-icon {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-/* Annunciator Banner */
-.avionics-annunciator {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 3.5px 6px;
-  border-radius: 2px;
-  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.08em;
+  justify-content: center;
+  margin-bottom: 1px;
 }
 
-.avionics-annunciator.nominal {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+.mars-card-icon.rad-icon { color: #facc15; }
+.mars-card-icon.atom-icon { color: #38bdf8; }
+.mars-card-icon.flare-icon { color: #fb923c; }
+.mars-card-icon.temp-icon { color: #38bdf8; }
+.mars-card-icon.gauge-icon { color: #a78bfa; }
+.mars-card-icon.o2-icon { color: #34d399; }
+
+.o2-symbol {
+  font: 800 12px/1 ui-monospace, "SF Mono", monospace;
   color: #34d399;
 }
 
-.avionics-annunciator.alarm {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.45);
-  color: #f87171;
-  animation: annunciatorFlash 1.2s infinite alternate;
-}
-
-@keyframes annunciatorFlash {
-  0% { opacity: 0.85; }
-  100% { opacity: 1; filter: brightness(1.2); }
-}
-
-.annunciator-scale {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1.5px 4px;
-  border-radius: 2px;
-}
-
-/* Subsystem Cards */
-.avionics-card {
-  background: #0a0f1a;
-  border: 1px solid #1a2538;
-  border-radius: 3px;
-  padding: 5px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.avionics-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.block-title {
-  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
+.mars-card-label {
+  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
   color: #7dd3fc;
+  opacity: 0.9;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.block-val {
-  font: 700 8.5px/1 ui-monospace, "SF Mono", monospace;
-  color: #cbd5e1;
-  font-variant-numeric: tabular-nums;
-}
-
-.block-val b {
+.mars-card-val {
+  font-family: ui-monospace, "SF Mono", monospace;
   font-size: 10px;
-}
-
-.block-val.nominal b { color: #34d399; }
-.block-val.caution b { color: #f59e0b; }
-.block-val.critical b { color: #ef4444; }
-.block-val.warning b { color: #f59e0b; }
-
-/* Linear Radiation Gauge with 30 & 70 mSv Threshold Markers */
-.avionics-linear-gauge {
-  position: relative;
-  width: 100%;
-  height: 6px;
-  background: #05080e;
-  border: 1px solid #1e2a3c;
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.gauge-fill {
-  height: 100%;
-  transition: width 0.2s ease-out;
-}
-
-.gauge-fill.nominal {
-  background: #10b981;
-}
-
-.gauge-fill.caution {
-  background: #f59e0b;
-}
-
-.gauge-fill.critical {
-  background: #ef4444;
-}
-
-.gauge-marker {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.4);
-  z-index: 2;
-}
-
-.gauge-marker.m-30 { left: 30%; }
-.gauge-marker.m-70 { left: 70%; }
-
-/* Card Subtext */
-.avionics-card-sub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
-  letter-spacing: 0.05em;
-  margin-top: 1px;
-}
-
-.sub-lbl {
-  color: #64748b;
-}
-
-.sub-val.nominal { color: #94a3b8; }
-.sub-val.storm { color: #f87171; }
-.sub-val.caution { color: #f59e0b; }
-.sub-val.warning { color: #f59e0b; }
-.sub-val.critical { color: #ef4444; }
-
-.sub-badge {
-  padding: 1.5px 4px;
-  border-radius: 1px;
-  font-size: 6px;
-}
-
-.sub-badge.shielded {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-}
-
-.sub-badge.eva {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-/* Health Gauge */
-.avionics-health-gauge {
-  width: 100%;
-  height: 6px;
-  background: #05080e;
-  border: 1px solid #1e2a3c;
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.health-fill {
-  height: 100%;
-  transition: width 0.25s ease-out;
-}
-
-.health-fill.nominal { background: #10b981; }
-.health-fill.warning { background: #f59e0b; }
-.health-fill.critical { background: #ef4444; }
-
-/* 2x2 Flight Tiles Grid */
-.avionics-grid-2x2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
-}
-
-.avionics-tile {
-  background: #0a0f1a;
-  border: 1px solid #1a2538;
-  border-radius: 3px;
-  padding: 5px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.avionics-tile.clickable {
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.avionics-tile.clickable:hover {
-  border-color: #38bdf8;
-  background: #0e1626;
-}
-
-.tile-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tile-id {
-  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
-  color: #7dd3fc;
-  letter-spacing: 0.08em;
-}
-
-.tile-unit {
-  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
-  color: #64748b;
-}
-
-.tile-val {
-  font: 800 11.5px/1.1 ui-monospace, "SF Mono", monospace;
-  color: #f8fafc;
   font-variant-numeric: tabular-nums;
-  margin: 1px 0;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.tile-val small {
-  font-size: 7.5px;
+.mars-card-val small {
+  font-size: 7px;
   color: #94a3b8;
   font-weight: normal;
 }
 
-.tile-val.flare {
+.mars-card-val.flare-val {
   color: #fb923c;
-  font-size: 10px;
 }
 
-.tile-val.nominal {
+.mars-card-val.temp-val {
+  color: #38bdf8;
+}
+
+.mars-card-val.o2-val {
   color: #34d399;
 }
 
-.tile-sub {
-  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
-  color: #64748b;
+/* Mini 5-Segment Meter in Card 1 */
+.mars-card-mini-meter {
+  display: flex;
+  gap: 1.5px;
+  margin-top: 2px;
+  width: 75%;
+  height: 2px;
+}
+
+.m-seg {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+}
+
+.m-seg.active-green { background: #34d399; box-shadow: 0 0 3px #10b981; }
+.m-seg.active-amber { background: #facc15; box-shadow: 0 0 3px #eab308; }
+.m-seg.active-orange { background: #fb923c; box-shadow: 0 0 3px #f97316; }
+.m-seg.active-red { background: #f87171; box-shadow: 0 0 3px #ef4444; }
+.m-seg.active-crimson { background: #f43f5e; box-shadow: 0 0 5px #e11d48; }
+
+/* Middle Full-Width Progress Bar Cards */
+.mars-phone-bar-card {
+  position: relative;
+  background: rgba(12, 18, 28, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 5px;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mars-bar-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mars-bar-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 800 7.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mars-bar-card-title svg {
+  color: #38bdf8;
+}
+
+.health-bar-card .mars-bar-card-title svg {
+  color: #34d399;
+}
+
+.mars-bar-val {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mars-bar-val b {
+  font-size: 10px;
+}
+
+.mars-bar-val.nominal b { color: #34d399; }
+.mars-bar-val.caution b { color: #f59e0b; }
+.mars-bar-val.critical b { color: #ef4444; }
+.mars-bar-val.warning b { color: #f59e0b; }
+
+/* Segmented Track & Fill for Radiation */
+.mars-segmented-track {
+  width: 100%;
+  height: 6px;
+  background: #060910;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.mars-segmented-fill {
+  height: 100%;
+  transition: width 0.2s ease-out;
+}
+
+.mars-segmented-fill.nominal {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  box-shadow: 0 0 5px rgba(52, 211, 153, 0.4);
+}
+
+.mars-segmented-fill.caution {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+  animation: cautionPulse 1.4s infinite alternate;
+}
+
+.mars-segmented-fill.critical {
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+  animation: criticalFlash 0.7s infinite alternate;
+}
+
+.mars-bar-sub-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.mars-sub-bar {
+  width: 2px;
+  height: 7px;
+  background: #34d399;
+  border-radius: 1px;
+}
+
+.mars-sub-text {
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
   letter-spacing: 0.04em;
 }
 
-/* Secondary Subsystem Buses */
-.avionics-section-title {
-  font: 800 7.5px/1 ui-monospace, "SF Mono", monospace;
-  color: #94a3b8;
-  letter-spacing: 0.1em;
-  padding: 2px 0 1px;
-  border-bottom: 1px solid #162030;
+.mars-sub-text.shielded {
+  color: #34d399;
 }
 
-.avionics-event-records,
-.avionics-bus-list {
+.mars-sub-text.nominal {
+  color: #64748b;
+}
+
+.mars-sub-text.storm {
+  color: #f87171;
+  animation: dotFlash 0.9s infinite alternate;
+}
+
+/* 45-Degree Angled Military Striped Health Bar Track & Fill */
+.mars-striped-health-track {
+  width: 100%;
+  height: 6.5px;
+  background: #060910;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.mars-striped-health-fill {
+  height: 100%;
+  transition: width 0.25s ease-out;
+  background: repeating-linear-gradient(
+    -45deg,
+    #10b981 0px,
+    #10b981 6px,
+    #059669 6px,
+    #059669 9px
+  );
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.mars-striped-health-fill.warning {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f59e0b 0px,
+    #f59e0b 6px,
+    #d97706 6px,
+    #d97706 9px
+  );
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.mars-striped-health-fill.critical {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ef4444 0px,
+    #ef4444 6px,
+    #b91c1c 6px,
+    #b91c1c 9px
+  );
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+  animation: criticalFlash 0.7s infinite alternate;
+}
+
+/* Secondary Tabs (Data, Systems, Settings, Home) */
+.mars-tab-heading {
+  padding: 3px 2px 1px;
+}
+
+.mars-tab-heading h3 {
+  font-size: 10px;
+  margin: 0;
+  color: #f1f5f9;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.mars-tab-heading p {
+  font-size: 7.5px;
+  color: #94a3b8;
+  margin: 1px 0 0;
+}
+
+.mars-events-list,
+.mars-systems-list,
+.mars-settings-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1909,167 +2016,266 @@
   overflow-y: auto;
 }
 
-.avionics-record-row,
-.avionics-bus-item {
-  background: #090e18;
-  border: 1px solid #1a2538;
-  border-radius: 3px;
+.mars-event-item,
+.mars-system-card,
+.mars-setting-row {
+  background: rgba(12, 18, 28, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 4px;
   padding: 5px 6px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   text-align: left;
-  color: #e2e8f0;
-  transition: all 0.12s ease;
+  color: #f1f5f9;
+  transition: all 0.15s ease;
 }
 
-.avionics-record-row {
+.mars-event-item {
   cursor: pointer;
+  gap: 6px;
 }
 
-.avionics-record-row:hover,
-.avionics-record-row.active {
-  background: #0f1828;
-  border-color: #38bdf8;
+.mars-event-item:hover,
+.mars-event-item.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
-.record-details,
-.bus-item-info {
+.mars-event-icon-col,
+.mars-sys-icon-box {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
-.record-title,
-.bus-id {
+.mars-event-meta,
+.mars-sys-info {
+  flex: 1;
+}
+
+.mars-event-meta b,
+.mars-sys-info b {
+  display: block;
   font-size: 8.5px;
-  font-weight: 800;
-  color: #f8fafc;
+  color: #f1f5f9;
 }
 
-.record-meta,
-.bus-desc {
+.mars-event-meta small,
+.mars-sys-info small {
   font-size: 7px;
   color: #94a3b8;
 }
 
-.record-badge,
-.bus-status {
-  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
+.mars-event-tag,
+.mars-sys-status {
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
   padding: 2px 4px;
   border-radius: 2px;
 }
 
-.record-badge.live { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.record-badge.storm { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-.record-badge.extreme { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.mars-event-tag.live { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+.mars-event-tag.storm { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.mars-event-tag.extreme { background: rgba(239, 68, 68, 0.2); color: #f87171; }
 
-.bus-status.ok { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.bus-status.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.mars-sys-status.ok { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+.mars-sys-status.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 
-.avionics-toggle-btn {
-  background: #111a28;
-  border: 1px solid #1e2d42;
+.mars-setting-row {
+  justify-content: space-between;
+}
+
+.mars-setting-label b {
+  display: block;
+  font-size: 8.5px;
   color: #f1f5f9;
-  border-radius: 2px;
+}
+
+.mars-setting-label small {
+  font-size: 7px;
+  color: #94a3b8;
+}
+
+.mars-setting-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f1f5f9;
+  border-radius: 3px;
   padding: 3px 6px;
-  font: 800 7px/1 ui-monospace, "SF Mono", monospace;
+  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.avionics-toggle-btn:hover {
-  background: #1a283e;
-  border-color: #38bdf8;
+.mars-setting-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
-.avionics-toggle-btn.active {
-  background: rgba(56, 189, 248, 0.15);
+.mars-setting-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.18);
   border-color: #38bdf8;
   color: #38bdf8;
 }
 
-.avionics-toggle-btn.muted {
-  background: rgba(239, 68, 68, 0.15);
+.mars-setting-toggle-btn.muted {
+  background: rgba(239, 68, 68, 0.18);
   border-color: #ef4444;
   color: #f87171;
 }
 
-/* Mission Manifest */
-.avionics-crew-manifest {
-  background: #090e18;
-  border: 1px solid #1a2538;
-  border-radius: 3px;
-  padding: 6px;
+/* Home / Mission Tab */
+.mars-home-hero {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.manifest-row {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  font: 700 7.5px/1 ui-monospace, "SF Mono", monospace;
-  padding: 2px 0;
-  border-bottom: 1px solid #121a28;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 5px;
 }
 
-.manifest-row:last-child {
-  border-bottom: none;
+.mars-home-avatar-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
 }
 
-.manifest-k {
-  color: #64748b;
+.mars-home-user b {
+  display: block;
+  font-size: 9px;
+  color: #f1f5f9;
   letter-spacing: 0.06em;
 }
 
-.manifest-v {
-  color: #f1f5f9;
+.mars-home-user small {
+  font-size: 7.5px;
+  color: #94a3b8;
 }
 
-.manifest-v.nominal { color: #34d399; }
-.manifest-v.caution { color: #f59e0b; }
-.manifest-v.critical { color: #ef4444; }
-.manifest-v.warning { color: #f59e0b; }
+.mars-home-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 4px 0;
+}
 
-.avionics-full-telemetry-btn {
-  background: #101c2e;
-  border: 1px solid #1e3554;
-  color: #38bdf8;
-  border-radius: 3px;
+.mars-home-stat-box {
+  background: rgba(12, 18, 28, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 4px;
+  padding: 5px 3px;
+  text-align: center;
+}
+
+.mars-home-stat-box .h-val {
+  display: block;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.mars-home-stat-box .h-lbl {
+  font: 700 6.5px/1 ui-monospace, "SF Mono", monospace;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.mars-home-launch-btn {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 4px;
   padding: 6px;
-  font: 800 8px/1 ui-monospace, "SF Mono", monospace;
+  font: 800 8.5px/1 ui-monospace, "SF Mono", monospace;
   letter-spacing: 0.08em;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
 }
 
-.avionics-full-telemetry-btn:hover {
-  background: #182a44;
-  border-color: #38bdf8;
-  color: #fff;
+.mars-home-launch-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
 }
 
-/* Responsive Scaling */
+/* Bottom Navigation Bar (5 Tabs) */
+.mars-phone-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(56, 189, 248, 0.16);
+  padding: 4px 1px 1px;
+  margin-top: 2px;
+  position: relative;
+}
+
+.mars-nav-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  padding: 3px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font: 700 7px/1 ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.12s ease;
+  position: relative;
+}
+
+.mars-nav-btn:hover {
+  color: #cbd5e1;
+}
+
+.mars-nav-btn.active {
+  color: #f1f5f9;
+}
+
+.mars-nav-btn.active svg {
+  color: #ea580c;
+  filter: drop-shadow(0 0 5px rgba(234, 88, 12, 0.8));
+}
+
+.nav-active-bar {
+  position: absolute;
+  bottom: -2px;
+  left: 15%;
+  width: 70%;
+  height: 2px;
+  background: #ea580c;
+  border-radius: 1px;
+  box-shadow: 0 0 5px #ea580c;
+}
+
+/* Responsive Scaling for Short Displays & Mobile */
 @media (max-height: 720px) {
-  .mars-radiation-hud.gta-phone.spacex-avionics {
+  .mars-radiation-hud.gta-phone {
     transform-origin: bottom right;
   }
-  .mars-radiation-hud.gta-phone.spacex-avionics.phone-closed {
+  .mars-radiation-hud.gta-phone.phone-closed {
     transform: scale(0.85) translateY(80%);
   }
-  .mars-radiation-hud.gta-phone.spacex-avionics.phone-closed:hover {
+  .mars-radiation-hud.gta-phone.phone-closed:hover {
     transform: scale(0.85) translateY(75%);
   }
-  .mars-radiation-hud.gta-phone.spacex-avionics.phone-open {
+  .mars-radiation-hud.gta-phone.phone-open {
     transform: scale(0.85) translateY(0);
   }
 }
 
 @media (max-width: 520px) {
-  .mars-radiation-hud.gta-phone.spacex-avionics {
+  .mars-radiation-hud.gta-phone {
     width: 250px;
     right: max(8px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
