@@ -5,6 +5,7 @@ import {assetUrl} from '../../lib/assetUrl.ts';
 import {GARAGE_SITE,garageFloorAt} from '../../game/garageSite.ts';
 import {garageIndoors,type GarageState} from '../../game/roverGarage.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
+import {withinDetailRange} from './distanceVisibility.ts';
 
 /** Loads only the reviewed shelter. The existing game rover supplies the vehicle. */
 export function createRoverGarage(scene:T.Scene,state:GarageState,datum:number,obstacles:CollisionObstacle[]) {
@@ -78,12 +79,12 @@ export function createRoverGarage(scene:T.Scene,state:GarageState,datum:number,o
     setPerformance(performance);
     if(previous!==state.doorAmount){previous=state.doorAmount;action!.time=duration*previous;mixer!.update(0);root.updateMatrixWorld(true);}
     const distance=Math.hypot(x-GARAGE_SITE.x,z-GARAGE_SITE.z);
-    root.visible=distance<(performance?220:400);
+    root.visible=withinDetailRange(distance,root.visible,performance?220:400,20);
     // The opaque closed door hides the high-detail workshop from outside.
     const workshopVisible=state.doorAmount>0||garageIndoors(x,z);
-    for(const interior of interiors)interior.visible=workshopVisible&&distance<(performance?17:24);
-    const lit=state.lightsOn&&workshopVisible&&distance<22;
-    light.intensity=lit?24:0;accent.intensity=lit?(performance?3:5):0;
+    for(const interior of interiors)interior.visible=workshopVisible&&withinDetailRange(distance,interior.visible,performance?17:24);
+    const lightFade=state.lightsOn&&workshopVisible?Math.max(0,Math.min(1,(26-distance)/4)):0;
+    light.intensity=24*lightFade;accent.intensity=(performance?3:5)*lightFade;
   }
   function ceilingAt(x:number,z:number){return garageIndoors(x,z)?datum+3.95:Infinity;}
   function constrainCamera(x:number,y:number,z:number,position:T.Vector3) {

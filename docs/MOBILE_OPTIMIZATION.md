@@ -1,6 +1,6 @@
 # Mobile interface and loading â€” November 17, 2026
 
-This pass redesigns touch presentation and repairs input handling. Story rules, rewards, terrain, vehicle physics, spacecraft animation, model detail, texture resolution and graphics-tier budgets are unchanged. No runtime dependency was added.
+The initial interface/loading pass below preserved graphics budgets. The subsequent **Circular HUD and clarity follow-up** at the end of this report updates mobile anti-aliasing, resolution recovery and nearby-detail visibility. Both passes preserve story rules, rewards, terrain, vehicle physics, spacecraft animation and source assets. No runtime dependency was added.
 
 ## What changed
 
@@ -94,3 +94,46 @@ This task does not guarantee a particular frame rate, change gameplay saves, sim
 | `public/team/tarukh-blue-arc-logo.webp`, `public/art/mars-atlas/map-base.webp`, `scripts/prepare-mobile-images.mjs` | Verified lossless image derivatives |
 | New `scripts/mobile-*check.mjs` runners and updated `scripts/mobile-layout-check.mjs` | Reproducible browser/layout/input/loading checks |
 | `README.md`, `docs/INTERFACE.md`, `ASSET_CREDITS.md`, this report and `docs/qa/mobile-ui-2026-11-17/` | Current controls, contracts, attribution and measured evidence |
+
+## Circular HUD and clarity follow-up
+
+Mobile gameplay now hides the TARUKH badge and uses a circular top-left radar with a thin outline. Tap the radar itself to open the atlas; the Map/range/collapse toolbar is removed. Circular glass controls use camera-switch, directional, jump, vehicle, hand, exit, phone, pause and boost icons. Short labels and existing accessible names remain. Radiation readings sit beside the phone button. Speed and battery sit at the bottom between the steering and pedal zones. Temporary shield notices and garage prompts occupy separate rows, including at 568 x 320.
+
+Small glass surfaces use an 8px CSS backdrop blur. The standard declaration follows the WebKit-prefixed declaration so CSS optimization does not leave Chrome without blur. No full-screen gameplay blur or new WebGL post-processing pass was added.
+
+Mobile previously disabled native anti-aliasing and could shrink the scene to 0.55 CSS pixels per axis. Normal mobile initialization now requests native MSAA, including when Auto chooses Performance. Auto accepts a stable 40-50 FPS image instead of chasing 60 FPS by reducing pixels. Its ordinary rescue floor is 0.85; constrained-device caps start at 1.0 instead of 0.85. Sustained spare frame time can recover both detail and resolution after a slow loading sample. Manual tiers remain. The explicit low-graphics retry keeps a non-MSAA context for browsers that cannot create the normal context.
+
+Outpost, garage and greenhouse detail culling now retains a small exit band, preventing repeated visibility changes around an exact distance cutoff. Frustum culling stays active. Garage light intensity fades with distance. These changes address two identifiable sources of edge shimmer/detail flicker; physical-device testing is still needed for the reported phone-specific symptoms.
+
+### Verification
+
+- 379 automated tests passed, including new scale-floor/recovery and visibility-boundary cases. Type checking, Sites build and Pages build passed.
+- Chrome, Firefox and WebKit completed the 47-state responsive suite without reported layout failures or JavaScript errors. The assertions now check circular action buttons, the circular radar, its top-left placement, absence of its toolbar and hidden gameplay badge.
+- Real touch-event checks passed for walking/jump, simultaneous steering/throttle, cancellation, garage rollout/boarding, atlas pinch/pan and failed asset recovery. Rover checks assert the bottom battery placement, glass blur and separation from controls/notices at 568 x 320, 844 x 390 and 1024 x 768.
+- A simulated rejection of multisampled WebGL displayed the fallback panel; Performance retry loaded the playable scene with a non-MSAA context.
+- ESLint still reports the same four existing React effect errors and eight warnings described above. No lint suppression was added.
+
+One local Chrome sanity sample used an 844 x 390 viewport, DPR 3, mobile Auto, the garage checkpoint and ten final one-second readings. This is desktop GPU emulation, without CPU/network throttling, **not a physical-phone benchmark**:
+
+| Observed value | Before | After |
+| --- | ---: | ---: |
+| Median sampled FPS | 60.0 | 56.1 |
+| Native anti-aliasing | Off | On |
+| Render scale at capture | 1.25 | 1.18 |
+| Draw calls | 183 | 183 |
+| Triangles | 1,423,328 | 1,423,328 |
+
+Auto remained free to recover to 1.25 after capture. Anti-aliasing has a GPU cost; these samples do not establish equal performance on every phone. Browser layout runs execute separately and their diagnostic screenshots are not performance benchmarks. Verify thermal performance, long sessions and nearby-surface flicker on the actual iPhone/Android devices.
+
+[Walking preview](qa/mobile-hud-2026-11-17/walking.jpg) and [driving preview](qa/mobile-hud-2026-11-17/driving.jpg) use the actual game with the FPS meter switched Off through the Flight console. [Verification summary](qa/mobile-hud-2026-11-17/summary.json) records the runs; full local screenshots and frame samples are in `outputs/mobile-priority-*`. Re-run the existing mobile UI/control scripts above. These checks use a local production build; deployed revisions are tracked separately.
+
+### Files changed in this follow-up
+
+| Files | Change |
+| --- | --- |
+| `ui/mobileInterface.css`, `ui/ExplorationMinimap.tsx`, `ui/MarsFreeRoam.tsx` | Circular radar, hidden gameplay badge, glass surfaces, circular header actions and map focus return |
+| `ui/world/MarsTouchDeck.tsx`, `ui/world/RoverTouchDeck.tsx`, `ui/MarsWorld.tsx` | Action icons, compact phone/shield readouts, native mobile AA and graphics-policy integration |
+| `game/mobileGraphics.ts`, `game/autoGraphics.ts`, `game/backgroundGraphics.ts` | Mobile pixel floor, 40 FPS adaptation target and recovery after a busy loading sample |
+| `ui/world/distanceVisibility.ts`, `createMarsOutpost.ts`, `createRoverGarage.ts`, `createGreenhouseFarm.ts` | Bounded visibility hysteresis and distance-based garage light fade |
+| `tests/mobileGraphics.test.mjs`, `tests/distanceVisibility.test.mjs`, mobile UI/control scripts | Regression coverage for quality recovery, visibility stability and revised layout |
+| `README.md`, `docs/INTERFACE.md`, this report and accompanying evidence | Updated touch controls, contracts and verification |

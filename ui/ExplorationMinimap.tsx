@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { Map as MapIcon, Minus, Plus } from 'lucide-react';
 import type { View } from "./MarsWorld";
 import { mapRectPoint, mapPoint, mapHeading, mapLidarContacts } from "../game/minimap";
 import { MARS_LANDMARKS } from "../content/marsLandmarks";
@@ -30,10 +29,12 @@ export default function ExplorationMinimap({
   view,
   selected,
   onOpenAtlas,
+  mobile = false,
 }: {
   view: View;
   selected: string;
   onOpenAtlas: () => void;
+  mobile?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [userZoom, setUserZoom] = useState<MinimapZoomPreset | null>(null);
@@ -44,7 +45,9 @@ export default function ExplorationMinimap({
   const scan = driving ? view.lidar : undefined;
 
   // Active zoom preset: defaults to 120m on foot, 220m when driving rover, or user choice
-  const activeZoom: MinimapZoomPreset = userZoom ?? (driving ? 220 : 120);
+  const activeZoom: MinimapZoomPreset = (mobile ? null : userZoom) ?? (driving ? 220 : 120);
+  const mapOpen = mobile || open;
+  const project = mobile ? mapPoint : mapRectPoint;
   const isOverview = activeZoom === "overview";
   const activeRange: number = isOverview ? 942 : activeZoom;
 
@@ -73,8 +76,8 @@ export default function ExplorationMinimap({
   });
 
   const target = MARS_LANDMARKS.find((p) => p.id === selected) ?? MARS_LANDMARKS[0];
-  const outpostPin = isOverview ? toRegion(OUTPOST_SITE.x, OUTPOST_SITE.z) : mapRectPoint(OUTPOST_SITE.x, OUTPOST_SITE.z, x, z, activeRange);
-  const missionPin = view.storyTarget ? (isOverview ? toRegion(view.storyTarget.x,view.storyTarget.z) : mapRectPoint(view.storyTarget.x,view.storyTarget.z,x,z,activeRange)) : null;
+  const outpostPin = isOverview ? toRegion(OUTPOST_SITE.x, OUTPOST_SITE.z) : project(OUTPOST_SITE.x, OUTPOST_SITE.z, x, z, activeRange);
+  const missionPin = view.storyTarget ? (isOverview ? toRegion(view.storyTarget.x,view.storyTarget.z) : project(view.storyTarget.x,view.storyTarget.z,x,z,activeRange)) : null;
   const threat = scan?.threatDistance;
   const blocked = threat !== null && threat !== undefined;
 
@@ -107,7 +110,7 @@ export default function ExplorationMinimap({
       className="roam-minimap gta-minimap"
       data-ui-zone="minimap"
       data-driving={driving}
-      data-open={open}
+      data-open={mapOpen}
       data-zoom={activeZoom}
       data-blocked={blocked}
       aria-label="Exploration minimap and navigation radar"
@@ -137,9 +140,9 @@ export default function ExplorationMinimap({
           </button>
         </div>
 
-        {open && (
+        {mapOpen && (
           <svg
-            viewBox="5 30 190 140"
+            viewBox={mobile ? "0 0 200 200" : "5 30 190 140"}
             preserveAspectRatio="xMidYMid meet"
             className="roam-radar-svg roam-gta-rect-svg"
             role="img"
@@ -152,7 +155,7 @@ export default function ExplorationMinimap({
             <defs>
               {/* Rectangular radar clip */}
               <clipPath id="gta-rect-clip">
-                <rect x="6" y="31" width="188" height="138" rx="6" />
+                {mobile ? <circle cx="100" cy="100" r="99" /> : <rect x="6" y="31" width="188" height="138" rx="6" />}
               </clipPath>
 
               {/* 1. MINIMAL CREW ROVER ICON (Compact 5x8px GTA 5 vehicle blip) */}
@@ -170,7 +173,7 @@ export default function ExplorationMinimap({
             </defs>
 
             {/* Radar Bezel Frame */}
-            <rect
+            {mobile ? <circle cx="100" cy="100" r="99" fill="#180e0a" /> : <rect
               x="5.5"
               y="30.5"
               width="189"
@@ -179,7 +182,7 @@ export default function ExplorationMinimap({
               fill="#060c14"
               stroke="rgba(255, 255, 255, 0.24)"
               strokeWidth="1.2"
-            />
+            />}
 
             {/* Clipped Map Contents */}
             <g clipPath="url(#gta-rect-clip)">
@@ -376,7 +379,7 @@ export default function ExplorationMinimap({
                   {MARS_LANDMARKS.filter((p) => p.id !== target.id)
                     .concat(target)
                     .map((place) => {
-                      const pin = mapRectPoint(place.x, place.z, x, z, activeRange);
+                      const pin = project(place.x, place.z, x, z, activeRange);
                       const isSelected = place.id === target.id;
                       const dist = Math.round(Math.hypot(place.x - x, place.z - z));
                       return (
@@ -463,14 +466,14 @@ export default function ExplorationMinimap({
               <text y="14" textAnchor="middle" fill="#e7ffff" stroke="#102c37" strokeWidth="2" paintOrder="stroke" fontSize="6.5" fontWeight="800">OUTPOST</text>
             </g>
             {!isOverview && GREENHOUSE_SITES.map(site => {
-              const point = mapRectPoint(site.x,site.z,x,z,activeRange);
+              const point = project(site.x,site.z,x,z,activeRange);
               return <g key={site.id} transform={`translate(${point.x} ${point.y})`} role="img" aria-label={site.label}>
                 <title>{site.label} · Food cultivation · {Math.round(Math.hypot(x-site.x,z-site.z))} game metres</title>
                 <path d="M-4 4 Q-6 -5 5 -5 Q6 5 -4 4 M-4 4 L2 -2" fill="#d1eaa9" stroke="#213f2d" strokeWidth="1.3" />
               </g>;
             })}
             {!isOverview && (() => {
-              const pin=mapRectPoint(GARAGE_SITE.x,GARAGE_SITE.z,x,z,activeRange);
+              const pin=project(GARAGE_SITE.x,GARAGE_SITE.z,x,z,activeRange);
               return <g transform={`translate(${pin.x} ${pin.y})`} role="img" aria-label="Rover garage">
                 <title>Rover garage · E to deploy or park the crew rover · {Math.round(Math.hypot(x-GARAGE_SITE.x,z-GARAGE_SITE.z))} game metres</title>
                 <path d="M-6 -2 L0 -6 L6 -2 V6 H-6Z" fill="#f5d397" stroke="#453521" strokeWidth="1.4" />
@@ -483,6 +486,7 @@ export default function ExplorationMinimap({
               <text y="3" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#192c38">!</text>
             </g>}
             {/* North Indicator */}
+            <g transform={mobile ? "translate(0 -23)" : undefined}>
             <polygon points="100,32 96,38 104,38" fill="#ef4444" />
             <text
               x="100"
@@ -495,11 +499,12 @@ export default function ExplorationMinimap({
             >
               N
             </text>
+            </g>
           </svg>
         )}
       </div>
 
-      {open && (
+      {!mobile && open && (
         <div className="roam-gta-hud-bottom">
           {/* 1. STATUS GAUGES (GTA 5 Tri-Bars directly beneath the radar frame) */}
           <div className="roam-gta-bars" aria-label="Status gauges">
@@ -549,11 +554,7 @@ export default function ExplorationMinimap({
           </div>
         </div>
       )}
-      <nav className="mobile-minimap-tools" aria-label="Radar controls">
-        <button type="button" aria-label="Open full map" onClick={onOpenAtlas}><MapIcon size={20}/><span>Map</span></button>
-        <button type="button" aria-label={`Change radar range. Current ${activeRange} metres`} onClick={handleCycleZoom}><span>{isOverview?'All':`${activeRange}m`}</span></button>
-        <button type="button" aria-label={open?'Collapse minimap':'Expand minimap'} aria-expanded={open} onClick={()=>setOpen(!open)}>{open?<Minus size={20}/>:<Plus size={20}/>}</button>
-      </nav>
+      {mobile && <button className="mobile-minimap-open" type="button" aria-label="Open full map" title="Open full map" onClick={onOpenAtlas} />}
     </aside>
   );
 }

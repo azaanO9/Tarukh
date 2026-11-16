@@ -1,5 +1,6 @@
 "use client";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Maximize, Pause } from "lucide-react";
 import type { ElysiumWorldBridge } from "../game/elysiumWorld";
 
 
@@ -178,7 +179,7 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     document.addEventListener("keydown", keys);
     return () => { pendingFocus.disconnect();document.removeEventListener("keydown", keys); requestAnimationFrame(()=>{
       if(previous?.isConnected)previous.focus();
-      else document.querySelector<HTMLElement>(atlas?'.roam-atlas-open, .roam-header button':'.sv-world')?.focus();
+      else (document.querySelector<HTMLElement>(atlas?'.mobile-minimap-open, .roam-atlas-open':'.sv-world') ?? document.querySelector<HTMLElement>('.sv-world'))?.focus();
     }); };
   }, [panel, failed, atlas]);
 
@@ -222,9 +223,9 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
       onMenuFullscreen={fullscreenAvailable && !fullscreen ? enterFullscreen : undefined} /></Suspense>
     {showArrival && !failed && <Suspense fallback={<div className="roam-scene-loading" role="status">Preparing the flight…</div>}><StarshipArrival key={`arrival-${attempt}`} ready={sceneReady} onComplete={finishArrival} performance={lowGraphics} playback={arrivalPlayback} suspended={blocked||menu} loading={loading} /></Suspense>}
     <RotateToLandscapeGate blocked={blocked}/>
-    <header className="roam-header" data-ui-zone="header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="KeyM" onClick={openAtlas}>Atlas (M)</button>}<div className="roam-header-actions">{fullscreenAvailable&&!fullscreen&&storyReady&&<button className="roam-fullscreen-return" aria-label="Return to fullscreen" onClick={enterFullscreen}>Fullscreen</button>}<button disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>Pause</button></div></header>
+    <header className="roam-header" data-ui-zone="header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="KeyM" onClick={openAtlas}>Atlas (M)</button>}<div className="roam-header-actions">{fullscreenAvailable&&!fullscreen&&storyReady&&<button className="roam-fullscreen-return" aria-label="Return to fullscreen" onClick={enterFullscreen}>{mode==='mobile'?<Maximize aria-hidden="true"/>:'Fullscreen'}</button>}<button aria-label="Pause" disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>{mode==='mobile'?<><Pause aria-hidden="true"/><span>Pause</span></>:'Pause'}</button></div></header>
     {!modal && <aside className="roam-info">{streamed ? "Mars MOLA region" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
-    {!modal && storyReady && view && (!view.cockpitView || mode==='mobile') && <Suspense fallback={null}><ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} /></Suspense>}
+    {!modal && storyReady && view && (!view.cockpitView || mode==='mobile') && <Suspense fallback={null}><ExplorationMinimap view={view} selected={landmark} mobile={mode==='mobile'} onOpenAtlas={()=>setAtlas(true)} /></Suspense>}
     {!modal && story?.overlay}
     {installHint&&!blocked&&!modal&&storyReady&&<aside className="roam-install-hint" role="status"><p>For a full screen on iPhone, tap Share, then Add to Home Screen.</p><button onClick={dismissInstall}>Got it</button></aside>}
     {panel && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-label={atlas?'Expedition atlas':undefined} aria-labelledby={atlas?undefined:'roam-dialog-title'}>

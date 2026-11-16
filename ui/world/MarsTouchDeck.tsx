@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, type PointerEvent } from "react";
-import { ArrowUpFromLine, Camera, CarFront, Hand, Move } from "lucide-react";
+import { ArrowUpFromLine, SwitchCamera, CarFront, Hand, Move } from "lucide-react";
 import type { TouchControlProps } from "./touchControlTypes";
 
 export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onToggleRover, onToggleView, onInspectNearby}: TouchControlProps) {
@@ -59,7 +59,7 @@ export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onT
       <i><Move size={24}/></i>
     </div>
     <div className="flight-actions">
-      <button className="flight-view" aria-label="Switch camera" onClick={onToggleView}><Camera/><span>View</span></button>
+      <button className="flight-view" aria-label="Switch camera" onClick={onToggleView}><SwitchCamera aria-hidden="true"/><span>View</span></button>
       {roverNear&&<button className="flight-board" aria-label="Drive rover" onClick={onToggleRover}><CarFront/><span>Drive</span></button>}
       {canInspect&&<button className="flight-use" aria-label="Interact with station" onClick={onInspectNearby}><Hand/><span>Use</span></button>}
       <button ref={jump} className="flight-main" aria-label="Jump" onPointerDown={e=>{e.preventDefault();jumpPointers.current.add(e.pointerId);e.currentTarget.setPointerCapture(e.pointerId);action(true)}} onLostPointerCapture={releaseJump} onPointerUp={releaseJump} onPointerCancel={releaseJump} onKeyDown={e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();action(true)}}} onKeyUp={e=>{if(e.key===" "||e.key==="Enter")action(jumpPointers.current.size>0)}} onBlur={()=>action(jumpPointers.current.size>0)}><ArrowUpFromLine/><span>Jump</span></button>

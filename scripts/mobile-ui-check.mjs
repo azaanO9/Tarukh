@@ -22,7 +22,7 @@ page.on('pageerror',error=>report.errors.push(error.message));
 page.on('console',message=>{if(message.type()==='error'&&/shader|THREE|WebGL/i.test(message.text()))report.errors.push(message.text());});
 async function capture(label,scope){
   await page.waitForTimeout(200);
-  const metrics=await page.evaluate(scope=>{
+  const metrics=await page.evaluate(({scope,baseline})=>{
     const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return !el.closest('[inert]')&&s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;};
     const rect=el=>{const r=el.getBoundingClientRect();return {label:el.getAttribute('aria-label')||el.className||el.textContent?.slice(0,40),x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
     const root=document.querySelector(scope),issues=[];
@@ -30,6 +30,24 @@ async function capture(label,scope){
     const zones=scope==='.roam-root'?['.roam-header b','.roam-header-actions','.roam-minimap','.sv-look-controls','.mars-phone-mobile-pill','.flight-pad','.flight-actions','.wheel-steering','.wheel-pedals','.sv-outpost-prompt','.ely-hud','.sv-rover-hud']:scope==='.tarukh-home'?['.tarukh-home-header','.tarukh-home-copy','.tarukh-home-menu','.tarukh-home-slideshow','.tarukh-home-footer']:[];
     const elements=zones.flatMap(selector=>[...root.querySelectorAll(selector)].filter(visible));
     const boxes=elements.map(rect);
+    if(!baseline&&scope==='.roam-root'&&root.dataset.controls==='mobile'){
+      const brand=root.querySelector('.roam-header b'),map=root.querySelector('.roam-minimap');
+      if(brand&&visible(brand))issues.push('Gameplay brand badge must be hidden on mobile');
+      for(const button of root.querySelectorAll('.flight-actions button,.wheel-controls button,.roam-header-actions button,.mars-phone-mobile-button')){
+        if(!visible(button))continue;
+        const r=button.getBoundingClientRect();
+        if(Math.abs(r.width-r.height)>1||getComputedStyle(button).borderRadius!=='50%')issues.push(`Gameplay action must be circular: ${button.getAttribute('aria-label')}`);
+        if(!button.querySelector('svg'))issues.push(`Missing action icon: ${button.getAttribute('aria-label')}`);
+      }
+      if(map&&visible(map)){
+        const r=map.getBoundingClientRect(),style=getComputedStyle(map),svg=map.querySelector('svg');
+        if(Math.abs(r.width-r.height)>1||style.borderRadius!=='50%')issues.push('Mobile radar must be circular');
+        if(r.y>32||r.x>48)issues.push('Mobile radar must sit at the top-left safe edge');
+        if(svg?.getAttribute('viewBox')!=='0 0 200 200')issues.push('Circular radar must fill its frame');
+        if(map.querySelector('.mobile-minimap-tools'))issues.push('Remove the old radar toolbar');
+        if(!map.querySelector('button[aria-label="Open full map"]'))issues.push('The radar must open the full atlas');
+      }
+    }
     if(scope==='.roam-root'&&boxes.length<5)issues.push('HUD is obscured or not ready; expected at least five visible playfield zones');
     for(const box of boxes)if(box.x<-.5||box.y<-.5||box.right>innerWidth+.5||box.bottom>innerHeight+.5)issues.push(`Outside viewport: ${box.label}`);
     for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
@@ -56,7 +74,7 @@ async function capture(label,scope){
     if(document.documentElement.scrollWidth>innerWidth+1)issues.push('Horizontal page overflow');
     if(root.scrollWidth>root.clientWidth+1)issues.push(`Horizontal content overflow: ${scope} (${root.scrollWidth}/${root.clientWidth})`);
     return {size:[innerWidth,innerHeight],boxes,targets,issues};
-  },scope);
+  },{scope,baseline});
   await page.screenshot({path:path.join(output,label+'.png')});report.screens.push({label,...metrics});
   report.failures.push(...metrics.issues.map(issue=>`${label}: ${issue}`));
 }

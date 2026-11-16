@@ -1,4 +1,9 @@
 import { graphicsTier } from '../ui/world/graphicsTiers.ts';
+import { createAutoGraphics, type AutoProfile } from './autoGraphics.ts';
+
+// Keep small silhouettes readable instead of chasing 60 Hz at half resolution.
+export const MOBILE_TARGET_FPS = 40;
+export const MOBILE_MIN_RENDER_SCALE = .85;
 
 /** Mobile budgets reduce fill rate and optional detail without changing collision geometry. */
 const budgets = {
@@ -22,8 +27,13 @@ export function mobileGraphicsTier(name: string, automatic = false) {
 
 /** Hints only choose a safe pixel budget; measured frames still select the detail tier. */
 export function mobileAutoPixelCap(cores: number, memory: number | undefined, gpu: string, saveData: boolean) {
-  if (saveData || (memory !== undefined && memory <= 4) || (cores > 0 && cores <= 4) || /swiftshader|software/i.test(gpu)) return .85;
+  if (saveData || (memory !== undefined && memory <= 4) || (cores > 0 && cores <= 4) || /swiftshader|software/i.test(gpu)) return 1;
   return 1.25;
+}
+
+/** A busy loading sample must not permanently lock a phone into the rescue preset. */
+export function createMobileAutoGraphics(profile: AutoProfile, scale: number, maximumScale: number) {
+  return { ...createAutoGraphics(profile, scale), ceiling: 'high' as const, ceilingScale: maximumScale };
 }
 
 /** Idle panels redraw at 10 Hz; active mobile scenes never burn power above 60 Hz. */

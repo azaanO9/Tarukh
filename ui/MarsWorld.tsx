@@ -51,7 +51,7 @@ import {createGraphicsSamplingGate,updateGraphicsSamplingGate} from '../game/gra
 import {prepareWorldMaterials} from './world/prepareWorldBuffers';
 import { AUTO_TARGET_FPS, browserThrottledFrame, createAutoGraphics, adaptAutoGraphics, approachRenderScale, profileName, type AutoProfile } from '../game/autoGraphics';
 import { createBackgroundGraphics } from '../game/backgroundGraphics';
-import { mobileGraphicsTier, mobileAutoPixelCap, createRenderPacer, renderFrameDue } from '../game/mobileGraphics';
+import { mobileGraphicsTier, mobileAutoPixelCap, createMobileAutoGraphics, MOBILE_MIN_RENDER_SCALE, MOBILE_TARGET_FPS, createRenderPacer, renderFrameDue } from '../game/mobileGraphics';
 import { createMarsEnvironment, MARS_SUN_DIRECTION } from "./world/marsAtmosphere";
 import {
   spawnRoverVehicle,
@@ -534,7 +534,9 @@ function MarsWorld(props: Props) {
       // Bound mobile fill cost; ordinary frame samples choose optional detail.
       const displayRatio = Math.max(.55, Math.min(devicePixelRatio, mobileMars ? 1.5 : 2));
       const renderer = new T.WebGLRenderer({
-        antialias: !mobileMars && props.initialQuality !== "performance",
+        // Mobile Auto also needs MSAA when its tier bypasses post-processing.
+        // The explicit low-graphics retry keeps the cheapest possible context.
+        antialias: props.initialQuality !== "performance",
         powerPreference: "high-performance",
       });
       const gl = renderer.getContext();
@@ -1038,7 +1040,9 @@ function MarsWorld(props: Props) {
       let lastSelection = cameraSettings.current.quality;
       let metricStart = 0;
       let metricFrames = 0;
-      let autoState = createAutoGraphics(autoProfile, qualityCap(autoProfile));
+      const autoStateFor = (profile: AutoProfile, scale: number) => mobileMars
+        ? createMobileAutoGraphics(profile, scale, qualityCap('high')) : createAutoGraphics(profile, scale);
+      let autoState = autoStateFor(autoProfile, qualityCap(autoProfile));
       const backgroundProbe = cameraSettings.current.quality === 'auto'
         ? createBackgroundGraphics(Math.min(displayRatio, autoPixelCap), name => tierFor(name).resolutionCap, {mobile: mobileMars}) : null;
       let backgroundPrepared = !backgroundProbe;
@@ -1054,7 +1058,7 @@ function MarsWorld(props: Props) {
       let lastAimCheck = 0;
       let lastCanInspect = false;
       let lastOutpostPrompt = "";
-      let resolutionScale = Math.min(devicePixelRatio, 1.25);
+      let resolutionScale = mobileMars ? qualityCap(effectiveQuality()) : Math.min(devicePixelRatio, 1.25);
       let gaitPhase = 0;
       let gaitBlend = 0;
       let cameraGround = model.heightAt(walker.x, walker.z);
@@ -2342,7 +2346,7 @@ function MarsWorld(props: Props) {
           const decision = backgroundProbe.frame(frameInterval, performance.now() - frameStarted, eligible);
           if (decision) {
             autoProfile = decision.next.profile;
-            autoState = createAutoGraphics(autoProfile, decision.next.scale);
+            autoState = autoStateFor(autoProfile, decision.next.scale);
             setAutoLabel(profileLabel());
             const measured = decision.selected ?? decision.trial;
             const report = decision.complete ? `${profileName(measured.profile)} · ${Math.round(measured.fps)} FPS measured.${measured.meetsTarget ? '' : ' Using the lightest settings; this device was below target.'}`
@@ -2445,7 +2449,7 @@ function MarsWorld(props: Props) {
             });
           element.dataset.graphicsProfile = lastQuality;
           if (cameraSettings.current.quality === 'auto' && true && (!backgroundProbe || backgroundProbe.done())) {
-            autoState = adaptAutoGraphics(autoState, fps, activeSample, time, qualityCap, mobileMars ? 60 : AUTO_TARGET_FPS);
+            autoState = adaptAutoGraphics(autoState, fps, activeSample, time, qualityCap, mobileMars ? MOBILE_TARGET_FPS : AUTO_TARGET_FPS, mobileMars ? MOBILE_MIN_RENDER_SCALE : .55);
             if (autoProfile !== autoState.profile) {
               autoProfile = autoState.profile;
               setAutoLabel(profileLabel());
@@ -2721,7 +2725,7 @@ function MarsWorld(props: Props) {
         setAutoReport(report);
         current.current.onGraphicsCalibration?.(report);
         element.dataset.calibrationState = 'checking';
-        element.dataset.calibrationTarget = String(mobileMars ? 60 : AUTO_TARGET_FPS);
+        element.dataset.calibrationTarget = String(mobileMars ? MOBILE_TARGET_FPS : AUTO_TARGET_FPS);
       }
       current.current.onTerrainMode?.(!!streaming);
       catchSite.settle();
@@ -3011,7 +3015,7 @@ function MarsWorld(props: Props) {
            </span>
            <div className="sv-shield-meta">
              <span className="sv-shield-title">SHIELD</span>
-             <strong className="sv-shield-val">50% ROVER</strong>
+             <strong className="sv-shield-val">{touchControlsActive ? '50%' : '50% ROVER'}</strong>
              <small className="sv-shield-sub">0.5x DRAIN</small>
            </div>
          </div>
@@ -3139,7 +3143,7 @@ function MarsWorld(props: Props) {
               <span className="mars-shield-popup-metric rover">0.5x DAMAGE · 50% MITIGATION</span>
             </div>
             <div className="mars-shield-popup-body">
-              <strong>SHIELD ACTIVE: 50% (ROVER)</strong>
+              <strong>{touchControlsActive ? 'Shield 50%' : 'SHIELD ACTIVE: 50% (ROVER)'}</strong>
               <span>Pressurized chassis deflection engaged · Minimizing to cockpit HUD</span>
               <span className="rover-camera-hint">{touchControlsActive ? "Tap the camera button to switch camera view." : "Press V to switch camera view."}</span>
             </div>
@@ -3156,19 +3160,20 @@ function MarsWorld(props: Props) {
         </aside>
       )}
 
-        {/* Mobile Top Pill Button (When Phone is Closed on Mobile Touch) */}
+        {/* The round phone action leaves the radiation reading visible beside it. */}
         {touchControlsActive && !phoneOpen && (
-          <button
+          <div className="mars-phone-mobile-pill">
+            <span className="mars-mobile-pill-rad" aria-label={`Radiation ${currentRadiationHourly} millisieverts per hour`}>{currentRadiationHourly} <small>mSv/h</small></span>
+            <button
             type="button"
-            className="mars-phone-mobile-pill"
+            className="mars-phone-mobile-button"
             onClick={openPhone}
             aria-label="Open Mars Telemetry Communicator"
             title="Open Mars Communicator"
           >
-            <span className="mars-mobile-pill-icon">📱</span>
-            <span className="mars-mobile-pill-rad">{currentRadiationHourly} <small>mSv/h</small></span>
-            <span className={`mars-mobile-pill-dose ${exposureClass}`}>{radiationExposure.toFixed(1)} <small>mSv</small></span>
-          </button>
+              <Smartphone size={22} aria-hidden="true"/><span>Phone</span>
+            </button>
+          </div>
         )}
 
         {/* Desktop Launcher button */}

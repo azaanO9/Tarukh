@@ -6,6 +6,7 @@ import {OUTPOST_SITE} from '../../game/outpostSite.ts';
 import {createOutpostState,nearestOutpostDoor,stepOutpostDoor,toggleOutpostDoor,type OutpostLayout} from '../../game/outpost.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
 import {createInstanceVisibility} from './instanceVisibility.ts';
+import {withinDetailRange} from './distanceVisibility.ts';
 import {createInteriorLighting} from './interiorLighting.ts';
 import {loadSolarPanelAsset, createOutpostSolarMesh} from './createSolarPanels.ts';
 
@@ -209,7 +210,7 @@ export function createMarsOutpost(scene:T.Scene,groundY:number,obstacles:Collisi
     origin.set(x,y+1.5,z);
     for(const sector of sectors){
       const range=sector.interior?(lightTier?8:14):(lightTier?220:400);
-      sector.object.visible=sector.bounds.distanceToPoint(origin)<range;
+      sector.object.visible=withinDetailRange(sector.bounds.distanceToPoint(origin),sector.object.visible,range,sector.interior?4:20);
     }
     if(ultraLighting){
       let index=0,distance=Infinity;

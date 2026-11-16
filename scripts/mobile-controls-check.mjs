@@ -55,10 +55,14 @@ try{
   for(const [width,height] of [[568,320],[844,390],[1024,768]]){
     await page.setViewportSize({width,height});await page.waitForTimeout(300);
     await page.screenshot({path:path.join(output,`rover-${width}x${height}.png`)});
-    const boxes=await page.evaluate(()=>[...document.querySelectorAll('.wheel-steering,.wheel-pedals,.roam-minimap,.sv-rover-hud,.roam-header-actions,.mars-phone-mobile-pill,.mars-shield-popup')].filter(el=>getComputedStyle(el).visibility==='visible').map(el=>{
+    const boxes=await page.evaluate(()=>[...document.querySelectorAll('.wheel-steering,.wheel-pedals,.roam-minimap,.sv-rover-hud,.roam-header-actions,.mars-phone-mobile-pill,.mars-shield-popup,.sv-outpost-prompt')].filter(el=>getComputedStyle(el).visibility==='visible').map(el=>{
       const r=el.getBoundingClientRect();return {name:el.className,x:r.x,y:r.y,w:r.width,h:r.height};
     }).filter(r=>r.w&&r.h));
     for(const r of boxes)assert.ok(r.x>=0&&r.y>=0&&r.x+r.w<=width+1&&r.y+r.h<=height+1,JSON.stringify(r));
+    const battery=boxes.find(r=>r.name.includes('sv-rover-hud'));
+    assert.ok(battery&&battery.y>height-125&&battery.y+battery.h>height-32,'Rover battery stays at the bottom');
+    const glass=await page.locator('.sv-rover-hud').evaluate(el=>({background:getComputedStyle(el).backgroundImage,blur:getComputedStyle(el).backdropFilter}));
+    assert.match(glass.background,/gradient/);assert.match(glass.blur,/blur/);
     for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
       const a=boxes[i],b=boxes[j];assert.ok(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)<=0||Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)<=0,`${width}: ${a.name} overlaps ${b.name}`);
     }

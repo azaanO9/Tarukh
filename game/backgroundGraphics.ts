@@ -1,4 +1,5 @@
 import { browserThrottledFrame, calibrationCandidates, summarizeFrames, type AutoProfile, type GraphicsTrial } from './autoGraphics.ts';
+import { MOBILE_MIN_RENDER_SCALE, MOBILE_TARGET_FPS } from './mobileGraphics.ts';
 type Candidate = {
   profile: AutoProfile;
   scale: number;
@@ -11,7 +12,9 @@ type Decision = {
 };
 /** Passive samples from the existing game loop: no second renderer, camera move or timer. */
 export function createBackgroundGraphics(displayRatio: number, cap: (profile: AutoProfile) => number, options: {mobile?: boolean} = {}) {
-  const candidates = calibrationCandidates(displayRatio, cap, options.mobile).filter(candidate => !options.mobile || candidate.profile !== 'ultra');
+  const minimumScale = Math.min(Math.max(.55, displayRatio), cap('performance'), MOBILE_MIN_RENDER_SCALE);
+  const candidates = calibrationCandidates(displayRatio, cap, options.mobile).filter(candidate => !options.mobile ||
+    (candidate.profile !== 'ultra' && candidate.scale >= minimumScale));
   const nativePerformance = Math.min(Math.max(.55, Math.min(2, displayRatio)), cap('performance'));
   const levels = candidates.filter(c => c.profile !== 'performance' || c.scale === nativePerformance).reverse();
   const rescue = candidates.filter(c => c.profile === 'performance' && c.scale < nativePerformance);
@@ -37,7 +40,7 @@ export function createBackgroundGraphics(displayRatio: number, cap: (profile: Au
       elapsed += intervalMs;
       if (elapsed < 1000 && count < samples.length)
         return null;
-      const trial = { ...current, ...summarizeFrames(samples.subarray(0, count), options.mobile ? 60 : 40) };
+      const trial = { ...current, ...summarizeFrames(samples.subarray(0, count), options.mobile ? MOBILE_TARGET_FPS : 40) };
       trials.push(trial);
       reset();
       if (trial.meetsTarget) {

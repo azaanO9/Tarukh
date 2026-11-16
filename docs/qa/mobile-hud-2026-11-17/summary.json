@@ -1,0 +1,392 @@
+{
+  "baselineCommit": "49943f5c4157302ae6be22126ff526f99a5b7f30",
+  "status": "validated; deployment status tracked separately",
+  "automatedTests": 379,
+  "typecheck": "passed",
+  "build": "passed",
+  "pagesBuild": "passed",
+  "lint": {
+    "errors": 4,
+    "warnings": 8,
+    "existing": true
+  },
+  "browsers": {
+    "chromium": {
+      "screens": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls",
+        "iPhone SE: automatic touch UI without an override",
+        "iPhone 14: automatic touch UI without an override",
+        "iPhone 15: automatic touch UI without an override",
+        "Pixel 7: automatic touch UI without an override",
+        "Galaxy S9+: automatic touch UI without an override",
+        "iPad (gen 7): automatic touch UI without an override",
+        "Desktop retains keyboard/mouse UI"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    "firefox": {
+      "screens": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    "webkit": {
+      "screens": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls"
+      ],
+      "errors": [],
+      "failures": []
+    }
+  },
+  "controls": {
+    "checks": [
+      "Exiting fullscreen during the opening leaves Pause operable and resumes the opening",
+      "Two-finger walking + jump, then cancellation releases both controls",
+      "Garage deploy, touch boarding and simultaneous steering/throttle release",
+      "Rover layouts fit 320px landscape, phone and tablet; asymmetric handset safe areas verified",
+      "Actual atlas pinch/pan/cancel, WebP fallback, deferred relief and failed-relief recovery"
+    ],
+    "errors": []
+  },
+  "contextRecovery": {
+    "checks": [
+      "A browser declining the multisampled WebGL context displays the failure panel",
+      "Performance retry creates a non-MSAA context and loads the playable world"
+    ],
+    "errors": []
+  },
+  "rendering": {
+    "note": "One desktop Chrome mobile-emulation sanity sample per revision, 844x390 CSS viewport, DPR 3; no CPU/network throttling; not physical-phone performance.",
+    "samples": {
+      "before": [
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 60,
+          "scale": 1.25,
+          "antialiasing": "off",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 1055,
+              "height": 487,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        }
+      ],
+      "after": [
+        {
+          "fps": 57.1,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 928,
+              "height": 429,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 55.1,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 928,
+              "height": 429,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 56.1,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 928,
+              "height": 429,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 55.1,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 928,
+              "height": 429,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 59,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 928,
+              "height": 429,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 56.1,
+          "scale": 1.1,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 995,
+              "height": 460,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 56.1,
+          "scale": 1.18,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 995,
+              "height": 460,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 53.1,
+          "scale": 1.18,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 995,
+              "height": 460,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 51.3,
+          "scale": 1.18,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 995,
+              "height": 460,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        },
+        {
+          "fps": 56.1,
+          "scale": 1.18,
+          "antialiasing": "native",
+          "profile": "high",
+          "calls": 183,
+          "triangles": 1423328,
+          "canvas": [
+            {
+              "width": 995,
+              "height": 460,
+              "cssWidth": 844,
+              "cssHeight": 390
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

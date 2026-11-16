@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef } from "react";
-import { Camera, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, LogOut, SwitchCamera, Zap } from "lucide-react";
 import type { TouchControlProps } from "./touchControlTypes";
 
 type Control = "left" | "right" | "gas" | "rev" | "boost";
@@ -50,15 +50,18 @@ export function RoverTouchDeck({onDriveAxes,onToggleView,onToggleRover}: Props) 
       onLostPointerCapture={e=>update(String(e.pointerId))}
       onKeyDown={e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();update("key-"+control,control)}}}
       onKeyUp={e=>{if(e.key===" "||e.key==="Enter")update("key-"+control)}} onBlur={()=>update("key-"+control)}>
-      {control==="left"?<ChevronLeft/>:control==="right"?<ChevronRight/>:<><i aria-hidden="true"/><small>{PEDAL_LABELS[control]}</small></>}
+      {control==="left"?<ArrowLeft aria-hidden="true"/>:control==="right"?<ArrowRight aria-hidden="true"/>:<>
+        {control==="gas"?<ArrowUp aria-hidden="true"/>:control==="rev"?<ArrowDown aria-hidden="true"/>:<Zap aria-hidden="true"/>}
+        <small>{PEDAL_LABELS[control]}</small>
+      </>}
     </button>;
   }
   return <>
     <div className="wheel-controls wheel-steering">{button("left","Steer left")}{button("right","Steer right")}</div>
     <div className="wheel-controls wheel-pedals">
       <div className="wheel-tools">
-        <button type="button" aria-label="Switch camera" onClick={onToggleView}><Camera/><small>View</small></button>
-        <button type="button" aria-label="Exit rover" onClick={onToggleRover}><LogOut/><small>Exit</small></button>
+        <button type="button" aria-label="Switch camera" onClick={onToggleView}><SwitchCamera aria-hidden="true"/><small>View</small></button>
+        <button type="button" aria-label="Exit rover" onClick={onToggleRover}><LogOut aria-hidden="true"/><small>Exit</small></button>
       </div>
       {button("boost","Boost mode")}{button("rev","Brake and reverse")}{button("gas","Forward")}
     </div>

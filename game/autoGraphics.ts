@@ -50,7 +50,7 @@ export function createAutoGraphics(profile: AutoProfile, scale: number): AutoGra
   return { profile, scale, ceiling: profile, ceilingScale: scale, slow: 0, fast: 0, cooldownUntil: 0 };
 }
 /** One sample per second. Hysteresis avoids chasing individual hitches or menu frames. */
-export function adaptAutoGraphics(state: AutoGraphicsState, fps: number, active: boolean, now: number, cap: (profile: AutoProfile) => number, targetFps = AUTO_TARGET_FPS): AutoGraphicsState {
+export function adaptAutoGraphics(state: AutoGraphicsState, fps: number, active: boolean, now: number, cap: (profile: AutoProfile) => number, targetFps = AUTO_TARGET_FPS, minimumScale = .55): AutoGraphicsState {
   if (!active || !Number.isFinite(fps) || fps <= 0)
     return { ...state, slow: 0, fast: 0 };
   const next = { ...state, slow: fps < (targetFps === 60 ? 54 : targetFps) ? state.slow + 1 : 0, fast: fps >= (targetFps === 60 ? 58 : 50) ? state.fast + 1 : 0 };
@@ -64,7 +64,7 @@ export function adaptAutoGraphics(state: AutoGraphicsState, fps: number, active:
       next.scale = Math.min(state.scale, cap(next.profile));
     }
     else
-      next.scale = Math.max(.55, state.scale - .12);
+      next.scale = Math.max(Math.min(minimumScale, cap(state.profile)), state.scale - .12);
     next.cooldownUntil = now + 5000;
     next.slow = next.fast = 0;
   }

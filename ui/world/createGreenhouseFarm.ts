@@ -9,6 +9,7 @@ import {createGreenhouseStates, type GreenhouseLayout, type GreenhouseState} fro
 import {nearestOutpostDoor, stepOutpostDoor, toggleOutpostDoor, type OutpostDoor} from '../../game/outpost.ts';
 import type {CollisionObstacle} from '../../game/collision.ts';
 import {loadSolarPanelAsset, createGreenhouseSolarMesh} from './createSolarPanels.ts';
+import {withinDetailRange} from './distanceVisibility.ts';
 
 type Batch = {
   mesh: T.InstancedMesh; part: string; template: T.Matrix4; travel: T.Vector3;
@@ -29,6 +30,7 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
   const cameraBoxes: {obstacle: CollisionObstacle; inverse: T.Matrix4; box: T.Box3}[] = [];
   let states: GreenhouseState[] = [], doors: OutpostDoor[] = [], disposed = false, loaded = false;
   let layout: GreenhouseLayout;
+  let nearbyShells = 0, nearbyInteriors = 0;
 
   function remember(object: T.Object3D) {
     object.traverse(node => {
@@ -173,12 +175,14 @@ export function createGreenhouseFarm(scene: T.Scene, obstacles: CollisionObstacl
     frustum.setFromProjectionMatrix(viewMatrix);
     let shellMask=0,interiorMask=0;
     for(let i=0;i<states.length;i++) {
-      const {site}=states[i],distance=(x-site.x)**2+(z-site.z)**2;
+      const {site}=states[i],distance=Math.hypot(x-site.x,z-site.z),bit=1<<i;
+      nearbyShells=withinDetailRange(distance,Boolean(nearbyShells&bit),performance?220:400,20)?nearbyShells|bit:nearbyShells&~bit;
+      nearbyInteriors=withinDetailRange(distance,Boolean(nearbyInteriors&bit),performance?12:18)?nearbyInteriors|bit:nearbyInteriors&~bit;
       // InstancedMesh culls its combined bounds. Cull each building as well,
       // so looking into one bay does not submit all six shells to the GPU.
       if(!frustum.intersectsSphere(bounds[i]))continue;
-      if(distance<(performance?220:400)**2)shellMask|=1<<i;
-      if(distance<(performance?12:18)**2)interiorMask|=1<<i;
+      shellMask|=nearbyShells&bit;
+      interiorMask|=nearbyInteriors&bit;
     }
     updateBatches(shellMask,interiorMask);
   }

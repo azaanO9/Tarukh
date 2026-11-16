@@ -1,5 +1,5 @@
 /* Mobile surfaces share one scale and safe-area grid. Desktop artwork is unchanged. */
-.mobile-minimap-tools, .atlas-mobile-tabs, .ely-mobile-next, .atlas-touch-help { display: none; }
+.mobile-minimap-open, .atlas-mobile-tabs, .ely-mobile-next, .atlas-touch-help { display: none; }
 .sv-rotate-gate { z-index: 200; }
 main:is(.tarukh-home,.roam-root)[data-controls="mobile"] {
   --ui-gap: 8px;
@@ -12,6 +12,10 @@ main:is(.tarukh-home,.roam-root)[data-controls="mobile"] {
   --ui-controls: 120px;
   --mobile-surface: #101e27ed;
   --mobile-line: #b3d9df47;
+  --mobile-glass: linear-gradient(145deg, #d9f4ff26, #17344452 48%, #0b1e2d73);
+  --mobile-glass-line: #e0f4ff66;
+  --mobile-glass-shadow: inset 0 1px 0 #ffffff3d, inset 0 -1px 0 #09151b26, 0 3px 12px #06111a24;
+  --mobile-radar-size: clamp(104px, 31dvh, 148px);
   width: 100%; height: 100svh; height: 100dvh;
   box-sizing: border-box; overflow: hidden;
   font: 14px/1.4 system-ui, -apple-system, sans-serif;
@@ -97,29 +101,29 @@ main.tarukh-home[data-controls="mobile"] .tarukh-home-layout { display: flex; pa
 
 /* Exploration: instruments at the top, navigation left, and two thumb zones. */
 main.roam-root[data-controls="mobile"] .roam-header { inset: var(--ui-top) var(--ui-right) auto var(--ui-left); height: 48px; gap: 8px; padding: 0; }
-main.roam-root[data-controls="mobile"] .roam-header b { align-self: start; padding: 14px 8px; font-size: 14px; max-width: 96px; }
-main.roam-root[data-controls="mobile"] .roam-header-actions { display: flex; gap: 8px; }
-main.roam-root[data-controls="mobile"] .roam-header button { height: 48px; padding: 8px 12px; font-size: 14px; border-radius: 12px; }
+main.roam-root[data-controls="mobile"] .roam-header b { display: none; }
+main.roam-root[data-controls="mobile"] .roam-header-actions { display: flex; gap: 8px; margin-left: auto; }
+main.roam-root[data-controls="mobile"] .roam-header button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 48px; height: 48px; padding: 3px; font-size: 14px; border-radius: 50%; }
+main.roam-root[data-controls="mobile"] .roam-header button svg { width: 20px; height: 20px; }
+main.roam-root[data-controls="mobile"] .roam-header-actions button span { display: block; font-size: 14px; line-height: 1; }
 main.roam-root[data-controls="mobile"] .roam-header .roam-fullscreen-return { width: 48px; padding: 0; font-size: 0; }
-main.roam-root[data-controls="mobile"] .roam-fullscreen-return::after { content: '⛶'; font-size: 24px; }
+main.roam-root[data-controls="mobile"] .roam-fullscreen-return::after { content: none; }
 main.roam-root[data-controls="mobile"] .sv-world .sv-look-controls { display: none; }
-main.roam-root[data-controls="mobile"] .mars-phone-mobile-pill { inset: var(--ui-top) calc(var(--ui-right) + 144px) auto auto; height: 48px; min-height: 48px; max-width: none; padding: 8px 12px; gap: 8px; border-radius: 12px; background: var(--mobile-surface); border-color: var(--mobile-line); box-shadow: none; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-phone-mobile-pill { inset: var(--ui-top) calc(var(--ui-right) + 112px) auto auto; display: flex; height: 48px; min-height: 48px; max-width: none; padding: 0; gap: 8px; border: 0; background: none; box-shadow: none; font-size: 14px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-mobile-button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 48px; height: 48px; padding: 3px; border-radius: 50%; }
 main.roam-root[data-controls="mobile"] .mars-mobile-pill-dose { display: none; }
-main.roam-root[data-controls="mobile"] .mars-mobile-pill-rad { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-mobile-pill-rad { display: flex; align-items: center; gap: 4px; height: 48px; padding: 0 10px; border-radius: 14px; font-size: 14px; box-sizing: border-box; }
 main.roam-root[data-controls="mobile"] .mars-mobile-pill-rad small { font-size: 12px; }
-main.roam-root[data-controls="mobile"] .roam-minimap.gta-minimap { left: var(--ui-left); bottom: calc(var(--ui-bottom) + var(--ui-controls) + 8px); width: 168px; display: flex; flex-direction: column; gap: 8px; padding: 0; overflow: hidden; background: var(--mobile-surface); border: 1px solid var(--mobile-line); border-radius: 14px; }
-main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-frame { display: block; min-height: 0; border: 0; border-radius: 0; }
+main.roam-root[data-controls="mobile"] .roam-minimap.gta-minimap { inset: var(--ui-top) auto auto var(--ui-left); width: var(--mobile-radar-size); height: var(--mobile-radar-size); display: block; padding: 0; overflow: hidden; background: #180e0a; border: 1px solid #f1eee18c; border-radius: 50%; box-shadow: 0 2px 8px #0b10152e; }
+main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-frame { display: block; width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 50%; }
 main.roam-root[data-controls="mobile"] .roam-minimap :is(.roam-gta-hud-overlay,.roam-gta-hud-bottom) { display: none; }
-main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { display: block; width: 100%; height: clamp(56px,calc(100dvh - 280px),112px); margin: 0; }
-main.roam-root[data-controls="mobile"] .roam-minimap[data-open="false"] { height: 50px; }
-main.roam-root[data-controls="mobile"] .mobile-minimap-tools { display: flex; gap: 8px; padding: 0; }
-main.roam-root[data-controls="mobile"] .mobile-minimap-tools button { display: flex; flex: 1; flex-direction: column; justify-content: center; align-items: center; gap: 0; height: 48px; min-width: 48px; margin: 0; padding: 0; background: #1c343e; color: #e5f7f4; border: 0; border-radius: 8px; font-size: 14px; }
-main.roam-root[data-controls="mobile"] .mobile-minimap-tools button svg { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; }
+main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { display: block; width: 100%; height: 100%; margin: 0; }
+main.roam-root[data-controls="mobile"] .mobile-minimap-open { display: block; position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: none; }
 main.roam-root[data-controls="mobile"] .sv-world .flight-pad { left: var(--ui-left); bottom: var(--ui-bottom); width: 128px; height: 120px; }
 main.roam-root[data-controls="mobile"] .flight-pad i { left: 60px; top: 60px; width: 96px; height: 96px; border: 1px solid #c0e8ec80; background: #15303b80; }
 main.roam-root[data-controls="mobile"] .flight-pad[data-held] i { left: var(--x); top: var(--y); }
 main.roam-root[data-controls="mobile"] .sv-world .flight-actions { inset: auto var(--ui-right) var(--ui-bottom) auto; width: 120px; height: 120px; display: grid; grid-template-columns: repeat(2,56px); grid-template-rows: repeat(2,56px); gap: 8px; }
-main.roam-root[data-controls="mobile"] .flight-actions button { position: static; width: 56px; height: 56px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; border: 1px solid #cee5e76b; border-radius: 18px; background: var(--mobile-surface); color: #effffb; padding: 4px; margin: 0; }
+main.roam-root[data-controls="mobile"] .flight-actions button { position: static; width: 56px; height: 56px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; border: 1px solid #cee5e76b; border-radius: 50%; background: var(--mobile-surface); color: #effffb; padding: 4px; margin: 0; }
 main.roam-root[data-controls="mobile"] .flight-actions button span { font-size: 12px; line-height: 1; }
 main.roam-root[data-controls="mobile"] .flight-actions button svg { width: 22px; height: 22px; }
 main.roam-root[data-controls="mobile"] .flight-main { grid-area: 2/2; }
@@ -129,7 +133,8 @@ main.roam-root[data-controls="mobile"] .flight-board { grid-area: 1/2; }
 main.roam-root[data-controls="mobile"] .wheel-controls { bottom: var(--ui-bottom); gap: 8px; }
 main.roam-root[data-controls="mobile"] .wheel-steering { left: var(--ui-left); }
 main.roam-root[data-controls="mobile"] .wheel-pedals { right: var(--ui-right); }
-main.roam-root[data-controls="mobile"] .wheel-controls button { width: 56px; height: 56px; border-radius: 16px; background: var(--mobile-surface); font-size: 14px; }
+main.roam-root[data-controls="mobile"] .wheel-controls button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 56px; height: 56px; padding: 4px; border-radius: 50%; background: var(--mobile-surface); font-size: 14px; }
+main.roam-root[data-controls="mobile"] .wheel-controls button svg { width: 22px; height: 22px; }
 main.roam-root[data-controls="mobile"] .wheel-pedals small { font: 600 14px/1.2 system-ui,sans-serif; letter-spacing: 0; }
 main.roam-root[data-controls="mobile"] .wheel-tools button { display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; }
 main.roam-root[data-controls="mobile"] .wheel-tools { bottom: 64px; gap: 8px; }
@@ -277,17 +282,22 @@ main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead [role="st
 
 main.roam-root[data-controls="mobile"] .roam-header>button { display: none; }
 main.roam-root[data-controls="mobile"] .sv-world .sv-rover-hud {
-  left: calc(var(--ui-left) + 176px); right: calc(var(--ui-right) + 192px); top: calc(var(--ui-top) + 56px); bottom: auto;
-  width: auto; max-width: 280px; min-width: 0; transform: none; padding: 8px; border-radius: 12px;
-  display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 104px; overflow: auto; touch-action: pan-y;
-  background: var(--mobile-surface); pointer-events: auto;
+  left: calc(var(--ui-left) + 136px); right: calc(var(--ui-right) + 192px); top: auto; bottom: var(--ui-bottom);
+  width: auto; max-width: 340px; min-width: 0; transform: none; padding: 10px; border-radius: 18px;
+  display: grid; grid-template-columns: 1fr; gap: 6px; max-height: 104px; overflow: auto; touch-action: pan-y;
+  pointer-events: auto; text-shadow: 0 1px 3px #06111ab3;
 }
 main.roam-root[data-controls="mobile"] .sv-rover-hud :is(.sv-rover-gearbox,.sv-rover-solar-status,.sv-rover-speedometer small,.sv-rover-range) { display: none; }
 main.roam-root[data-controls="mobile"] .sv-rover-speedometer { display: flex; align-items: baseline; gap: 8px; padding: 0; border: 0; }
 main.roam-root[data-controls="mobile"] .sv-rover-speedometer strong { font-size: 22px; line-height: 1.1; }
 main.roam-root[data-controls="mobile"] .sv-rover-speedometer span { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .sv-rover-shield-status { position: absolute; top: 12px; right: 10px; padding: 0; border: 0; gap: 4px; min-width: 0; }
+main.roam-root[data-controls="mobile"] .sv-rover-shield-status :is(.sv-shield-title,.sv-shield-sub) { display: none; }
+main.roam-root[data-controls="mobile"] .sv-rover-shield-status .sv-shield-val { font-size: 14px; letter-spacing: 0; }
 main.roam-root[data-controls="mobile"] .sv-rover-power-grid { width: 100%; min-width: 0; padding: 0; border: 0; }
 main.roam-root[data-controls="mobile"] :is(.sv-rover-battery-header,.sv-battery-title,.sv-battery-value) { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .sv-rover-battery-header { flex-wrap: wrap; gap: 0 8px; letter-spacing: 0; }
+main.roam-root[data-controls="mobile"] .sv-rover-battery-bar { height: 6px; border: 0; background: #071b3061; }
 main.roam-root[data-controls="mobile"][data-phase="story"]:has(.wheel-pedals) .ely-shell .ely-hud { right: calc(var(--ui-right) + 192px); }
 main.roam-root[data-controls="mobile"]:has(.ely-hud) .sv-world .sv-rover-hud { top: auto; bottom: var(--ui-bottom); max-height: 104px; }
 main.roam-root[data-controls="mobile"] :is(.mars-shield-popup,.mars-garage-dock-popup,.mars-sep-alert-banner) {
@@ -302,10 +312,26 @@ main.roam-root[data-controls="mobile"] :is(.mars-popup-close-btn,.mars-garage-cl
 main.roam-root[data-controls="mobile"] :is(.flight-actions button,.wheel-controls button)[data-held] { background: #b5e3dc; color: #102324; border-color: white; }
 main.roam-root[data-controls="mobile"] .flight-actions button span { font-size: 14px; }
 main.roam-root[data-controls="mobile"] .mars-garage-dock-close { min-width: 48px; min-height: 48px; }
-main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.sv-outpost-prompt,.sv-world-message) { left: calc(var(--ui-left) + 136px); right: calc(var(--ui-right) + 192px); bottom: var(--ui-bottom); top: auto; width: auto; max-height: 104px; transform: none; overflow: auto; font-size: 14px; }
-main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.mars-shield-popup,.mars-garage-dock-popup) { top: calc(var(--ui-top) + 56px) !important; bottom: auto !important; right: calc(var(--ui-right) + 192px) !important; }
-main.roam-root[data-controls="mobile"] .sv-world:has(.mars-shield-popup) .sv-rover-hud { visibility: hidden; }
+main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.sv-outpost-prompt,.sv-world-message) { left: calc(var(--ui-left) + 136px); right: calc(var(--ui-right) + 192px); bottom: calc(var(--ui-bottom) + 112px); top: auto; width: auto; max-height: 64px; transform: none; overflow: auto; font-size: 14px; }
+main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.mars-shield-popup,.mars-garage-dock-popup) { top: calc(var(--ui-top) + 56px) !important; bottom: auto !important; right: calc(var(--ui-right) + 192px) !important; max-height: 64px; padding: 7px !important; }
 main.roam-root[data-controls="mobile"] .sv-outpost-prompt button { background: #152b36eb; border: 1px solid var(--mobile-line); border-radius: 12px; color: #eff8fa; }
+
+/* Local glass surfaces only: no full-screen blur or extra WebGL render pass. */
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] :is(
+  .tarukh-home-option,.tarukh-home-slideshow>button,.tarukh-home-fullscreen-btn,
+  .roam-header button,.mars-phone-mobile-button,.mars-mobile-pill-rad,.flight-actions button,.wheel-controls button,
+  .flight-pad i,.flight-pad svg,.sv-world .sv-rover-hud,.sv-outpost-prompt button,
+  .flight-menu button,.mars-phone-modal button,.atlas-expedition-wrap button,
+  .ely-mobile-next button,.ely-dialog>header button,.ely-dialog>footer button,.ely-actions>button
+) {
+  background: var(--mobile-glass); border: 1px solid var(--mobile-glass-line);
+  box-shadow: var(--mobile-glass-shadow); color: #f4fcff;
+  -webkit-backdrop-filter: blur(8px) saturate(125%); backdrop-filter: blur(8px) saturate(125%);
+}
+main.roam-root[data-controls="mobile"] :is(.flight-actions button,.wheel-controls button)[data-held],
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] button[aria-pressed="true"] {
+  background: linear-gradient(145deg,#a1eee66b,#153c50a6); border-color: #d4fff5; color: white;
+}
 @media (orientation: portrait) {
   main.roam-root[data-controls="mobile"] .flight-menu-body { display: flex; flex-direction: column; }
   main.roam-root[data-controls="mobile"] .flight-menu-dial { width: 100%; flex: 0 0 auto; }
