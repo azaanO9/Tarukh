@@ -38,6 +38,8 @@ export default function TarukhMainMenu({
   onFullscreen,
   fullscreen = false,
 }: TarukhMainMenuProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [panel, setPanel] = useState<Panel>(null);
   const [activeFrame, setActiveFrame] = useState(0);
   const [playbackOverride, setPlaybackOverride] = useState<boolean | null>(null);
@@ -145,13 +147,13 @@ export default function TarukhMainMenu({
       <header className="tarukh-home-header">
         <div className="tarukh-home-brand">
           <span className="tarukh-home-logo-window">
-            <img src={assetUrl("team/tarukh-blue-arc-logo.png")} alt="TARUKH" />
+            <img src={assetUrl("team/tarukh-blue-arc-logo.png")} alt="TARUKH" loading="eager" decoding="async" draggable={false} />
           </span>
           <span className="tarukh-home-divider" />
           <span className="tarukh-home-brand-label">Surface operations</span>
         </div>
         <div className="tarukh-home-status">
-          {onFullscreen && !fullscreen && (
+          {mounted && onFullscreen && !fullscreen && (
             <button
               className="tarukh-home-fullscreen-btn"
               type="button"

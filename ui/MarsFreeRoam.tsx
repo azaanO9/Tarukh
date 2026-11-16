@@ -61,7 +61,8 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
   const [manualMode, setManualMode] = useState<'pc'|'mobile' | null>(null);
   const mode = manualMode ?? detectedMode ?? 'pc';
   const blocked=useTouchPortrait();
-  const [fullscreen,setFullscreen]=useState(isFullscreen);
+  const [fullscreen,setFullscreen]=useState(false);
+  const [fullscreenAvailable,setFullscreenAvailable]=useState(false);
   const [installDismissed,setInstallDismissed]=useState(false);
   const [loading,setLoading]=useState({progress:0,stage:"Preparing the expedition"});
   const loadingProgress=useCallback((progress:number,stage:string)=>setLoading({progress,stage}),[]);
@@ -105,9 +106,13 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
 
   useEffect(() => { if (!story) setHasStorySave(hasStorySaveCandidate()); }, [story]);
   useEffect(()=>{
+    setFullscreen(isFullscreen());
+    setFullscreenAvailable(supportsFullscreen() && !isStandalone());
     let previous=isFullscreen();
     const changed=()=>{
-      const active=isFullscreen();setFullscreen(active);
+      const active=isFullscreen();
+      setFullscreen(active);
+      setFullscreenAvailable(supportsFullscreen() && !isStandalone());
       if(previous&&!active&&started){document.exitPointerLock?.();setMenu(true);}
       previous=active;
     };
@@ -152,7 +157,6 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     &&/iPhone|iPad|iPod/.test(navigator.userAgent)&&!isStandalone()&&!supportsFullscreen()
     &&(()=>{try{return localStorage.getItem('tarukh-install-hint')!=='dismissed';}catch{return true;}})();
   const dismissInstall=()=>{setInstallDismissed(true);try{localStorage.setItem('tarukh-install-hint','dismissed');}catch{/* Storage is optional. */}};
-  const fullscreenAvailable=typeof document!=='undefined'&&supportsFullscreen()&&!isStandalone();
   useEffect(()=>{
     if(started||storyRequested||!mode)return;
     const start=(event:KeyboardEvent)=>{

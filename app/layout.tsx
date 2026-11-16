@@ -13,16 +13,18 @@ export const metadata: Metadata = {
   title: "TARUKH - Mars Open World",
   description:
     "Explore Mars freely on foot or in the crew rover, alongside an autonomous Curiosity rover.",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.webmanifest?v=tarukh-v3",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "TARUKH" },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon-32x32.png?v=tarukh-v3", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png?v=tarukh-v3", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.svg?v=tarukh-v3", type: "image/svg+xml" },
+      { url: "/favicon.png?v=tarukh-v3", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico?v=tarukh-v3", sizes: "any" },
     ],
-    shortcut: "/favicon.svg",
-    apple: "/pwa/icon-180.png",
+    shortcut: "/favicon.ico?v=tarukh-v3",
+    apple: "/pwa/icon-180.png?v=tarukh-v3",
   },
 };
 
@@ -32,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }
