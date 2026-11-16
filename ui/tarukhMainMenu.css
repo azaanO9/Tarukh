@@ -191,6 +191,32 @@
   background: rgba(7,10,12,.18);
 }
 
+.tarukh-home-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(155, 233, 237, 0.45);
+  background: rgba(14, 34, 45, 0.85);
+  color: #9be9ed;
+  font: 600 11px/1 Consolas, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tarukh-home-fullscreen-btn:hover {
+  background: rgba(22, 52, 68, 0.95);
+  border-color: #9be9ed;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(155, 233, 237, 0.35);
+}
+
 .tarukh-home-copy {
   position: absolute;
   z-index: 4;

@@ -129,6 +129,24 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     return ()=>document.removeEventListener('keydown',pause);
   },[started,modal,story?.modalOpen,storyReady]);
   const enterFullscreen=()=>{if(mode)void requestGameFullscreen(mode).then(setFullscreen);};
+  // Automatically open in fullscreen and landscape mode when on mobile phone from the main menu itself
+  useEffect(() => {
+    if (mode !== 'mobile') return;
+    void requestGameFullscreen('mobile').then(setFullscreen);
+    const activateMobileLandscapeFullscreen = () => {
+      if (!isFullscreen() && !isStandalone()) {
+        void requestGameFullscreen('mobile').then(setFullscreen);
+      }
+    };
+    window.addEventListener('pointerdown', activateMobileLandscapeFullscreen, { passive: true });
+    window.addEventListener('touchstart', activateMobileLandscapeFullscreen, { passive: true });
+    window.addEventListener('click', activateMobileLandscapeFullscreen, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', activateMobileLandscapeFullscreen);
+      window.removeEventListener('touchstart', activateMobileLandscapeFullscreen);
+      window.removeEventListener('click', activateMobileLandscapeFullscreen);
+    };
+  }, [mode]);
   const startExploring=()=>{enterFullscreen();setView(null);setSceneReady(false);setArrived(false);setStarted(true);};
   const installHint=started&&mode==='mobile'&&!installDismissed&&typeof navigator!=='undefined'
     &&/iPhone|iPad|iPod/.test(navigator.userAgent)&&!isStandalone()&&!supportsFullscreen()
@@ -189,16 +207,26 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     setHasStorySave(hasStorySaveCandidate());
   };
 
-  if (storyRequested && !story) return <Suspense fallback={<main className="roam-launch"><p>Opening Elysium briefing…</p></main>}><ElysiumStory controlMode={mode} launchNew={storyLaunchIsNew} onExit={exitStory}/></Suspense>;
+  if (storyRequested && !story) return <>
+    <Suspense fallback={<main className="roam-launch"><p>Opening Elysium briefing…</p></main>}>
+      <ElysiumStory controlMode={mode} launchNew={storyLaunchIsNew} onExit={exitStory}/>
+    </Suspense>
+    <RotateToLandscapeGate blocked={blocked}/>
+  </>;
 
-  if (!started) return <TarukhMainMenu
-    mode={mode}
-    onModeChange={setManualMode}
-    hasStorySave={hasStorySave}
-    onStartExplorer={startExploring}
-    onResumeStory={() => launchStory(false)}
-    onNewStory={() => launchStory(true)}
-  />;
+  if (!started) return <>
+    <TarukhMainMenu
+      mode={mode}
+      onModeChange={setManualMode}
+      hasStorySave={hasStorySave}
+      onStartExplorer={startExploring}
+      onResumeStory={() => launchStory(false)}
+      onNewStory={() => launchStory(true)}
+      onFullscreen={fullscreenAvailable && !fullscreen ? enterFullscreen : undefined}
+      fullscreen={fullscreen}
+    />
+    <RotateToLandscapeGate blocked={blocked}/>
+  </>;
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
   return <main className="sv-root mars-root roam-root" data-controls={mode} data-phase={story?'story':'explore'}>

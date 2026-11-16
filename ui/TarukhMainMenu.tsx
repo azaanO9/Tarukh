@@ -24,6 +24,8 @@ interface TarukhMainMenuProps {
   onStartExplorer: () => void;
   onResumeStory: () => void;
   onNewStory: () => void;
+  onFullscreen?: () => void;
+  fullscreen?: boolean;
 }
 
 export default function TarukhMainMenu({
@@ -33,6 +35,8 @@ export default function TarukhMainMenu({
   onStartExplorer,
   onResumeStory,
   onNewStory,
+  onFullscreen,
+  fullscreen = false,
 }: TarukhMainMenuProps) {
   const [panel, setPanel] = useState<Panel>(null);
   const [activeFrame, setActiveFrame] = useState(0);
@@ -147,6 +151,16 @@ export default function TarukhMainMenu({
           <span className="tarukh-home-brand-label">Surface operations</span>
         </div>
         <div className="tarukh-home-status">
+          {onFullscreen && !fullscreen && (
+            <button
+              className="tarukh-home-fullscreen-btn"
+              type="button"
+              aria-label="Enter fullscreen"
+              onClick={onFullscreen}
+            >
+              Fullscreen ⛶
+            </button>
+          )}
           <span><i aria-hidden="true" />Habitat link stable</span>
           <span className="tarukh-home-delay">Earth delay · 12m 41s</span>
         </div>

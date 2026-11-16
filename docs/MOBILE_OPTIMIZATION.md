@@ -6,7 +6,7 @@ This pass changes presentation, loading and rendering. Story transitions, missio
 
 `game/deviceMode.ts` resolves the primary pointer before considering touch count, hover, viewport/screen hints and mobile/iPad user agents. `ui/useDeviceMode.ts` subscribes to media, resize, visual viewport and orientation changes. This changes controls without replacing the canvas or resetting the story. `?device=mobile` and `?device=pc` are hidden QA overrides.
 
-Click/Tap to start requests fullscreen directly in the user gesture. Enter and Space also activate the launch screen. Fullscreen rejection does not block play; leaving fullscreen pauses and offers a return button. Portrait touch screens pause the scene and cinematic and restore them after rotation. The installation hint is dismissible and browser-local.
+Click/Tap to start requests fullscreen directly in the user gesture. On mobile devices, the main menu automatically triggers fullscreen and locks orientation to landscape upon initial load and on the very first touch/pointer interaction, and the portrait rotation gate is active directly from the main menu itself. Enter and Space also activate the launch screen. Fullscreen rejection does not block play; leaving fullscreen pauses and offers a return button. Portrait touch screens pause the scene and cinematic and restore them after rotation. The installation hint is dismissible and browser-local.
 
 ## Layout and input
 

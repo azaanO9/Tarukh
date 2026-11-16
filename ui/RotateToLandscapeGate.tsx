@@ -20,7 +20,18 @@ export function RotateToLandscapeGate({blocked}:{blocked:boolean}) {
     };
   },[blocked]);
   if(!blocked)return null;
-  return <div className="sv-rotate-gate" role="dialog" aria-modal="true" aria-labelledby="rotate-title" data-ui-zone="rotation">
+  return <div
+    className="sv-rotate-gate"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rotate-title"
+    data-ui-zone="rotation"
+    onClick={(event) => {
+      if (event.target === event.currentTarget) {
+        void tryEnterLandscape();
+      }
+    }}
+  >
     <div className="sv-rotate-card">
       <div className="sv-rotate-icon" aria-hidden="true"><span className="sv-phone-outline"/></div>
       <p className="sv-rotate-kicker">YOUR ADVENTURE IS PAUSED</p>
