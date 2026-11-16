@@ -1,0 +1,102 @@
+[
+  {
+    "name": "earth",
+    "url": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/july/world.200407.3x5400x2700.jpg",
+    "credit": "NASA Earth Observatory / Reto Stockli, Blue Marble Next Generation, July 2004",
+    "page": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/",
+    "license": "NASA media usage guidelines",
+    "sha256": "f55226d46d27e05511f2118dc6aa24f5dbf9b6b2cddc87cc6e0e7dd067c00b11",
+    "derivatives": [
+      {
+        "file": "earth-1024.webp",
+        "bytes": 47832,
+        "sha256": "026669484858f6a74decf73406ced60d51cfbf443f1dc7fc572dd2d28171a634"
+      },
+      {
+        "file": "earth-4096.webp",
+        "bytes": 533566,
+        "sha256": "c35e7cbf1d87b383ed9844a92de9ba0dbaac7a66e7630136ca65211094fe1cbf"
+      }
+    ]
+  },
+  {
+    "name": "mars",
+    "url": "https://www.solarsystemscope.com/textures/download/8k_mars.jpg",
+    "credit": "Solar System Scope / INOVE, based on NASA elevation and imagery; artist-adjusted colours and gap filling",
+    "page": "https://www.solarsystemscope.com/textures/",
+    "license": "CC BY 4.0",
+    "sha256": "4cc52149924abc6ae507d63032f994e1d42a55cb82c09e002d1a567ff66c23ee",
+    "derivatives": [
+      {
+        "file": "mars-1024.webp",
+        "bytes": 80928,
+        "sha256": "acff82614a60d7bc7ca264104911b45d01dbb1637753cd8b7e205cf7bbe4bbbe"
+      },
+      {
+        "file": "mars-4096.webp",
+        "bytes": 1032672,
+        "sha256": "f1865db5ad29e22687909d163425e3cd23c42aa97e206ad3bb4cc850490fbd6d"
+      }
+    ]
+  },
+  {
+    "name": "clouds",
+    "url": "https://github.com/matteason/daily-cloud-maps/releases/download/2022-07-27/4096x2048-clouds.jpg",
+    "credit": "Matt Eason, NASA-derived daily cloud map, 27 July 2022",
+    "page": "https://github.com/matteason/daily-cloud-maps",
+    "license": "CC0 1.0",
+    "sha256": "9f718dd568fa8ad367a435c032edcaef91397ba10c3cdcd01d35bef3628a9b9e",
+    "derivatives": [
+      {
+        "file": "clouds-1024.webp",
+        "bytes": 167152,
+        "sha256": "13d3061ace85f050cb1d27eb556150045f3345a3ed672bc4a98d615cba6c2859"
+      },
+      {
+        "file": "clouds-2048.webp",
+        "bytes": 599366,
+        "sha256": "c48d0559390574e37c2bede799ed49c117a25c4983982969dd4086d3669f52cd"
+      }
+    ]
+  },
+  {
+    "name": "sky",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/kloppenheim_06_puresky.jpg",
+    "credit": "Greg Zaal / Jarod Guest / Poly Haven, Kloppenheim 06 Pure Sky",
+    "page": "https://polyhaven.com/a/kloppenheim_06_puresky",
+    "license": "CC0 1.0",
+    "sha256": "4084ddd6c57d76e05ac7de9f563077aabd77d07f6b03593d0930a3fc515494b4",
+    "derivatives": [
+      {
+        "file": "sky-1024.webp",
+        "bytes": 23786,
+        "sha256": "94f6f7bf72b2581f1d99f47287a4fcc6b471520e91df63c1acf47dd87027df96"
+      },
+      {
+        "file": "sky-2048.webp",
+        "bytes": 64324,
+        "sha256": "2789127f54fab0c4c672c136d3cb8c8c1cb78fa532cbdb3bc2610ca79d63ec35"
+      }
+    ]
+  },
+  {
+    "name": "coastal-ground",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_diff_1k.jpg",
+    "credit": "Rob Tuytel / Poly Haven, Aerial Grass Rock",
+    "page": "https://polyhaven.com/a/aerial_grass_rock",
+    "license": "CC0 1.0",
+    "sha256": "57b8041bfe0d0f01430e4dbaad45e7ddddf0a9fc97317f90dbc51f7b0d9e1b5d",
+    "derivatives": [
+      {
+        "file": "coastal-ground-512.webp",
+        "bytes": 72426,
+        "sha256": "d8c45ff8a70b23f5a8f537b20d73a1b53a47c4401fe40dc566ad2768c5e6d1fd"
+      },
+      {
+        "file": "coastal-ground-1024.webp",
+        "bytes": 271486,
+        "sha256": "0cb43d6bfc3cb1633c28d2e9f98e48481d90db356be1e57ffe845ba8dfd6a771"
+      }
+    ]
+  }
+]

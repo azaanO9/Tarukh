@@ -3,13 +3,16 @@ import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.j
 import {createStarbase} from './createStarbase.ts';
 import {createLandingDust} from './landingDust.ts';
 import {REUSABLE_ROCKET} from '../../game/reusableRocket.ts';
-import {ARRIVAL_READY_HOLD,STARSHIP_SPACE_CUT,advanceArrivalWithReadiness,canEnterMars,createArrivalFrame,sampleStarshipArrival,STARSHIP_ARRIVAL_DURATION,type ArrivalPlayback} from '../../game/starshipArrival.ts';
+import {createArrivalFrame,type ArrivalPlayback} from '../../game/starshipArrival.ts';
+import {FLIGHT_DURATION,FLIGHT_READY_HOLD,advanceDeparture,landingPlaybackTime,sampleDepartureSequence,flightEase,type DepartureFrame} from '../../game/departureSequence.ts';
 import {createArrivalRigPose} from './arrivalRig.ts';
 import {createEarthDeparture} from './earthDeparture.ts';
 import {createStarshipVisual} from './starshipVisual.ts';
+import {createFlightPlanets} from './flightPlanets.ts';
+import {createEntryHeating} from './entryHeating.ts';
 
 type ArrivalOptions={
-  ready:()=>boolean;onComplete:()=>void;onFrame:(frame:ReturnType<typeof createArrivalFrame>,elapsed:number,paused:boolean,dust:number)=>void;
+  ready:()=>boolean;onComplete:()=>void;onFrame:(frame:DepartureFrame,elapsed:number,paused:boolean,dust:number)=>void;
   onFailure:()=>void;performance:boolean;reduced:boolean;previewTime?:number;
   playback:ArrivalPlayback;suspended?:()=>boolean;
 };
@@ -42,32 +45,38 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
   const rig=createStarbase(scene,{reusableRocket:true,ground:false});cleanups.push(()=>rig.dispose());
   const starship=createStarshipVisual(rig);cleanups.push(()=>starship.dispose());
   const earth=createEarthDeparture(scene,options.performance);cleanups.push(()=>earth.dispose());
+  const planets=createFlightPlanets(scene,options.performance);cleanups.push(()=>planets.dispose());
+  const entryHeating=createEntryHeating(rig.starshipUpperStage);cleanups.push(()=>entryHeating.dispose());
   const dust=createLandingDust(scene,options.performance?32:80);cleanups.push(()=>dust.dispose());
   // The Earth vehicle stands on its own feet; only Mars has a catch tower.
   rig.chopstickCarriage.visible=false;
   const shipBurnLight=new T.PointLight('#b7ccff',0,85,2);shipBurnLight.position.y=-3;rig.starshipUpperStage.add(shipBurnLight);
   cleanups.push(()=>shipBurnLight.dispose());
-  const applyRig=createArrivalRigPose(rig),frameData=createArrivalFrame();
+  const applyRig=createArrivalRigPose(rig),frameData:DepartureFrame={...createArrivalFrame(),shot:'launch'};
   const cameraPosition=new T.Vector3(),cameraTarget=new T.Vector3();
   const dayColor=new T.Color('#91bdd4'),spaceColor=new T.Color('#03060e'),earthFog=scene.fog;
   options.playback.active=true;options.playback.time=0;options.playback.marsRendered=false;
   cleanups.push(()=>{options.playback.active=false;});
   let last=0,elapsed=0,paused=false,skipped=false,started=false,lastUi=0,lastDraw=0,completed=false;
   function pose(time:number,dt:number){
-    sampleStarshipArrival(time,frameData);
-    options.playback.time=time;applyRig(frameData,time,options.reduced);
-    const space=frameData.environment!=='earth';earth.setSpace(space);
+    sampleDepartureSequence(time,frameData);
+    options.playback.time=landingPlaybackTime(time);applyRig(frameData,time,options.reduced);
+    const space=frameData.shot!=='launch';earth.update(options.reduced?0:time,!space);planets.update(frameData,time);
+    entryHeating.update(time,frameData.shot==='mars-entry',options.reduced);
     scene.background=space?spaceColor:dayColor;scene.fog=space?null:earthFog;
-    ambient.intensity=space?.38:1.1;scene.environmentIntensity=space?.55:.95;
+    ambient.intensity=space?.13:.75;scene.environmentIntensity=space?.42:.75;
+    sun.intensity=space?2.7:2.3;
+    sun.castShadow=!space&&!options.performance;
     rig.mechazillaTower.visible=rig.orbitalLaunchMount.visible=false;
     renderer.domElement.style.visibility=frameData.returning?'hidden':'visible';
     rig.exhaustLight.intensity=0;shipBurnLight.intensity=frameData.shipThrust*1300;
-    if(frameData.environment==='earth'){
-      const distance=Math.max(1,1/camera.aspect),lift=frameData.shipY;
-      cameraPosition.set(32*distance,18+lift*.94,-49*distance);cameraTarget.set(10,lift+9,0);
+    if(frameData.shot==='launch'){
+      const distance=Math.max(1,1/camera.aspect),lift=frameData.shipY,p=flightEase(time/6);
+      cameraPosition.set((30+28*p)*distance,8+lift*.95,(-48-26*p)*distance);cameraTarget.set(0,lift+9,0);
     }else{
-      const distance=Math.max(1,1/camera.aspect);
-      cameraPosition.set(32*distance,frameData.shipY+16,-48*distance);cameraTarget.set(frameData.shipX+10,frameData.shipY+9,0);
+      const distance=Math.max(1,1/camera.aspect),entry=frameData.shot==='mars-entry',p=flightEase((time-(entry?12:6))/(entry?7:6));
+      cameraPosition.set((entry?40-18*p:48-12*p)*distance,frameData.shipY+22,(-79+10*p)*distance);
+      cameraTarget.set(frameData.shipX+(entry?2:7),frameData.shipY+9,15);
     }
     camera.position.copy(cameraPosition);camera.lookAt(cameraTarget);camera.updateMatrixWorld();
     dust.update(dt,options.reduced?0:frameData.dust,frameData.shipX,0,camera,options.reduced);
@@ -81,23 +90,25 @@ export function createStarshipArrival(host:HTMLDivElement,options:ArrivalOptions
     const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;
     if(document.hidden)return;
     const held=paused||Boolean(options.suspended?.());
-    elapsed=advanceArrivalWithReadiness(elapsed,dt,held,options.ready());
+    elapsed=advanceDeparture(elapsed,dt,held,options.ready());
     const preview=options.previewTime;
-    const time=preview??(options.reduced||skipped?(options.ready()?STARSHIP_ARRIVAL_DURATION:ARRIVAL_READY_HOLD):elapsed);
-    if(!held&&preview===undefined&&canEnterMars(options.ready(),elapsed,skipped,options.reduced)){finish();return;}
-    if((held||elapsed>=36)&&now-lastDraw<100)return;
+    const time=preview??(options.reduced||skipped?(options.ready()?FLIGHT_DURATION:FLIGHT_READY_HOLD):elapsed);
+    if(!held&&preview===undefined&&options.ready()&&(skipped||elapsed>=(options.reduced?2:FLIGHT_DURATION))){finish();return;}
+    if((held||elapsed>=FLIGHT_DURATION+4)&&now-lastDraw<100)return;
     pose(time,held?0:dt);if(!frameData.returning)renderer.render(scene,camera);lastDraw=now;
     if(now-lastUi>100){lastUi=now;options.onFrame(frameData,elapsed,held,dust.active);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);}
   }
   const lost=(event:Event)=>{event.preventDefault();dispose();options.onFailure();};renderer.domElement.addEventListener('webglcontextlost',lost);
   cleanups.push(()=>renderer.domElement.removeEventListener('webglcontextlost',lost));
   async function start(){
-    await starship.ready;
+    await Promise.all([starship.ready,planets.ready,earth.ready]);
     if(disposed)return;
     host.dataset.rocketModel=starship.status;
+    host.dataset.planetTextures=String(planets.loaded);
+    host.dataset.coastTextures=String(earth.loaded);
     // Warm both environments and the active exhaust before presenting motion.
-    for(const time of [0,2,STARSHIP_SPACE_CUT+1]){pose(time,0);await renderer.compileAsync(scene,camera);if(disposed)return;}
-    pose(options.reduced?ARRIVAL_READY_HOLD:0,0);renderer.render(scene,camera);
+    for(const time of [0,2,7,14]){pose(time,0);await renderer.compileAsync(scene,camera);if(disposed)return;}
+    pose(options.reduced?FLIGHT_READY_HOLD:0,0);renderer.render(scene,camera);
     if(disposed)return;started=true;host.dataset.ready='true';frameId=requestAnimationFrame(animate);
   }
   void start().catch(()=>{if(!disposed){dispose();options.onFailure();}});

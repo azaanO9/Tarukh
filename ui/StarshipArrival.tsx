@@ -4,6 +4,7 @@ import type {createStarshipArrival} from './starbase/createStarshipArrival';
 import {STARBASE} from '../game/starbaseRig';
 import {REUSABLE_ROCKET} from '../game/reusableRocket';
 import type {ArrivalPlayback} from '../game/starshipArrival';
+import {FLIGHT_DURATION} from '../game/departureSequence';
 import './starshipArrival.css';
 
 export default function StarshipArrival({ready,onComplete,performance=false,playback,suspended=false,loading}:{ready:boolean;onComplete:()=>void;performance?:boolean;playback:ArrivalPlayback;suspended?:boolean;loading?:{progress:number;stage:string}}){
@@ -25,7 +26,7 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
     void import('./starbase/createStarshipArrival').then(({createStarshipArrival})=>{
       if(cancelled||!host.current||skipPending.current)return;
       const params=new URLSearchParams(location.search),preview=params.get('arrivalPreview');
-      const previewTime=params.get('debug')==='1'&&preview!==null&&Number.isFinite(Number(preview))?Math.max(0,Math.min(32,Number(preview))):undefined;
+      const previewTime=params.get('debug')==='1'&&preview!==null&&Number.isFinite(Number(preview))?Math.max(0,Math.min(FLIGHT_DURATION,Number(preview))):undefined;
       controller.current=createStarshipArrival(host.current,{
         ready:()=>latest.current.ready,onComplete:()=>latest.current.onComplete(),onFailure:failure,
         playback,suspended:()=>latest.current.suspended,
@@ -34,12 +35,13 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
           if(!section.current)return;
           section.current.dataset.phase=frame.phase;section.current.dataset.time=elapsed.toFixed(2);
           section.current.dataset.environment=frame.environment;
+          section.current.dataset.shot=frame.shot;
           section.current.dataset.shipAltitude=frame.shipY.toFixed(3);section.current.dataset.shipThrust=frame.shipThrust.toFixed(3);
           section.current.dataset.armAngle=frame.armAngle.toFixed(3);section.current.dataset.dust=String(dust);
           section.current.dataset.pinGap=(frame.shipY+REUSABLE_ROCKET.pinHeight-STARBASE.pinRadius-frame.carriageHeight).toFixed(4);
           const label=isPaused?'Sequence paused':frame.phase;
           if(phase.current&&phase.current.textContent!==label)phase.current.textContent=label;
-          if(detail.current)detail.current.textContent=frame.returning?`Mars catch tower · ${frame.shipThrust>0?`${frame.landingEngines} landing engine${frame.landingEngines===1?'':'s'}`:'Engines off'}`:frame.environment==='space'?'Above Earth · interplanetary coast is time-compressed':'Earth coast · launch to orbit';
+          if(detail.current)detail.current.textContent=frame.returning?`Mars catch tower · ${frame.shipThrust>0?`${frame.landingEngines} landing engine${frame.landingEngines===1?'':'s'}`:'Engines off'}`:frame.shot==='mars-entry'?'Red planet approach · preparing for descent':frame.shot==='earth-orbit'?'Earth falls behind · interplanetary travel is time-compressed':'Earth coast · launch to orbit';
           if(bar.current)bar.current.style.transform=`scaleX(${frame.progress})`;
           if(fade.current)fade.current.style.opacity=String(frame.fade);
         },

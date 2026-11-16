@@ -1245,10 +1245,13 @@
     bottom: env(safe-area-inset-bottom);
     left: max(14px, env(safe-area-inset-left));
     right: max(14px, env(safe-area-inset-right));
+    height: 30px;
     min-height: 30px;
     padding: 0 4px;
     font-size: 7px;
   }
+  .tarukh-home-footer-controls { display: none; }
+  .tarukh-home-footer-meta { width: 100%; max-width: 100%; gap: 2px; }
   .tarukh-home-footer-credit { font-size: clamp(6.5px, 1.2vw, 8px); }
   .tarukh-home-footer-build { font-size: clamp(6px, 1.1vw, 7.5px); }
   .tarukh-home-dialog {

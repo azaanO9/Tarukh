@@ -101,7 +101,19 @@ Three.js modeling, environment and post-processing utilities retain the dependen
 
 ## Earth-to-Mars departure and persistent catch site
 
-The coastal Earth surface, ocean colours, cloud banks, orbital atmosphere and star field are original procedural geometry in ui/starbase/earthDeparture.ts. The Mars catch site combines the credited supplied Starship with the project's existing procedural tower, on the game's graded Mars ground, with the actual campus visible behind it. The model and its textures ship with the app; no external model service is requested. The Mars catch infrastructure and compressed travel are fictional expedition art, not a reconstruction of an existing Mars launch site. See docs/ARRIVAL.md.
+The coastal geometry, launch hardware, vegetation, ocean shading, atmospheric shells and stars are original project work. The orbital globes use original sphere meshes with these freely reusable images, shipped as resized WebP derivatives:
+
+| Asset | Source and credit | Terms |
+| --- | --- | --- |
+| Earth surface | [NASA Earth Observatory, Blue Marble Next Generation](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/), July 2004, Reto Stockli | [NASA media usage guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/) |
+| Mars surface | [Solar System Scope / INOVE](https://www.solarsystemscope.com/textures/), 8K Mars map based on NASA elevation and imagery | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); resized/compressed, lit by the game. The source includes adjusted colours and artistic gap filling; it is not a new official NASA model. |
+| Earth cloud layer | [Matt Eason's daily cloud maps](https://github.com/matteason/daily-cloud-maps), NASA-derived snapshot dated 27 July 2022 | CC0 1.0; resized/compressed into an alpha layer |
+| Coastal sky | [Kloppenheim 06 Pure Sky](https://polyhaven.com/a/kloppenheim_06_puresky), Greg Zaal and Jarod Guest / Poly Haven | CC0 1.0; resized tonemapped photograph |
+| Coastal ground | [Aerial Grass Rock](https://polyhaven.com/a/aerial_grass_rock), Rob Tuytel / Poly Haven | CC0 1.0; resized and blended into original coastal terrain |
+
+Exact URLs, source hashes and derivative sizes are in `public/art/flight/sources.json`; `scripts/prepare-flight-textures.mjs` downloads the sources once and prepares the derivatives locally. Desktop loads 4K planet maps, 2K clouds/sky and 1K ground. Performance/touch loads 1K planets/clouds/sky and 512px ground. No source server is contacted during play, and no agency/company branding is added. These are textured runtime meshes, not downloaded NASA GLBs.
+
+The Mars catch site combines the credited supplied Starship with the project's existing procedural tower, on the game's graded Mars ground, with the actual campus visible behind it. The Mars catch infrastructure, entry glow and compressed travel are fictional expedition art, not a reconstruction of an existing Mars launch site. See `docs/ARRIVAL.md`.
 
 ## Flight console
 
