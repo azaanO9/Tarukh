@@ -3636,11 +3636,11 @@
   transform: scale(1.08);
 }
 
-/* Mobile Communicator Pill Button (Top Bar, Next to Pause) */
+/* Mobile Communicator Pill Button (Top Instrument Cluster, Clear of Pause & Fullscreen) */
 .mars-phone-mobile-pill {
   position: absolute;
-  top: max(6px, env(safe-area-inset-top));
-  right: 88px;
+  top: calc(max(8px, env(safe-area-inset-top)) + 48px + 8px);
+  right: calc(max(10px, env(safe-area-inset-right)) + 48px + 8px);
   z-index: 26;
   background: rgba(18, 12, 14, 0.94);
   border: 1px solid rgba(255, 109, 0, 0.5);

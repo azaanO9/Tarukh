@@ -1671,6 +1671,17 @@
 .roam-root[data-controls="mobile"] .roam-header b span {display:none;}
 .roam-root[data-controls="mobile"] .roam-header button {margin:0; padding:8px 12px; flex:0 0 auto;}
 .roam-root[data-controls="mobile"] .roam-info {display:none;}
+@media (max-height: 480px) and (orientation: landscape) {
+  .roam-root[data-controls="mobile"] {
+    --ui-bar: 40px;
+    --ui-gap: 6px;
+  }
+  .roam-root[data-controls="mobile"] .roam-header b { font-size: 12px; padding: 4px 6px; }
+  .roam-root[data-controls="mobile"] .roam-header button { padding: 4px 10px; font-size: 12px; min-height: 38px; }
+  .roam-root[data-controls="mobile"] .mars-phone-mobile-pill { min-height: 38px; height: 38px; padding: 2px 8px; font-size: 10px; }
+  .roam-root[data-controls="mobile"] .sv-world .sv-look-controls,
+  .roam-root[data-controls="mobile"] .sv-world .sv-look-controls summary { width: 40px; height: 38px; min-height: 38px; }
+}
 .roam-root[data-controls="mobile"] .sv-world .sv-look-controls {top:calc(var(--ui-top) + var(--ui-bar) + var(--ui-gap)); right:var(--ui-right); width:48px; max-width:none;}
 .roam-root[data-controls="mobile"] .sv-world .sv-look-controls details {padding:0; max-height:calc(100dvh - var(--ui-top) - var(--ui-bottom) - var(--ui-bar) - var(--ui-gap)); max-width:calc(100vw - var(--ui-left) - var(--ui-right)); overflow:auto; overscroll-behavior:contain; touch-action:pan-y;}
 .roam-root[data-controls="mobile"] .sv-world .sv-look-controls summary {display:grid;place-items:center;width:48px;}
@@ -1792,13 +1803,15 @@
 }
 .roam-root[data-controls="mobile"] .roam-minimap .roam-map-toggle { border-radius: 8px; }
 .roam-root[data-controls="mobile"] .mars-phone-mobile-pill {
-  top: var(--ui-top);
-  right: calc(var(--ui-right) + 76px);
+  top: calc(var(--ui-top) + var(--ui-bar) + var(--ui-gap));
+  right: calc(var(--ui-right) + 48px + var(--ui-gap));
   box-sizing: border-box;
-  min-width: 48px;
-  min-height: 48px;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
   max-width: calc(100vw - var(--ui-left) - var(--ui-right) - 160px);
   overflow: hidden;
+  z-index: 25;
 }
 .roam-root[data-controls="mobile"] .mars-phone-mobile-pill-rad { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roam-root[data-controls="mobile"] .mars-phone-mobile-pill-dose { flex: 0 0 auto; white-space: nowrap; }
@@ -1874,7 +1887,7 @@
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .command { gap: 8px; }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .command button { white-space: normal; }
 
-@media (max-width: 800px) {
+@media (max-width: 800px) and (orientation: portrait) {
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(240px, min(42dvh, 420px)) minmax(0, 1fr);
@@ -1913,7 +1926,7 @@
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .pin span { max-width: min(180px, calc(100vw - 40px)); font-size: 10px; white-space: normal; }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 520px) and (orientation: portrait) {
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .titlebar { align-items: flex-end; }
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .sector { max-width: 36%; font-size: 8px; }
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .grid {
@@ -1945,17 +1958,77 @@
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .live { gap: 4px; font-size: 8px; }
 }
 
-@media (max-height: 540px) and (orientation: landscape) {
+@media (max-height: 560px) and (orientation: landscape) {
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .mast {
+    height: 42px;
+    min-height: 42px;
+    padding-inline: 10px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .brand { font-size: 13px; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .brand svg { width: 22px; height: 16px; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap :is(.helpBtn, .closeBtn) {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    flex: 0 0 38px;
+    border-radius: 8px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .wrap {
+    height: calc(100% - 42px);
+    padding: 0 10px max(6px, env(safe-area-inset-bottom));
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .titlebar {
+    padding-block: 2px;
+    margin-bottom: 2px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .titlebar h1 {
+    font-size: 16px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .kicker { display: none; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .sector { display: none; }
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .grid {
-    grid-template-columns: minmax(0, 1fr) minmax(180px, .72fr);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
     grid-template-rows: minmax(0, 1fr);
+    height: calc(100% - 28px);
+    min-height: 0;
     overflow: hidden;
   }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap #map { min-height: 0; }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .panel { border-top: 0; border-left: 1px solid var(--line); }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .list { grid-template-columns: 1fr; }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .titlebar { padding-block: 4px; }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .sector { display: none; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap #map { min-height: 0; height: 100%; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .panel {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .panelbody {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 8px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .list {
+    grid-template-columns: 1fr;
+    max-height: 140px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .detail {
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .detail h2 {
+    font-size: 15px;
+    margin-block: 2px;
+  }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .detail p {
+    font-size: 11px;
+    line-height: 1.35;
+  }
 }
 
 /* Keep the optional FPS readout and the phone/status button in separate HUD lanes. */
@@ -1981,25 +2054,25 @@
 /* Compact radar, waypoint and collapse control; keep it above the thumb-control band. */
 .roam-root[data-controls="mobile"] .roam-minimap.gta-minimap {
   top: auto;
-  bottom: calc(var(--ui-bottom) + var(--ui-controls) + var(--ui-gap));
+  bottom: calc(var(--ui-bottom) + var(--ui-controls) + 6px);
   left: var(--ui-left);
   right: auto;
-  width: clamp(190px, 24vw, 224px);
+  width: clamp(160px, 20vw, 196px);
   max-width: calc(100vw - var(--ui-left) - var(--ui-right));
   height: auto;
   min-height: 0;
   box-sizing: border-box;
-  padding: 7px;
+  padding: 5px;
   display: grid;
   align-content: start;
-  grid-template-columns: minmax(0, 1fr) 48px;
-  grid-template-rows: 72px 48px;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-rows: 62px 38px;
+  gap: 4px;
   overflow: hidden;
   z-index: 22;
 }
 .roam-root[data-controls="mobile"] .roam-minimap.gta-minimap[data-open="false"] {
-  grid-template-rows: 48px;
+  grid-template-rows: 38px;
 }
 .roam-root[data-controls="mobile"] .roam-minimap :is(.roam-radar-frame, .roam-gta-hud-overlay, .roam-gta-hud-bottom, .roam-gta-footer) { display: contents; }
 .roam-root[data-controls="mobile"] .roam-minimap :is(.roam-mode-btn, .roam-gta-readout, .roam-map-legend, .roam-gta-bars) { display: none; }
@@ -2008,17 +2081,18 @@
   grid-column: 1 / -1;
   grid-row: 1;
   width: 100%;
-  height: 72px;
+  height: 62px;
 }
 .roam-root[data-controls="mobile"] .roam-minimap .roam-map-toggle {
   position: static;
   grid-column: 2;
   grid-row: 2;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+  width: 40px;
+  height: 38px;
+  min-width: 40px;
+  min-height: 38px;
   margin: 0;
+  font-size: 18px;
 }
 .roam-root[data-controls="mobile"] .roam-minimap[data-open="false"] .roam-map-toggle {
   grid-column: 1 / -1;
@@ -2030,29 +2104,33 @@
   grid-row: 2;
   width: 100%;
   min-width: 0;
-  min-height: 48px;
+  min-height: 38px;
+  height: 38px;
   margin: 0;
-  padding: 4px 7px;
+  padding: 2px 6px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
 }
-.roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-target { font-size: 12px; line-height: 1.25; }
-.roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-dist { font-size: 11px; }
+.roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-target { font-size: 11px; line-height: 1.2; }
+.roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-dist { font-size: 10px; }
 
 /* Use a compact 2×2 tool cluster so Atlas controls stay clear of its title and scale. */
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools {
-  right: 8px;
-  bottom: 8px;
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: repeat(2, 48px);
-  grid-auto-rows: 48px;
-  gap: 6px;
+  grid-template-columns: repeat(2, 44px);
+  grid-auto-rows: 44px;
+  gap: 4px;
 }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools button {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 18px;
 }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead {
   right: 154px;
@@ -2060,17 +2138,18 @@
 }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maptools {
   top: 8px;
-  right: 8px;
+  right: max(8px, env(safe-area-inset-right));
   gap: 4px;
 }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maptools button {
-  min-height: 48px;
-  padding-inline: 10px;
+  min-height: 40px;
+  padding-inline: 8px;
+  font-size: 11px;
 }
 .roam-root[data-controls="mobile"] .atlas-expedition-wrap .mapfoot {
-  left: 12px;
-  right: 116px;
-  bottom: 8px;
+  left: max(10px, env(safe-area-inset-left));
+  right: 108px;
+  bottom: max(6px, env(safe-area-inset-bottom));
 }
 
 @media (max-width: 520px) {
@@ -2078,20 +2157,42 @@
     right: 146px;
     max-width: calc(100% - 158px);
   }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead strong { font-size: 15px; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead strong { font-size: 14px; }
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead small { max-width: 100%; line-height: 1.2; }
 }
 
-@media (max-height: 380px) and (orientation: landscape) {
+@media (max-height: 480px) and (orientation: landscape) {
   .roam-root[data-controls="mobile"] .roam-minimap.gta-minimap {
-    bottom: calc(var(--ui-bottom) + var(--ui-controls) + var(--ui-gap));
-    grid-template-rows: 58px 48px;
+    bottom: calc(var(--ui-bottom) + var(--ui-controls) + 4px);
+    grid-template-rows: 54px 34px;
+    width: clamp(150px, 19vw, 184px);
+    padding: 4px;
   }
-  .roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { height: 58px; }
+  .roam-root[data-controls="mobile"] .roam-minimap[data-open="false"] {
+    grid-template-rows: 34px;
+  }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { height: 54px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-map-toggle { height: 34px; min-height: 34px; font-size: 16px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-open { height: 34px; min-height: 34px; }
   .roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools {
-    grid-template-columns: repeat(2, 48px);
-    grid-auto-rows: 48px;
+    grid-template-columns: repeat(2, 40px);
+    grid-auto-rows: 40px;
     gap: 4px;
   }
-  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools button { width: 48px; height: 48px; min-width: 48px; min-height: 48px; }
+  .roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools button { width: 40px; height: 40px; min-width: 40px; min-height: 40px; font-size: 16px; }
+}
+
+@media (min-width: 768px) and (min-height: 500px) {
+  .roam-root[data-controls="mobile"] .roam-minimap.gta-minimap {
+    width: clamp(200px, 22vw, 240px);
+    grid-template-columns: minmax(0, 1fr) 48px;
+    grid-template-rows: 78px 44px;
+    gap: 6px;
+    padding: 7px;
+  }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { height: 78px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-map-toggle { width: 48px; height: 44px; min-width: 48px; min-height: 44px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-open { min-height: 44px; height: 44px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-target { font-size: 12px; }
+  .roam-root[data-controls="mobile"] .roam-minimap .roam-atlas-dist { font-size: 11px; }
 }

@@ -140,6 +140,7 @@ export default function ExplorationMinimap({
         {open && (
           <svg
             viewBox="5 30 190 140"
+            preserveAspectRatio="xMidYMid meet"
             className="roam-radar-svg roam-gta-rect-svg"
             role="img"
             aria-label={`North-up ${

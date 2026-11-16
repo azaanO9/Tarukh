@@ -34,7 +34,7 @@ export default function RadiationPhoneHome({
     <div className="handset-home-brand">
       {/* Pages and Sites serve this local asset directly, without a Next image optimizer. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="handset-home-logo" src={logoSrc} alt="TARUKH" width="260" height="130" decoding="async" loading="lazy" draggable={false} />
+      <img className="handset-home-logo" src={logoSrc} alt="TARUKH" width="260" height="130" decoding="async" loading="eager" draggable={false} />
       <p>SURFACE OPERATIONS</p>
     </div>
     <div className="handset-app-grid" aria-label="Explorer apps">

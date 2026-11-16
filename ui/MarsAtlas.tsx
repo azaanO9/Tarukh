@@ -199,6 +199,8 @@ export default function MarsAtlas({
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panZ: 0 });
   const dragDistanceRef = useRef(0);
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchDistanceRef = useRef<number | null>(null);
 
   // Region dimensions
   const regionWidth = B.east - B.west;
@@ -688,9 +690,16 @@ export default function MarsAtlas({
     [centerX, centerZ, regionWidth, regionHeight, showToast]
   );
 
-  // Pan interaction
+  // Pan & Multi-Touch Pinch-Zoom interaction
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("button")) return;
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointersRef.current.size === 2) {
+      const pts = Array.from(activePointersRef.current.values());
+      pinchDistanceRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      isDraggingRef.current = false;
+      return;
+    }
     isDraggingRef.current = true;
     dragDistanceRef.current = 0;
     dragStartRef.current = {
@@ -703,6 +712,21 @@ export default function MarsAtlas({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointersRef.current.size === 2) {
+      const pts = Array.from(activePointersRef.current.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (pinchDistanceRef.current !== null && pinchDistanceRef.current > 0) {
+        const factor = dist / pinchDistanceRef.current;
+        if (Math.abs(factor - 1) > 0.015) {
+          handleZoom(factor);
+          pinchDistanceRef.current = dist;
+        }
+      } else {
+        pinchDistanceRef.current = dist;
+      }
+      return;
+    }
     if (!isDraggingRef.current) return;
     const vp = mapViewportRef.current;
     if (!vp) return;
@@ -727,12 +751,14 @@ export default function MarsAtlas({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(e.pointerId);
+    if (activePointersRef.current.size < 2) pinchDistanceRef.current = null;
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
 
-    // If it was a clean click without dragging, place a custom waypoint
-    if (dragDistanceRef.current < 6) {
+    // If it was a clean click without dragging and not during a multi-touch gesture, place a custom waypoint
+    if (dragDistanceRef.current < 6 && activePointersRef.current.size === 0) {
       const vp = mapViewportRef.current;
       if (!vp) return;
       const rect = vp.getBoundingClientRect();

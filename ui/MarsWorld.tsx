@@ -3188,7 +3188,7 @@ function MarsWorld(props: Props) {
         <div className="mars-phone-top-bar">
           {/* Pages and Sites serve this local asset directly, without a Next image optimizer. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="mars-phone-brand-logo" src={assetUrl('/branding/tarukh-phone-logo.webp')} alt="TARUKH" width="90" height="46" loading="lazy" decoding="async" />
+          <img className="mars-phone-brand-logo" src={assetUrl('/branding/tarukh-phone-logo.webp')} alt="TARUKH" width="90" height="46" loading="eager" decoding="async" draggable={false} />
           <div className="handset-hardware" aria-hidden="true"><i className="handset-camera"/><i className="handset-speaker"/></div>
           <button type="button" className="mars-bezel-btn" onClick={closePhone} aria-label="Minimize phone" title="Put phone away · P / Esc">
             <ChevronDown size={20} aria-hidden="true"/>
