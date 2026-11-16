@@ -60,6 +60,7 @@ main.tarukh-home[data-controls="mobile"] .tarukh-home-menu {
 }
 main.tarukh-home[data-controls="mobile"] .tarukh-home-menu::before { display: none; }
 main.tarukh-home[data-controls="mobile"] .tarukh-home-option {
+  --mobile-glass-blur: 12px;
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
   grid-column: auto; grid-row: 1; padding: 10px 4px; border: 1px solid var(--mobile-line); border-radius: 14px;
   background: linear-gradient(145deg,#172e39ef,#0c171fee); min-width: 0; min-height: 48px;
@@ -327,7 +328,7 @@ main:is(.tarukh-home,.roam-root)[data-controls="mobile"] :is(
 ) {
   background: var(--mobile-glass); border: 1px solid var(--mobile-glass-line);
   box-shadow: var(--mobile-glass-shadow); color: #f4fcff;
-  -webkit-backdrop-filter: blur(8px) saturate(125%); backdrop-filter: blur(8px) saturate(125%);
+  -webkit-backdrop-filter: blur(var(--mobile-glass-blur,8px)) saturate(125%); backdrop-filter: blur(var(--mobile-glass-blur,8px)) saturate(125%);
 }
 main.roam-root[data-controls="mobile"] :is(.flight-actions button,.wheel-controls button)[data-held],
 main:is(.tarukh-home,.roam-root)[data-controls="mobile"] button[aria-pressed="true"] {
