@@ -1,0 +1,41 @@
+{
+  "checks": [
+    {
+      "name": "desktop: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "narrow desktop: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "phone: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "tablet: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "mobile debug: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "pc debug: correct automatic launch and no chooser or pre-start models"
+    },
+    {
+      "name": "Enter at launch requests actual browser fullscreen"
+    },
+    {
+      "name": "Exiting fullscreen pauses; explicit Return resumes fullscreen"
+    },
+    {
+      "name": "Primary pointer change applies touch controls without replacing canvas or world"
+    },
+    {
+      "name": "Portrait rotation screen pauses movement"
+    },
+    {
+      "name": "Landscape resumes same scene"
+    },
+    {
+      "name": "Primary pointer returns to PC without reloading"
+    }
+  ],
+  "errors": []
+}

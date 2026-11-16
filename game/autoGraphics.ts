@@ -17,20 +17,21 @@ export type GraphicsTrial = FrameSummary & {
 export function browserThrottledFrame(intervalMs: number, renderWorkMs: number) {
   return intervalMs >= 250 && renderWorkMs < Math.min(25, intervalMs * .1);
 }
-export function summarizeFrames(samples: ArrayLike<number>): FrameSummary {
+export function summarizeFrames(samples: ArrayLike<number>, targetFps = AUTO_TARGET_FPS): FrameSummary {
   const valid = Array.from(samples).filter(value => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
   const frames = valid.length, total = valid.reduce((sum, value) => sum + value, 0);
   const fps = total > 0 ? 1000 * frames / total : 0, p90Ms = frames ? valid[Math.ceil(frames * .9) - 1] : Infinity;
-  return { fps, p90Ms, frames, meetsTarget: frames >= 12 && fps >= AUTO_PROBE_FPS && p90Ms <= 1000 / 38 };
+  const threshold = targetFps === 60 ? 57 : AUTO_PROBE_FPS;
+  return { fps, p90Ms, frames, meetsTarget: frames >= 12 && fps >= threshold && p90Ms <= 1000 / (targetFps === 60 ? 50 : 38) };
 }
 export function profileName(profile: AutoProfile) {
   return profile === 'auto' ? 'Balanced' : profile[0].toUpperCase() + profile.slice(1);
 }
-export function calibrationCandidates(displayRatio: number, cap: (profile: AutoProfile) => number) {
+export function calibrationCandidates(displayRatio: number, cap: (profile: AutoProfile) => number, includeAllProfiles = false) {
   const ratio = Math.max(.55, Math.min(2, displayRatio));
   const candidates = AUTO_PROFILES.map(profile => ({ profile, scale: Math.min(ratio, cap(profile)) }))
     // High/Ultra differ only in pixel cap; don't time the identical preset twice at 1× DPR.
-    .filter((candidate, index, all) => candidate.profile !== 'high' || candidate.scale !== all[index - 1].scale);
+    .filter((candidate, index, all) => includeAllProfiles || candidate.profile !== 'high' || candidate.scale !== all[index - 1].scale);
   for (const scale of [.85, .7, .55])
     if (scale < candidates.at(-1)!.scale - .01)
       candidates.push({ profile: 'performance', scale });
@@ -49,10 +50,10 @@ export function createAutoGraphics(profile: AutoProfile, scale: number): AutoGra
   return { profile, scale, ceiling: profile, ceilingScale: scale, slow: 0, fast: 0, cooldownUntil: 0 };
 }
 /** One sample per second. Hysteresis avoids chasing individual hitches or menu frames. */
-export function adaptAutoGraphics(state: AutoGraphicsState, fps: number, active: boolean, now: number, cap: (profile: AutoProfile) => number): AutoGraphicsState {
+export function adaptAutoGraphics(state: AutoGraphicsState, fps: number, active: boolean, now: number, cap: (profile: AutoProfile) => number, targetFps = AUTO_TARGET_FPS): AutoGraphicsState {
   if (!active || !Number.isFinite(fps) || fps <= 0)
     return { ...state, slow: 0, fast: 0 };
-  const next = { ...state, slow: fps < AUTO_TARGET_FPS ? state.slow + 1 : 0, fast: fps >= 50 ? state.fast + 1 : 0 };
+  const next = { ...state, slow: fps < (targetFps === 60 ? 54 : targetFps) ? state.slow + 1 : 0, fast: fps >= (targetFps === 60 ? 58 : 50) ? state.fast + 1 : 0 };
   if (now < state.cooldownUntil)
     return next;
   const index = AUTO_PROFILES.indexOf(state.profile);

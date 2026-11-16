@@ -6,12 +6,12 @@ import {REUSABLE_ROCKET} from '../game/reusableRocket';
 import type {ArrivalPlayback} from '../game/starshipArrival';
 import './starshipArrival.css';
 
-export default function StarshipArrival({ready,onComplete,performance=false,playback}:{ready:boolean;onComplete:()=>void;performance?:boolean;playback:ArrivalPlayback}){
+export default function StarshipArrival({ready,onComplete,performance=false,playback,suspended=false,loading}:{ready:boolean;onComplete:()=>void;performance?:boolean;playback:ArrivalPlayback;suspended?:boolean;loading?:{progress:number;stage:string}}){
   const host=useRef<HTMLDivElement>(null),section=useRef<HTMLElement>(null),phase=useRef<HTMLHeadingElement>(null);
   const detail=useRef<HTMLParagraphElement>(null),bar=useRef<HTMLDivElement>(null),fade=useRef<HTMLDivElement>(null);
-  const controller=useRef<ReturnType<typeof createStarshipArrival>|null>(null),latest=useRef({ready,onComplete}),skipPending=useRef(false);
+  const controller=useRef<ReturnType<typeof createStarshipArrival>|null>(null),latest=useRef({ready,onComplete,suspended}),skipPending=useRef(false);
   const [paused,setPaused]=useState(false);
-  useEffect(()=>{latest.current={ready,onComplete};if(ready&&skipPending.current)onComplete();},[ready,onComplete]);
+  useEffect(()=>{latest.current={ready,onComplete,suspended};if(ready&&skipPending.current&&!suspended)onComplete();},[ready,onComplete,suspended]);
   useEffect(()=>{
     let cancelled=false;
     section.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -20,7 +20,7 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
       if(section.current)section.current.dataset.fallback='true';
       if(phase.current)phase.current.textContent='Preparing Mars';
       if(detail.current)detail.current.textContent='Continuing without the cinematic on this device.';
-      if(latest.current.ready)latest.current.onComplete();
+      if(latest.current.ready&&!latest.current.suspended)latest.current.onComplete();
     };
     void import('./starbase/createStarshipArrival').then(({createStarshipArrival})=>{
       if(cancelled||!host.current||skipPending.current)return;
@@ -28,7 +28,7 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
       const previewTime=params.get('debug')==='1'&&preview!==null&&Number.isFinite(Number(preview))?Math.max(0,Math.min(32,Number(preview))):undefined;
       controller.current=createStarshipArrival(host.current,{
         ready:()=>latest.current.ready,onComplete:()=>latest.current.onComplete(),onFailure:failure,
-        playback,
+        playback,suspended:()=>latest.current.suspended,
         performance:performance||matchMedia('(pointer: coarse)').matches,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,previewTime,
         onFrame:(frame,elapsed,isPaused,dust)=>{
           if(!section.current)return;
@@ -46,15 +46,16 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
       });
     }).catch(failure);
     const keys=(event:KeyboardEvent)=>{
+      if(latest.current.suspended)return;
       if(event.code!=='Space'&&event.key!=='Escape')return;
       if(event.target instanceof HTMLButtonElement&&event.code==='Space')return;
       event.preventDefault();event.stopPropagation();skipPending.current=true;setPaused(false);controller.current?.skip();
-      if(latest.current.ready)latest.current.onComplete();
+      if(latest.current.ready&&!latest.current.suspended)latest.current.onComplete();
     };
     window.addEventListener('keydown',keys,true);
     return ()=>{cancelled=true;window.removeEventListener('keydown',keys,true);controller.current?.dispose();controller.current=null;};
   },[performance,playback]);
-  const skip=()=>{skipPending.current=true;controller.current?.skip();setPaused(false);if(ready)onComplete();};
+  const skip=()=>{skipPending.current=true;controller.current?.skip();setPaused(false);if(ready&&!suspended)onComplete();};
   return <section ref={section} className="starship-arrival" aria-label="Reusable spacecraft Earth launch, orbital coast and Mars arrival cinematic" data-world-ready={ready}>
     <div ref={host} className="starship-arrival-world"/>
     <div ref={fade} className="starship-arrival-cut" aria-hidden="true"/>
@@ -64,7 +65,8 @@ export default function StarshipArrival({ready,onComplete,performance=false,play
     </div></header>
     <div className="starship-arrival-caption"><p>EARTH · SPACE · MARS · CATCH</p><h1 ref={phase} role="status" aria-live="polite">Preparing the flight</h1><p ref={detail}>Departing Earth for the Mars outpost</p><p>A fictional expedition · travel time is shortened for the game.</p>
       <div className="starship-arrival-track" aria-hidden="true"><div ref={bar}/></div>
-      <p className="starship-arrival-loading" role="status">{ready?'Mars is ready · enter when you’re ready':'Preparing Mars while the flight continues…'}</p>
+      <p className="starship-arrival-loading" role="status">{ready?"Mars is ready · enter when you’re ready":loading?.stage??"Preparing Mars while the flight continues…"}</p>
+      {!ready&&<progress className="starship-world-progress" aria-label="Mars scene preparation" value={loading?.progress??0} max={100}>{loading?.progress??0}%</progress>}
     </div>
   </section>;
 }

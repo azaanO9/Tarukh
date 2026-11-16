@@ -10,8 +10,8 @@ type Decision = {
   selected?: GraphicsTrial;
 };
 /** Passive samples from the existing game loop: no second renderer, camera move or timer. */
-export function createBackgroundGraphics(displayRatio: number, cap: (profile: AutoProfile) => number) {
-  const candidates = calibrationCandidates(displayRatio, cap);
+export function createBackgroundGraphics(displayRatio: number, cap: (profile: AutoProfile) => number, options: {mobile?: boolean} = {}) {
+  const candidates = calibrationCandidates(displayRatio, cap, options.mobile).filter(candidate => !options.mobile || candidate.profile !== 'ultra');
   const nativePerformance = Math.min(Math.max(.55, Math.min(2, displayRatio)), cap('performance'));
   const levels = candidates.filter(c => c.profile !== 'performance' || c.scale === nativePerformance).reverse();
   const rescue = candidates.filter(c => c.profile === 'performance' && c.scale < nativePerformance);
@@ -37,7 +37,7 @@ export function createBackgroundGraphics(displayRatio: number, cap: (profile: Au
       elapsed += intervalMs;
       if (elapsed < 1000 && count < samples.length)
         return null;
-      const trial = { ...current, ...summarizeFrames(samples.subarray(0, count)) };
+      const trial = { ...current, ...summarizeFrames(samples.subarray(0, count), options.mobile ? 60 : 40) };
       trials.push(trial);
       reset();
       if (trial.meetsTarget) {

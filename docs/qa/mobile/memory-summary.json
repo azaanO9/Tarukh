@@ -1,0 +1,286 @@
+{
+  "note": "Heap snapshot node self-size and counts, not dominator retained-size analysis. Minute frame averages include phone throttling, hidden intervals and sampling delay; not instantaneous FPS.",
+  "before": {
+    "nodeCount": 685277,
+    "edgeCount": 2341780,
+    "categories": {
+      "synthetic": {
+        "count": 32,
+        "bytes": 0
+      },
+      "native": {
+        "count": 68678,
+        "bytes": 218943829
+      },
+      "string": {
+        "count": 173765,
+        "bytes": 2284372
+      },
+      "object shape": {
+        "count": 14256,
+        "bytes": 788952
+      },
+      "code": {
+        "count": 63350,
+        "bytes": 8572436
+      },
+      "array": {
+        "count": 32273,
+        "bytes": 4050676
+      },
+      "number": {
+        "count": 148992,
+        "bytes": 1524936
+      },
+      "symbol": {
+        "count": 85,
+        "bytes": 480
+      },
+      "object": {
+        "count": 166233,
+        "bytes": 4532652
+      },
+      "closure": {
+        "count": 14010,
+        "bytes": 417316
+      },
+      "concatenated string": {
+        "count": 3488,
+        "bytes": 69760
+      },
+      "sliced string": {
+        "count": 30,
+        "bytes": 600
+      },
+      "regexp": {
+        "count": 85,
+        "bytes": 2040
+      }
+    }
+  },
+  "after": {
+    "nodeCount": 699603,
+    "edgeCount": 2408265,
+    "categories": {
+      "synthetic": {
+        "count": 32,
+        "bytes": 0
+      },
+      "native": {
+        "count": 77110,
+        "bytes": 219982335
+      },
+      "string": {
+        "count": 173774,
+        "bytes": 2316924
+      },
+      "object shape": {
+        "count": 14668,
+        "bytes": 809576
+      },
+      "code": {
+        "count": 65705,
+        "bytes": 10034588
+      },
+      "array": {
+        "count": 32956,
+        "bytes": 4182016
+      },
+      "number": {
+        "count": 148913,
+        "bytes": 1526508
+      },
+      "symbol": {
+        "count": 85,
+        "bytes": 480
+      },
+      "object": {
+        "count": 168581,
+        "bytes": 4585344
+      },
+      "closure": {
+        "count": 14132,
+        "bytes": 420988
+      },
+      "concatenated string": {
+        "count": 3532,
+        "bytes": 70640
+      },
+      "sliced string": {
+        "count": 30,
+        "bytes": 600
+      },
+      "regexp": {
+        "count": 85,
+        "bytes": 2040
+      }
+    }
+  },
+  "largestNodeSelfSizeGrowth": [
+    {
+      "name": "code: system / InstructionStream",
+      "count": 433,
+      "bytes": 1053184
+    },
+    {
+      "name": "code: system / TrustedByteArray",
+      "count": 920,
+      "bytes": 342788
+    },
+    {
+      "name": "array: (object elements)",
+      "count": 675,
+      "bytes": 123304
+    },
+    {
+      "name": "code: system / ProtectedFixedArray",
+      "count": 223,
+      "bytes": 119996
+    },
+    {
+      "name": "native: blink::CSSAnimationData",
+      "count": 266,
+      "bytes": 108528
+    },
+    {
+      "name": "native: system / WeakArrayList",
+      "count": 491,
+      "bytes": 102968
+    },
+    {
+      "name": "native: blink::CSSTransitionData",
+      "count": 266,
+      "bytes": 55328
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleBoxData",
+      "count": 263,
+      "bytes": 46288
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleMisc7Data",
+      "count": 266,
+      "bytes": 42560
+    },
+    {
+      "name": "native: blink::ComputedStyle",
+      "count": 559,
+      "bytes": 40248
+    },
+    {
+      "name": "native: blink::ImmutableCSSPropertyValueSet",
+      "count": 151,
+      "bytes": 33520
+    },
+    {
+      "name": "code: system / Code",
+      "count": 433,
+      "bytes": 31176
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleMiscData",
+      "count": 330,
+      "bytes": 29040
+    },
+    {
+      "name": "code: system / FeedbackVector",
+      "count": 225,
+      "bytes": 27092
+    },
+    {
+      "name": "object: Object",
+      "count": 945,
+      "bytes": 26964
+    },
+    {
+      "name": "native: blink::HeapVectorBacking<blink::VectorBackedLinkedListNode<cppgc::internal::BasicMember<blink::MediaQueryList, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, blink::HeapAllocator>>",
+      "count": 0,
+      "bytes": 25728
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleSurroundData",
+      "count": 82,
+      "bytes": 25584
+    },
+    {
+      "name": "native: blink::HeapHashTableBacking<blink::HashTable<cppgc::internal::BasicMember<const blink::ScriptWrappable, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, blink::KeyValuePair<cppgc::internal::BasicMember<const blink::ScriptWrappable, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, v8::TracedReference<v8::Object>>, blink::KeyValuePairExtractor, blink::HashMapValueTraits<blink::HashTraits<cppgc::internal::BasicMember<const blink::ScriptWrappable, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HashTraits<v8::TracedReference<v8::Object>>>, blink::HashTraits<cppgc::internal::BasicMember<const blink::ScriptWrappable, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HeapAllocator>>",
+      "count": 0,
+      "bytes": 24576
+    },
+    {
+      "name": "code: system / WeakArrayList",
+      "count": 631,
+      "bytes": 19284
+    },
+    {
+      "name": "native: PerformanceEventTiming",
+      "count": 68,
+      "bytes": 17408
+    },
+    {
+      "name": "native: PerformanceLongAnimationFrameTiming",
+      "count": 97,
+      "bytes": 17072
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleInheritedData",
+      "count": 125,
+      "bytes": 17000
+    },
+    {
+      "name": "native: blink::ComputedStyleBase::StyleMisc2Data",
+      "count": 48,
+      "bytes": 16512
+    },
+    {
+      "name": "native: blink::CachedMatchedProperties",
+      "count": 117,
+      "bytes": 15912
+    },
+    {
+      "name": "native: blink::HeapHashTableBacking<blink::HashTable<cppgc::internal::BasicMember<blink::MediaQueryList, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, blink::KeyValuePair<cppgc::internal::BasicMember<blink::MediaQueryList, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, unsigned int>, blink::KeyValuePairExtractor, blink::HashMapValueTraits<blink::HashTraits<cppgc::internal::BasicMember<blink::MediaQueryList, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HashTraits<unsigned int>>, blink::HashTraits<cppgc::internal::BasicMember<blink::MediaQueryList, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HeapAllocator>>",
+      "count": 0,
+      "bytes": 15872
+    },
+    {
+      "name": "native: blink::ScriptTimingInfo",
+      "count": 108,
+      "bytes": 14688
+    },
+    {
+      "name": "native: WebGLVertexArrayObject",
+      "count": 113,
+      "bytes": 13560
+    },
+    {
+      "name": "native: PerformanceScriptTiming",
+      "count": 109,
+      "bytes": 13080
+    },
+    {
+      "name": "native: system / FunctionTemplateInfo",
+      "count": 204,
+      "bytes": 13056
+    },
+    {
+      "name": "native: blink::HeapHashTableBacking<blink::HashTable<cppgc::internal::BasicMember<blink::ContextLifecycleObserver, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, blink::KeyValuePair<cppgc::internal::BasicMember<blink::ContextLifecycleObserver, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>, unsigned int>, blink::KeyValuePairExtractor, blink::HashMapValueTraits<blink::HashTraits<cppgc::internal::BasicMember<blink::ContextLifecycleObserver, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HashTraits<unsigned int>>, blink::HashTraits<cppgc::internal::BasicMember<blink::ContextLifecycleObserver, cppgc::internal::WeakMemberTag, cppgc::internal::DijkstraWriteBarrierPolicy>>, blink::HeapAllocator>>",
+      "count": 0,
+      "bytes": 12288
+    }
+  ],
+  "intervalFrameRates": [
+    51.16294557381416,
+    56.70850627594139,
+    54.503633575571705,
+    57.98140061997933,
+    55.548148395053495,
+    60.05,
+    59.18234696088399,
+    58.10096834947249,
+    60.11265915605627,
+    59.16765279421323
+  ],
+  "minMinuteFrameRate": 51.16294557381416,
+  "medianMinuteFrameRate": 58.04118448472591,
+  "meanFrameRate": 57.25122780002566
+}

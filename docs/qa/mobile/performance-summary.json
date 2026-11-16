@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-16",
+  "baselineCommit": "9901ab40558f964fa9e4690d447821bbbdc69f77",
+  "environment": "Windows, Chrome153 headless; ANGLE Intel UHD630 D3D11 WebGL2 verified in a separate same-configuration canvas",
+  "launchConditions": "Lighthouse mobile simulation, 4x CPU, 150ms RTT, 1600Kbps, same gzip server, fresh profile, isolated sequential runs",
+  "runtimeConditions": "844x390 touch, reduced motion, 4x CPU; network unthrottled after Start; 20 one-second spawn samples; autonomous rover is not frozen",
+  "before": {
+    "launch": {
+      "score": 81,
+      "fcpMs": 793.3091999999999,
+      "lcpMs": 4628.9637999999995,
+      "tbtMs": 176,
+      "cls": 0,
+      "transferBytes": 601973,
+      "cpuBenchmark": 1701
+    },
+    "runtime": {
+      "readyMs": 57118,
+      "meanFps": 8.254999999999999,
+      "minFps": 1.5,
+      "maxFps": 12.6,
+      "renderCalls": 389,
+      "triangles": 2409883,
+      "trianglesSource": "captured screenshot diagnostic",
+      "shaderPrograms": 158,
+      "scale": 0.55,
+      "quality": "performance",
+      "cls": 0.004390681342253354,
+      "recordedStartEventMs": 624,
+      "errors": []
+    },
+    "bundle": {
+      "js": 2131967,
+      "jsGzip": 665115,
+      "css": 140039,
+      "cssGzip": 32496
+    }
+  },
+  "after": {
+    "launch": {
+      "score": 100,
+      "fcpMs": 917.7082,
+      "lcpMs": 917.7082,
+      "tbtMs": 0,
+      "cls": 0,
+      "transferBytes": 94217,
+      "cpuBenchmark": 1755.5
+    },
+    "runtime": {
+      "readyMs": 53362,
+      "meanFps": 10.17,
+      "minFps": 3.8,
+      "maxFps": 17.4,
+      "renderCalls": 336,
+      "triangles": 1803090,
+      "trianglesSource": "renderer diagnostic",
+      "shaderPrograms": 101,
+      "scale": 0.55,
+      "quality": "performance",
+      "cls": 0.010668306684284397,
+      "recordedStartEventMs": 296,
+      "errors": []
+    },
+    "bundle": {
+      "js": 2145443,
+      "jsGzip": 671160,
+      "css": 154027,
+      "cssGzip": 35293
+    }
+  },
+  "caveats": [
+    "Launcher LCP is not full 3D readiness.",
+    "Runtime is a short laboratory sample, not a phone guarantee.",
+    "Autonomous rover positions differ, so draw calls are illustrative rather than a controlled geometry benchmark.",
+    "Start-event duration is not field INP.",
+    "All-chunk gzip excludes models and images; initial transfer includes only requested assets."
+  ]
+}

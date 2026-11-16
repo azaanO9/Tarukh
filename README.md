@@ -23,8 +23,9 @@ Choose Free Exploration or the Elysium Outpost story. Both use the same Mars wor
 - A minimap and full-region atlas with seven landmark pins and NASA/IAU source links.
 - A TARUKH field phone with a six-app home screen for radiation readings, vehicle/suit systems, historical space-weather replays, sound settings, the field map and the science guide.
 - A smooth ten-minute day/night cycle during active exploration.
-- PC and mobile controls, a landscape layout for phones, pause/resume and WebGL retry options.
-- Auto, High, Ultra and Performance graphics, plus optional FPS diagnostics. Ultra adds indoor contact shading, bloom and localized metallic highlights, with bounded effects and shared-depth shading. Auto measures normal frames after loading and targets 40+ FPS; results depend on the device.
+- Automatic keyboard/mouse or touch controls, a landscape rotation guide, fullscreen entry, pause/resume and WebGL retry options. There is no manual device chooser.
+- Auto, High, Ultra and Performance graphics, plus optional FPS diagnostics. Mobile Auto uses lighter effects and measured quality selection targeting 60 FPS; desktop Auto targets 40+ FPS. Results depend on the device. Ultra retains indoor contact shading, bloom and localized metallic highlights.
+- Installable web-app icons and a local asset cache for repeat visits in static builds. Previously downloaded assets can work offline; live space-weather observations still need a connection.
 
 The region uses NASA MGS/MOLA elevations at a playable scale of approximately 1:4,940, with exaggerated relief. Close-up rocks, materials, the Starship arrival and vehicle behavior are artistic or simulated. TARUKH is not an operational training simulator or a NASA-endorsed product. See [scientific sources](docs/SOURCES.md) and [model assumptions](docs/ASSUMPTIONS.md).
 
@@ -43,7 +44,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed by the development server, normally `http://localhost:5173`. The main menu offers **Start Free Explorer**, **Resume Story**, and **New Story**; **Settings** selects PC or Mobile controls. Keep the terminal running while playing.
+Open the URL printed by the development server, normally `http://localhost:5173`. Controls are detected automatically. Click or tap **Explore Mars** for free exploration, or choose **Elysium Story · New / Resume**. Keep the terminal running while playing.
 
 To preview the static production build:
 
@@ -63,17 +64,17 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 | Shift | Sprint on foot |
 | Space | Jump on foot; handbrake while driving; skip the landing sequence |
 | Drag with the mouse | Look around |
-| Click the world / Capture mouse | Request continuous mouse look when supported |
+| Click the world / Resume mouse look | Request continuous mouse look when supported |
 | Q / R | Turn the view |
 | V | Switch first- and third-person views |
 | F | Enter or exit the nearby crew rover |
 | E | Deploy/park the crew rover, operate a nearby gate, inspect a science rover, or use a nearby Story station |
 | Caps Lock | Open or close the landmark atlas |
 | P / Up arrow | Open the radiation phone; P / Down arrow / Escape closes it |
-| Escape | Release mouse capture or close a dismissible dialog |
-| Pause button | Pause, resume or return to controls setup |
+| Escape | Close a dismissible dialog or open/resume the Flight console; browser fullscreen exit also pauses |
+| Pause / Flight console | Open the radial menu for camera, graphics and return to the main menu |
 
-Mobile mode enables the movement stick, swipe-to-look and contextual rover buttons. The Atlas button opens the full map. **Camera & graphics** contains sensitivity, touch controls, graphics quality and the FPS meter. Unsupported mouse capture falls back to drag-to-look.
+Touch devices automatically show the movement stick, swipe-to-look and contextual rover buttons. The Atlas button opens the full map, with drag, pinch-to-zoom and tap/hold selection. **Flight console** opens a full-screen radial menu over a blurred game view, with sensitivity, camera view, graphics quality and the FPS meter. Hover moves the selection arc and previews a section; click or tap selects it. Keyboard players can use Tab, the dial's arrow keys and Enter. **Main menu** asks for confirmation before leaving the current session. Touch devices use lighter blur, and reduced-motion preferences disable the transitions. Unsupported mouse capture falls back to drag-to-look. Portrait touch screens pause play and show a rotation guide; exiting fullscreen pauses and offers a return button.
 
 For the solar activities, visit the solar station in Story and press E. Drag wires between matching letters/shapes, or select each end with click, tap or Enter. Brush by dragging across the panel; keyboard players focus the panel, use arrows to move the brush and hold Space or Enter while moving. Escape returns to the station without completing an unfinished activity. Completion saves with the mission; an unfinished workbench restarts when reopened.
 
@@ -122,7 +123,7 @@ Keep `.openai/hosting.json`, environment configuration and the separate deployme
 | `scripts/` | Build integration and reproducible asset preparation |
 | `docs/` | Architecture, scientific sources and model assumptions |
 
-See [architecture and validation](docs/INTERFACE.md) and the [collaboration workflow](COLLABORATION.md) before contributing.
+See [architecture and validation](docs/INTERFACE.md), the [mobile performance report and layout checks](docs/MOBILE_OPTIMIZATION.md), and the [collaboration workflow](COLLABORATION.md) before contributing.
 
 ## Attribution and limitations
 

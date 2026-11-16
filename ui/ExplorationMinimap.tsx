@@ -105,6 +105,7 @@ export default function ExplorationMinimap({
   return (
     <aside
       className="roam-minimap gta-minimap"
+      data-ui-zone="minimap"
       data-driving={driving}
       data-open={open}
       data-zoom={activeZoom}
@@ -118,8 +119,8 @@ export default function ExplorationMinimap({
             type="button"
             className="roam-map-badge roam-mode-btn"
             onClick={handleCycleZoom}
-            title="Click to cycle zoom: 120m (close), 220m (medium), 450m (wide), Full Region"
-            aria-label={`Current minimap zoom: ${zoomBadgeLabel}. Click to cycle zoom level.`}
+            title="Cycle zoom: 120m, 220m, 450m, Full Region"
+            aria-label={`Current minimap zoom: ${zoomBadgeLabel}. Cycle zoom level.`}
           >
             <span className="roam-badge-dot" />
             {zoomBadgeLabel}

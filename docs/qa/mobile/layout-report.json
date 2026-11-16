@@ -1,0 +1,735 @@
+{
+  "url": "http://127.0.0.1:4206/Tarukh/",
+  "started": "2026-11-15T21:05:21.585Z",
+  "checks": [
+    {
+      "name": "Atlas replaces phone without stacked major panels"
+    },
+    {
+      "name": "Atlas zoom changes visible crop"
+    },
+    {
+      "name": "Phone closes graphics settings"
+    },
+    {
+      "name": "PC launch has no mode selector or touch buttons"
+    },
+    {
+      "name": "iPhone SE: automatic touch detection without URL override"
+    },
+    {
+      "name": "iPhone 14: automatic touch detection without URL override"
+    },
+    {
+      "name": "iPhone 15: automatic touch detection without URL override"
+    },
+    {
+      "name": "Pixel 7: automatic touch detection without URL override"
+    },
+    {
+      "name": "Galaxy S9+: automatic touch detection without URL override"
+    },
+    {
+      "name": "iPad (gen 7): automatic touch detection without URL override"
+    },
+    {
+      "name": "Hidden mobile override works for desktop testing"
+    }
+  ],
+  "failures": [],
+  "consoleErrors": [],
+  "viewports": [
+    {
+      "label": "mobile-360x640",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 8,
+          "top": 172.296875,
+          "right": 352,
+          "bottom": 467.6875,
+          "width": 344,
+          "height": 295.390625
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 360,
+        "height": 640
+      },
+      "rootStyle": "640px"
+    },
+    {
+      "label": "mobile-375x667",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 8,
+          "top": 185.796875,
+          "right": 367,
+          "bottom": 481.1875,
+          "width": 359,
+          "height": 295.390625
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 375,
+        "height": 667
+      },
+      "rootStyle": "667px"
+    },
+    {
+      "label": "mobile-390x844",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 8,
+          "top": 274.296875,
+          "right": 382,
+          "bottom": 569.6875,
+          "width": 374,
+          "height": 295.390625
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 390,
+        "height": 844
+      },
+      "rootStyle": "844px"
+    },
+    {
+      "label": "mobile-412x915",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 8,
+          "top": 309.328125,
+          "right": 404,
+          "bottom": 605.65625,
+          "width": 396,
+          "height": 296.328125
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 412,
+        "height": 915
+      },
+      "rootStyle": "915px"
+    },
+    {
+      "label": "mobile-430x932",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 8,
+          "top": 317.109375,
+          "right": 422,
+          "bottom": 614.875,
+          "width": 414,
+          "height": 297.765625
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 430,
+        "height": 932
+      },
+      "rootStyle": "932px"
+    },
+    {
+      "label": "mobile-768x1024",
+      "boxes": [
+        {
+          "name": "sv-rotate-card",
+          "left": 174,
+          "top": 352.296875,
+          "right": 594,
+          "bottom": 671.6875,
+          "width": 420,
+          "height": 319.390625
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 10.752,
+        "right": 10.752,
+        "top": 10.752,
+        "bottom": 10.752
+      },
+      "mode": "mobile",
+      "portraitGate": true,
+      "size": {
+        "width": 768,
+        "height": 1024
+      },
+      "rootStyle": "1024px"
+    },
+    {
+      "label": "mobile-1024x768",
+      "boxes": [
+        {
+          "name": "settings",
+          "left": 965.25,
+          "top": 66.75,
+          "right": 1013.25,
+          "bottom": 116.75,
+          "width": 48,
+          "height": 50
+        },
+        {
+          "name": "phone",
+          "left": 829.625,
+          "top": 66.75,
+          "right": 957.25,
+          "bottom": 114.75,
+          "width": 127.625,
+          "height": 48
+        },
+        {
+          "name": "Move",
+          "left": 10.75,
+          "top": 645.25,
+          "right": 190.75,
+          "bottom": 757.25,
+          "width": 180,
+          "height": 112
+        },
+        {
+          "name": "flight-actions",
+          "left": 901.25,
+          "top": 645.25,
+          "right": 1013.25,
+          "bottom": 757.25,
+          "width": 112,
+          "height": 112
+        },
+        {
+          "name": "header",
+          "left": 10.75,
+          "top": 10.75,
+          "right": 1013.25,
+          "bottom": 58.75,
+          "width": 1002.5,
+          "height": 48
+        },
+        {
+          "name": "minimap",
+          "left": 10.75,
+          "top": 507.25,
+          "right": 218.75,
+          "bottom": 637.25,
+          "width": 208,
+          "height": 130
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 10.752,
+        "right": 10.752,
+        "top": 10.752,
+        "bottom": 10.752
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 1024,
+        "height": 768
+      },
+      "rootStyle": "768px"
+    },
+    {
+      "label": "mobile-844x390",
+      "boxes": [
+        {
+          "name": "settings",
+          "left": 788,
+          "top": 64,
+          "right": 836,
+          "bottom": 114,
+          "width": 48,
+          "height": 50
+        },
+        {
+          "name": "phone",
+          "left": 652.375,
+          "top": 64,
+          "right": 780,
+          "bottom": 112,
+          "width": 127.625,
+          "height": 48
+        },
+        {
+          "name": "Move",
+          "left": 8,
+          "top": 270,
+          "right": 188,
+          "bottom": 382,
+          "width": 180,
+          "height": 112
+        },
+        {
+          "name": "flight-actions",
+          "left": 724,
+          "top": 270,
+          "right": 836,
+          "bottom": 382,
+          "width": 112,
+          "height": 112
+        },
+        {
+          "name": "header",
+          "left": 8,
+          "top": 8,
+          "right": 836,
+          "bottom": 56,
+          "width": 828,
+          "height": 48
+        },
+        {
+          "name": "minimap",
+          "left": 8,
+          "top": 132,
+          "right": 193.671875,
+          "bottom": 262,
+          "width": 185.671875,
+          "height": 130
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-926x428",
+      "boxes": [
+        {
+          "name": "settings",
+          "left": 870,
+          "top": 64,
+          "right": 918,
+          "bottom": 114,
+          "width": 48,
+          "height": 50
+        },
+        {
+          "name": "phone",
+          "left": 734.375,
+          "top": 64,
+          "right": 862,
+          "bottom": 112,
+          "width": 127.625,
+          "height": 48
+        },
+        {
+          "name": "Move",
+          "left": 8,
+          "top": 308,
+          "right": 188,
+          "bottom": 420,
+          "width": 180,
+          "height": 112
+        },
+        {
+          "name": "flight-actions",
+          "left": 806,
+          "top": 308,
+          "right": 918,
+          "bottom": 420,
+          "width": 112,
+          "height": 112
+        },
+        {
+          "name": "header",
+          "left": 8,
+          "top": 8,
+          "right": 918,
+          "bottom": 56,
+          "width": 910,
+          "height": 48
+        },
+        {
+          "name": "minimap",
+          "left": 8,
+          "top": 170,
+          "right": 211.71875,
+          "bottom": 300,
+          "width": 203.71875,
+          "height": 130
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 926,
+        "height": 428
+      },
+      "rootStyle": "428px"
+    },
+    {
+      "label": "mobile-568x320",
+      "boxes": [
+        {
+          "name": "settings",
+          "left": 512,
+          "top": 64,
+          "right": 560,
+          "bottom": 114,
+          "width": 48,
+          "height": 50
+        },
+        {
+          "name": "phone",
+          "left": 376.375,
+          "top": 64,
+          "right": 504,
+          "bottom": 112,
+          "width": 127.625,
+          "height": 48
+        },
+        {
+          "name": "Move",
+          "left": 8,
+          "top": 208,
+          "right": 144.3125,
+          "bottom": 312,
+          "width": 136.3125,
+          "height": 104
+        },
+        {
+          "name": "flight-actions",
+          "left": 448,
+          "top": 208,
+          "right": 560,
+          "bottom": 312,
+          "width": 112,
+          "height": 104
+        },
+        {
+          "name": "header",
+          "left": 8,
+          "top": 8,
+          "right": 560,
+          "bottom": 56,
+          "width": 552,
+          "height": 48
+        },
+        {
+          "name": "minimap",
+          "left": 8,
+          "top": 78,
+          "right": 168,
+          "bottom": 200,
+          "width": 160,
+          "height": 122
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 568,
+        "height": 320
+      },
+      "rootStyle": "320px"
+    },
+    {
+      "label": "mobile-phone-844x390",
+      "boxes": [
+        {
+          "name": "Radiation phone",
+          "left": 540,
+          "top": 8,
+          "right": 836,
+          "bottom": 382,
+          "width": 296,
+          "height": 374
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-atlas-844x390",
+      "boxes": [
+        {
+          "name": "mars-dialog roam-dialog",
+          "left": 25.3125,
+          "top": 8,
+          "right": 818.671875,
+          "bottom": 382,
+          "width": 793.359375,
+          "height": 374
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-settings-844x390",
+      "boxes": [
+        {
+          "name": "",
+          "left": 496,
+          "top": 64,
+          "right": 836,
+          "bottom": 382,
+          "width": 340,
+          "height": 318
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-story-briefing-844x390",
+      "boxes": [
+        {
+          "name": "ely-dialog",
+          "left": 8,
+          "top": 8,
+          "right": 836,
+          "bottom": 382,
+          "width": 828,
+          "height": 374
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-story-844x390",
+      "boxes": [
+        {
+          "name": "header",
+          "left": 8,
+          "top": 8,
+          "right": 836,
+          "bottom": 56,
+          "width": 828,
+          "height": 48
+        },
+        {
+          "name": "Elysium mission controls",
+          "left": 201.671875,
+          "top": 64,
+          "right": 652,
+          "bottom": 262,
+          "width": 450.328125,
+          "height": 198
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "rootStyle": "390px"
+    },
+    {
+      "label": "mobile-story-568x320",
+      "boxes": [
+        {
+          "name": "settings",
+          "left": 512,
+          "top": 64,
+          "right": 560,
+          "bottom": 114,
+          "width": 48,
+          "height": 50
+        },
+        {
+          "name": "phone",
+          "left": 376.375,
+          "top": 64,
+          "right": 504,
+          "bottom": 112,
+          "width": 127.625,
+          "height": 48
+        },
+        {
+          "name": "Move",
+          "left": 8,
+          "top": 208,
+          "right": 144.3125,
+          "bottom": 312,
+          "width": 136.3125,
+          "height": 104
+        },
+        {
+          "name": "flight-actions",
+          "left": 448,
+          "top": 208,
+          "right": 560,
+          "bottom": 312,
+          "width": 112,
+          "height": 104
+        },
+        {
+          "name": "header",
+          "left": 8,
+          "top": 8,
+          "right": 560,
+          "bottom": 56,
+          "width": 552,
+          "height": 48
+        },
+        {
+          "name": "minimap",
+          "left": 8,
+          "top": 78,
+          "right": 168,
+          "bottom": 200,
+          "width": 160,
+          "height": 122
+        },
+        {
+          "name": "Elysium mission controls",
+          "left": 176,
+          "top": 64,
+          "right": 376,
+          "bottom": 200,
+          "width": 200,
+          "height": 136
+        }
+      ],
+      "failures": [],
+      "safe": {
+        "left": 8,
+        "right": 8,
+        "top": 8,
+        "bottom": 8
+      },
+      "mode": "mobile",
+      "portraitGate": false,
+      "size": {
+        "width": 568,
+        "height": 320
+      },
+      "rootStyle": "320px"
+    }
+  ],
+  "finished": "2026-11-15T21:06:01.240Z"
+}
