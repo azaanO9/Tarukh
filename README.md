@@ -44,7 +44,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the URL printed by the development server, normally `http://localhost:5173`. Controls are detected automatically. Click or tap **Explore Mars** for free exploration, or choose **Elysium Story · New / Resume**. Keep the terminal running while playing.
+Open the URL printed by the development server, normally `http://localhost:5173`. Controls are detected automatically. Click or tap **Start Free Explorer**, **New Story** or **Resume Story**. Keep the terminal running while playing.
 
 To preview the static production build:
 
@@ -72,9 +72,11 @@ Open `http://127.0.0.1:4173/Tarukh/`.
 | Caps Lock | Open or close the landmark atlas |
 | P / Up arrow | Open the radiation phone; P / Down arrow / Escape closes it |
 | Escape | Close a dismissible dialog or open/resume the Flight console; browser fullscreen exit also pauses |
-| Pause / Flight console | Open the radial menu for camera, graphics and return to the main menu |
+| Pause / Flight console | Open camera, graphics and return-to-menu settings |
 
-Touch devices automatically show the movement stick, swipe-to-look and contextual rover buttons. The Atlas button opens the full map, with drag, pinch-to-zoom and tap/hold selection. **Flight console** opens a full-screen radial menu over a blurred game view, with sensitivity, camera view, graphics quality and the FPS meter. Hover moves the selection arc and previews a section; click or tap selects it. Keyboard players can use Tab, the dial's arrow keys and Enter. **Main menu** asks for confirmation before leaving the current session. Touch devices use lighter blur, and reduced-motion preferences disable the transitions. Unsupported mouse capture falls back to drag-to-look. Portrait touch screens pause play and show a rotation guide; exiting fullscreen pauses and offers a return button.
+Touch devices automatically show a movement stick, swipe-to-look and labelled action buttons. **Map** on the minimap opens the atlas: drag to pan, pinch to zoom, or tap to place a waypoint. Phones separate **Map** and **Places** into large tabs; landscape tablets show both together. The field phone has a bounded, scrolling display with persistent Home and Close controls. The minimap remains available in the mobile rover cockpit.
+
+**Pause** opens the Flight console for camera, graphics, FPS diagnostics and the main menu. Desktop retains its radial dial, hover previews and keyboard navigation; mobile uses large section buttons beside a scrolling settings panel. **Main menu** asks for confirmation before leaving the current session. Reduced motion disables transitions. Unsupported mouse capture falls back to drag-to-look. The launcher works in portrait; starting play requests fullscreen, and portrait touch screens then pause play with a rotation guide. Exiting fullscreen pauses and leaves an explicit return button.
 
 For the solar activities, visit the solar station in Story and press E. Drag wires between matching letters/shapes, or select each end with click, tap or Enter. Brush by dragging across the panel; keyboard players focus the panel, use arrows to move the brush and hold Space or Enter while moving. Escape returns to the station without completing an unfinished activity. Completion saves with the mission; an unfinished workbench restarts when reopened.
 

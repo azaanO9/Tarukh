@@ -5,9 +5,13 @@ import type { TouchControlProps } from "./touchControlTypes";
 
 export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onToggleRover, onToggleView, onInspectNearby}: TouchControlProps) {
   const pad = useRef<HTMLDivElement>(null);
+  const jump = useRef<HTMLButtonElement>(null);
+  const jumpPointers = useRef(new Set<number>());
   const origin = useRef<{id:number;x:number;y:number}|null>(null);
   const reset = useCallback(()=>{
     origin.current=null;
+    jumpPointers.current.clear();
+    jump.current?.removeAttribute('data-held');
     pad.current?.removeAttribute("data-held");
     onWalkAxes({side:0,forward:0,sprint:false});
     onHoldKey("jump",false);
@@ -15,7 +19,8 @@ export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onT
   useEffect(()=>{
     reset();
     window.addEventListener("blur",reset);
-    return ()=>{window.removeEventListener("blur",reset);reset()};
+    document.addEventListener("visibilitychange",reset);
+    return ()=>{window.removeEventListener("blur",reset);document.removeEventListener("visibilitychange",reset);reset()};
   },[reset]);
   function move(e:PointerEvent<HTMLDivElement>){
     const start=origin.current;
@@ -35,6 +40,11 @@ export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onT
   }
   function action(active:boolean){
     onHoldKey("jump",active);
+    jump.current?.toggleAttribute('data-held',active);
+  }
+  function releaseJump(event:PointerEvent<HTMLButtonElement>){
+    jumpPointers.current.delete(event.pointerId);
+    action(jumpPointers.current.size>0);
   }
   return <>
     <div ref={pad} className="flight-pad" aria-label="Move" onPointerDown={e=>{
@@ -49,10 +59,10 @@ export function MarsTouchDeck({roverNear, canInspect, onWalkAxes, onHoldKey, onT
       <i><Move size={24}/></i>
     </div>
     <div className="flight-actions">
-      <button className="flight-view" aria-label="Switch camera" onClick={onToggleView}><Camera/></button>
-      {roverNear&&<button className="flight-board" aria-label="Drive rover" onClick={onToggleRover}><CarFront/></button>}
-      {canInspect&&<button className="flight-use" aria-label="Interact with station" onClick={onInspectNearby}><Hand/></button>}
-      <button className="flight-main" aria-label="Jump" onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);action(true)}} onLostPointerCapture={()=>action(false)} onPointerUp={()=>action(false)} onPointerCancel={()=>action(false)} onKeyDown={e=>{if(e.key===" "||e.key==="Enter")action(true)}} onKeyUp={()=>action(false)}><ArrowUpFromLine/></button>
+      <button className="flight-view" aria-label="Switch camera" onClick={onToggleView}><Camera/><span>View</span></button>
+      {roverNear&&<button className="flight-board" aria-label="Drive rover" onClick={onToggleRover}><CarFront/><span>Drive</span></button>}
+      {canInspect&&<button className="flight-use" aria-label="Interact with station" onClick={onInspectNearby}><Hand/><span>Use</span></button>}
+      <button ref={jump} className="flight-main" aria-label="Jump" onPointerDown={e=>{e.preventDefault();jumpPointers.current.add(e.pointerId);e.currentTarget.setPointerCapture(e.pointerId);action(true)}} onLostPointerCapture={releaseJump} onPointerUp={releaseJump} onPointerCancel={releaseJump} onKeyDown={e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();action(true)}}} onKeyUp={e=>{if(e.key===" "||e.key==="Enter")action(jumpPointers.current.size>0)}} onBlur={()=>action(jumpPointers.current.size>0)}><ArrowUpFromLine/><span>Jump</span></button>
     </div>
   </>;
 }

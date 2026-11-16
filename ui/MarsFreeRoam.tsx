@@ -16,6 +16,7 @@ import "./mars.css";
 import "./mobileCockpit.css";
 import "./freeRoam.css";
 import "./outpost.css";
+import "./mobileInterface.css";
 
 const MarsWorld=lazy(()=>import('./MarsWorld'));
 const MarsAtlas=lazy(()=>import('./MarsAtlas'));
@@ -58,8 +59,7 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
   const [hasStorySave,setHasStorySave] = useState(false);
   const [streamed, setStreamed] = useState(false);
   const detectedMode = useDeviceMode();
-  const [manualMode, setManualMode] = useState<'pc'|'mobile' | null>(null);
-  const mode = manualMode ?? detectedMode ?? 'pc';
+  const mode = detectedMode ?? 'pc';
   const blocked=useTouchPortrait();
   const [fullscreen,setFullscreen]=useState(false);
   const [fullscreenAvailable,setFullscreenAvailable]=useState(false);
@@ -134,24 +134,6 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     return ()=>document.removeEventListener('keydown',pause);
   },[started,modal,story?.modalOpen,storyReady]);
   const enterFullscreen=()=>{if(mode)void requestGameFullscreen(mode).then(setFullscreen);};
-  // Automatically open in fullscreen and landscape mode when on mobile phone from the main menu itself
-  useEffect(() => {
-    if (mode !== 'mobile') return;
-    void requestGameFullscreen('mobile').then(setFullscreen);
-    const activateMobileLandscapeFullscreen = () => {
-      if (!isFullscreen() && !isStandalone()) {
-        void requestGameFullscreen('mobile').then(setFullscreen);
-      }
-    };
-    window.addEventListener('pointerdown', activateMobileLandscapeFullscreen, { passive: true });
-    window.addEventListener('touchstart', activateMobileLandscapeFullscreen, { passive: true });
-    window.addEventListener('click', activateMobileLandscapeFullscreen, { passive: true });
-    return () => {
-      window.removeEventListener('pointerdown', activateMobileLandscapeFullscreen);
-      window.removeEventListener('touchstart', activateMobileLandscapeFullscreen);
-      window.removeEventListener('click', activateMobileLandscapeFullscreen);
-    };
-  }, [mode]);
   const startExploring=()=>{enterFullscreen();setView(null);setSceneReady(false);setArrived(false);setStarted(true);};
   const installHint=started&&mode==='mobile'&&!installDismissed&&typeof navigator!=='undefined'
     &&/iPhone|iPad|iPod/.test(navigator.userAgent)&&!isStandalone()&&!supportsFullscreen()
@@ -221,7 +203,6 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
   if (!started) return <>
     <TarukhMainMenu
       mode={mode}
-      onModeChange={setManualMode}
       hasStorySave={hasStorySave}
       onStartExplorer={startExploring}
       onResumeStory={() => launchStory(false)}
@@ -229,7 +210,6 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
       onFullscreen={fullscreenAvailable && !fullscreen ? enterFullscreen : undefined}
       fullscreen={fullscreen}
     />
-    <RotateToLandscapeGate blocked={blocked}/>
   </>;
 
   const roverDistance = view?.roverX === undefined || view.roverZ === undefined ? null : Math.round(Math.hypot(view.x - view.roverX, view.z - view.roverZ));
@@ -244,10 +224,10 @@ function MarsFreeRoamContent({story}:{story?:StoryPresentation}) {
     <RotateToLandscapeGate blocked={blocked}/>
     <header className="roam-header" data-ui-zone="header"><b>TARUKH <span>· {story?'ELYSIUM OUTPOST':'FREE EXPLORATION'}</span></b>{view?.cockpitView&&<button aria-keyshortcuts="KeyM" onClick={openAtlas}>Atlas (M)</button>}<div className="roam-header-actions">{fullscreenAvailable&&!fullscreen&&storyReady&&<button className="roam-fullscreen-return" aria-label="Return to fullscreen" onClick={enterFullscreen}>Fullscreen</button>}<button disabled={!storyReady || story?.modalOpen} onClick={() => setMenu(true)}>Pause</button></div></header>
     {!modal && <aside className="roam-info">{streamed ? "Mars MOLA region" : "Mars surface"} · {view?.lightPhase ?? "Day"} · {view?.roverDriving ? "Driving crew rover" : roverDistance !== null ? `Crew rover · ${roverDistance} m` : "Free exploration"}</aside>}
-    {!modal && storyReady && view && !view.cockpitView && <Suspense fallback={null}><ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} /></Suspense>}
+    {!modal && storyReady && view && (!view.cockpitView || mode==='mobile') && <Suspense fallback={null}><ExplorationMinimap view={view} selected={landmark} onOpenAtlas={()=>setAtlas(true)} /></Suspense>}
     {!modal && story?.overlay}
     {installHint&&!blocked&&!modal&&storyReady&&<aside className="roam-install-hint" role="status"><p>For a full screen on iPhone, tap Share, then Add to Home Screen.</p><button onClick={dismissInstall}>Got it</button></aside>}
-    {panel && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-labelledby="roam-dialog-title">
+    {panel && <div className="mars-dialog-backdrop"><section ref={dialog} className="mars-dialog roam-dialog" role="dialog" aria-modal="true" aria-label={atlas?'Expedition atlas':undefined} aria-labelledby={atlas?undefined:'roam-dialog-title'}>
       {failed ? <><h2 id="roam-dialog-title">The 3D world couldn’t start</h2><p>Retry, or use lighter graphics for this browser.</p>
         <button onClick={() => { setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry</button>
         <button onClick={() => { setLowGraphics(true); setSceneReady(false); setArrived(false); setFailed(false); setAttempt(value => value + 1); }}>Retry with Performance graphics</button></>

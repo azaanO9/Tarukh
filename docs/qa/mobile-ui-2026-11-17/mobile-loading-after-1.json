@@ -1,0 +1,86 @@
+{
+  "profile": "Chrome, 4x CPU, 1.6 Mbit/s down, 150 ms latency, cold cache, 844×390",
+  "interactive": 2371.099999997765,
+  "metrics": {
+    "lcp": 7500,
+    "cls": 0
+  },
+  "paints": [
+    {
+      "name": "first-paint",
+      "ms": 820
+    },
+    {
+      "name": "first-contentful-paint",
+      "ms": 2172
+    }
+  ],
+  "resources": [
+    {
+      "name": "index-I6tpu929.js",
+      "transfer": 79574,
+      "bytes": 248328,
+      "duration": 777
+    },
+    {
+      "name": "index-CEDVbCs5.css",
+      "transfer": 38462,
+      "bytes": 207522,
+      "duration": 541.3000000007451
+    },
+    {
+      "name": "tarukh-blue-arc-logo.webp",
+      "transfer": 220332,
+      "bytes": 220032,
+      "duration": 2547.900000002235
+    },
+    {
+      "name": "poster.webp",
+      "transfer": 305476,
+      "bytes": 305176,
+      "duration": 2985.89999999851
+    },
+    {
+      "name": "favicon.ico?v=tarukh-v3",
+      "transfer": 39623,
+      "bytes": 39323,
+      "duration": 747.5
+    },
+    {
+      "name": "sky.webp",
+      "transfer": 35198,
+      "bytes": 34898,
+      "duration": 987.1000000014901
+    },
+    {
+      "name": "moons.webp",
+      "transfer": 22268,
+      "bytes": 21968,
+      "duration": 711.9000000022352
+    },
+    {
+      "name": "clouds.webp",
+      "transfer": 139608,
+      "bytes": 139308,
+      "duration": 2550.599999997765
+    },
+    {
+      "name": "basin.webp",
+      "transfer": 217086,
+      "bytes": 216786,
+      "duration": 2936.7999999970198
+    },
+    {
+      "name": "ridge.webp",
+      "transfer": 133892,
+      "bytes": 133592,
+      "duration": 2483.699999999255
+    },
+    {
+      "name": "explorers.webp",
+      "transfer": 1876,
+      "bytes": 1576,
+      "duration": 246.29999999701977
+    }
+  ]
+}

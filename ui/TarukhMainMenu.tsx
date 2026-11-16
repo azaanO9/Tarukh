@@ -19,7 +19,6 @@ type Panel = "settings" | "about" | null;
 
 interface TarukhMainMenuProps {
   mode: LaunchMode;
-  onModeChange: (mode: LaunchMode) => void;
   hasStorySave: boolean;
   onStartExplorer: () => void;
   onResumeStory: () => void;
@@ -30,7 +29,6 @@ interface TarukhMainMenuProps {
 
 export default function TarukhMainMenu({
   mode,
-  onModeChange,
   hasStorySave,
   onStartExplorer,
   onResumeStory,
@@ -132,7 +130,7 @@ export default function TarukhMainMenu({
   const selectedScene = mainMenuScenes[activeFrame];
 
   return (
-    <main className="tarukh-home" data-playing={playing}>
+    <main className="tarukh-home" data-playing={playing} data-controls={mode}>
       <div className="tarukh-home-backdrop" aria-hidden="true">
         <RedValleyBackdrop
           shot={selectedScene.kind === "red-valley" ? selectedScene.sourceShot : 0}
@@ -147,7 +145,7 @@ export default function TarukhMainMenu({
       <header className="tarukh-home-header">
         <div className="tarukh-home-brand">
           <span className="tarukh-home-logo-window">
-            <img src={assetUrl("team/tarukh-blue-arc-logo.png")} alt="TARUKH" loading="eager" decoding="async" draggable={false} />
+            <img src={assetUrl("team/tarukh-blue-arc-logo.webp")} alt="TARUKH" loading="eager" decoding="async" fetchPriority="high" draggable={false} />
           </span>
           <span className="tarukh-home-divider" />
           <span className="tarukh-home-brand-label">Surface operations</span>
@@ -264,17 +262,15 @@ export default function TarukhMainMenu({
           <h2 id="tarukh-home-dialog-title">{panel === "settings" ? "Settings" : "About TARUKH"}</h2>
           {panel === "settings" ? (
             <>
-              <p className="tarukh-home-dialog-text">Choose how you want to explore. Your layout takes effect when the mission starts.</p>
+              <p className="tarukh-home-dialog-text">Controls adapt automatically to your device. Camera and graphics settings are available from Pause while exploring.</p>
               <div className="tarukh-home-settings-layout">
                 <div className="tarukh-home-setting">
-                  <div className="tarukh-home-setting-heading"><span>01 / INPUT LAYOUT</span><small>SELECT YOUR DEVICE</small></div>
+                  <div className="tarukh-home-setting-heading"><span>INPUT LAYOUT</span><small>AUTOMATIC</small></div>
                   <div className="tarukh-home-layouts">
-                    <button className="tarukh-home-layout" type="button" aria-pressed={mode === "pc"} onClick={() => onModeChange("pc")}>
-                      <Monitor aria-hidden="true" /><span><strong>Desktop</strong><small>Keyboard &amp; mouse</small></span><i />
-                    </button>
-                    <button className="tarukh-home-layout" type="button" aria-pressed={mode === "mobile"} onClick={() => onModeChange("mobile")}>
-                      <Smartphone aria-hidden="true" /><span><strong>Mobile</strong><small>Touch &amp; landscape</small></span><i />
-                    </button>
+                    <div className="tarukh-home-layout" role="status">
+                      {mode === 'mobile' ? <Smartphone aria-hidden="true" /> : <Monitor aria-hidden="true" />}
+                      <span><strong>{mode === 'mobile' ? 'Touch controls' : 'Keyboard & mouse'}</strong><small>{mode === 'mobile' ? 'Landscape exploration' : 'Desktop controls'}</small></span>
+                    </div>
                   </div>
                 </div>
                 <div className="tarukh-home-control-guide" aria-label={mode === "pc" ? "Desktop controls" : "Mobile controls"}>

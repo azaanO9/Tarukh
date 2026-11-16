@@ -338,6 +338,10 @@ export default function ElysiumStory({controlMode,onExit,launchNew=false}:{contr
 
   const overlay=<div className="ely-shell" data-story-phase={state.phase}>
     {state.phase!=='briefing'&&arrival==='none'&&!panel&&!endingView&&!quietView&&!view?.phoneOpen&&<aside className="ely-hud" aria-label="Elysium mission controls">
+      <div className="ely-mobile-next">
+        <strong>{guidance.title}</strong>
+        <nav aria-label="Mission shortcuts"><button className="ely-primary" onClick={()=>setPanel('guide')}>Next step →</button><button onClick={()=>setPanel('missions')}>Missions</button></nav>
+      </div>
       <div><span className="ely-eyebrow">MISSION {guidance.missionId?.slice(1)??'✓'} / 7</span><button onClick={()=>setPanel('missions')}>Missions</button><button aria-label={hudDetails?'Collapse mission details':'Expand mission details'} aria-expanded={hudDetails} onClick={()=>setHudDetails(value=>!value)}>{hudDetails?'−':'+'}</button></div>
       <strong>{guidance.missionId?missionContent(guidance.missionId).title:'Your base is ready'}</strong>
       <span className="ely-sr-only" role="status" aria-live="polite">{guidance.title}. {guidance.target?.label}</span>

@@ -1,0 +1,250 @@
+{
+  "date": "2026-11-17",
+  "baselineCommit": "1a0659664a3aad3d95080f1334886a02398b79bf",
+  "scope": "Mobile UI, input reliability and lossless asset delivery; no rendering-tier, gameplay or physics changes",
+  "browserUi": {
+    "chromium": {
+      "screenshots": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls",
+        "iPhone SE: automatic touch UI without an override",
+        "iPhone 14: automatic touch UI without an override",
+        "iPhone 15: automatic touch UI without an override",
+        "Pixel 7: automatic touch UI without an override",
+        "Galaxy S9+: automatic touch UI without an override",
+        "iPad (gen 7): automatic touch UI without an override",
+        "Desktop retains keyboard/mouse UI"
+      ],
+      "sizes": [
+        [
+          360,
+          640
+        ],
+        [
+          375,
+          667
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          412,
+          915
+        ],
+        [
+          430,
+          932
+        ],
+        [
+          568,
+          320
+        ],
+        [
+          667,
+          375
+        ],
+        [
+          768,
+          1024
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          926,
+          428
+        ],
+        [
+          1024,
+          768
+        ]
+      ],
+      "errors": [],
+      "failures": [],
+      "fullLocalReport": "outputs/mobile-verified-chromium-r2/report.json"
+    },
+    "firefox": {
+      "screenshots": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls"
+      ],
+      "sizes": [
+        [
+          360,
+          640
+        ],
+        [
+          375,
+          667
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          412,
+          915
+        ],
+        [
+          430,
+          932
+        ],
+        [
+          568,
+          320
+        ],
+        [
+          667,
+          375
+        ],
+        [
+          768,
+          1024
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          926,
+          428
+        ],
+        [
+          1024,
+          768
+        ],
+        [
+          1366,
+          768
+        ]
+      ],
+      "errors": [],
+      "failures": [],
+      "fullLocalReport": "outputs/mobile-final-firefox-r2/report.json"
+    },
+    "webkit": {
+      "screenshots": 47,
+      "checks": [
+        "Launch, game, handset and atlas open through real controls"
+      ],
+      "sizes": [
+        [
+          360,
+          640
+        ],
+        [
+          375,
+          667
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          412,
+          915
+        ],
+        [
+          430,
+          932
+        ],
+        [
+          568,
+          320
+        ],
+        [
+          667,
+          375
+        ],
+        [
+          768,
+          1024
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          926,
+          428
+        ],
+        [
+          1024,
+          768
+        ]
+      ],
+      "errors": [],
+      "failures": [],
+      "fullLocalReport": "outputs/mobile-verified-webkit/report.json"
+    }
+  },
+  "controls": {
+    "checks": [
+      "Exiting fullscreen during the opening leaves Pause operable and resumes the opening",
+      "Two-finger walking + jump, then cancellation releases both controls",
+      "Garage deploy, touch boarding and simultaneous steering/throttle release",
+      "Rover layouts fit 320px landscape, phone and tablet; asymmetric handset safe areas verified",
+      "Actual atlas pinch/pan/cancel, WebP fallback, deferred relief and failed-relief recovery"
+    ],
+    "errors": []
+  },
+  "activities": {
+    "screenshots": 81,
+    "activityCount": 27,
+    "errors": [],
+    "failures": [],
+    "fullLocalReport": "outputs/mobile-activities/report.json"
+  },
+  "loading": {
+    "method": "Chrome, 4x CPU, 1.6 Mbit/s down, 150 ms latency, cold cache, 844×390; local Vite preview, service workers blocked, reduced motion; one baseline and three sequential after samples",
+    "before": {
+      "startButtonVisibleMs": 2270.2999999970198,
+      "firstContentfulPaintMs": 2128,
+      "largestContentfulPaintMs": 7576,
+      "cls": 0.006182054761034695,
+      "resourceTransferBytes": 1387812,
+      "posterRequestDurationMs": 6192.89999999851
+    },
+    "afterMedian": {
+      "startButtonVisibleMs": 2193.5,
+      "firstContentfulPaintMs": 2148,
+      "largestContentfulPaintMs": 7460,
+      "cls": 0,
+      "resourceTransferBytes": 1233395,
+      "posterRequestDurationMs": 2985.89999999851
+    },
+    "interpretation": "Transfer and complete-poster request improve; FCP/LCP change little. This is not complete-world readiness, physical-phone FPS, Lighthouse or field INP."
+  },
+  "assetBytes": {
+    "logoBefore": 378882,
+    "logoAfter": 220032,
+    "mapBefore": 6016006,
+    "mapAfter": 4301532,
+    "deferredRelief": 6298626,
+    "quality": "Original dimensions; lossless visible pixels/alpha verified"
+  },
+  "validation": {
+    "unitTests": {
+      "passed": 375,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "build": "passed",
+    "buildPages": "passed",
+    "lint": {
+      "errors": 4,
+      "warnings": 8,
+      "preexistingErrorsVerified": "Unchanged HEAD versions of MarsFreeRoam, MarsWorld and TarukhMainMenu linted separately: same four errors. Four unused-variable warnings are in untouched geigerAudio.ts."
+    }
+  },
+  "limits": [
+    "WebKit on Windows is not physical iPhone Safari.",
+    "Checks cover named zones and captured states, not every notification combination.",
+    "Geographic pins can overlap at low zoom; Places provides separate large targets.",
+    "Activities are component layouts, not a manual story playthrough.",
+    "No physical-phone thermals, FPS guarantee, new Lighthouse score or field INP result.",
+    "Checks used a local production preview; deployment status is verified separately."
+  ]
+}

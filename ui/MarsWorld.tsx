@@ -2797,7 +2797,7 @@ function MarsWorld(props: Props) {
       : spaceWeather.sepFluxPFU * 0.04)
   ).toFixed(2);
 
-  return (<div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-phone-open={phoneOpen} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`Mars open world. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : `WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. P or Up Arrow opens the radiation phone.${props.story ? "" : " Y toggles space weather mode."} M opens map.`}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
+  return (<><div ref={host} className="sv-world" data-touch={touchControlsActive ? "true" : "false"} data-phone-open={phoneOpen} data-arrival-covered={Boolean(props.coveredByArrival)} inert={props.coveredByArrival} aria-hidden={props.coveredByArrival||undefined} data-cursor-free={cursorFree ? "true" : "false"} role="application" aria-label={`Mars open world. ${touchControlsActive ? "Use the left thumbstick to move, drag the screen to look around, and tap the right buttons to jump or inspect." : `WASD to walk. Drag to look or capture the mouse; Q and R also turn. Space jumps. V switches view. E inspects. P or Up Arrow opens the radiation phone.${props.story ? "" : " Y toggles space weather mode."} M opens map.`}`} tabIndex={0} onClick={() => geigerAudio.current?.resume()} onKeyDown={() => geigerAudio.current?.resume()}>
     {/* Fullscreen Radiation Vision Effects (Vision Blur & Vignette) */}
     <div
       className={`mars-radiation-overlay ${radiationExposure >= 70 ? "critical-ars" : ""}`}
@@ -3727,6 +3727,8 @@ function MarsWorld(props: Props) {
    {loaded && props.enabled && outpostPrompt && <div className="sv-outpost-prompt" data-ui-zone="interaction" aria-live="polite">
      <button disabled={outpostPromptDisabled} onClick={() => { handleInspectNearby(); host.current?.focus({ preventScroll: true }); }} aria-label={outpostPrompt}>{!outpostPromptDisabled && <kbd>E</kbd>} {outpostPrompt}</button>
    </div>}
+   {message && <p className="sv-world-message" role="status">{message}</p>}
+  </div>
    {props.menuOpen && props.onCloseMenu && props.onMainMenu && <FlightMenu
      mobile={touchControlsActive} story={Boolean(props.story)} thirdPerson={thirdPerson}
      sensitivity={sensitivity} quality={quality} autoLabel={autoLabel} autoReport={autoReport}
@@ -3736,7 +3738,6 @@ function MarsWorld(props: Props) {
      onCaptureMouse={() => lockAction.current()} onFullscreen={props.onMenuFullscreen}
      onMainMenu={props.onMainMenu}
    />}
-   {message && <p className="sv-world-message" role="status">{message}</p>}
-  </div>);
+  </>);
 }
 export default memo(MarsWorld);

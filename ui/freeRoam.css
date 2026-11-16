@@ -538,8 +538,8 @@
     display: none
   }
 }
-.roam-root .sv-rover-hud,
-.roam-root .sv-rover-hud-cockpit {
+.roam-root[data-controls="pc"] .sv-rover-hud,
+.roam-root[data-controls="pc"] .sv-rover-hud-cockpit {
   position: absolute !important;
   left: 50% !important;
   right: auto !important;

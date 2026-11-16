@@ -1,113 +1,96 @@
-# Mobile optimisation — November 16, 2026
+# Mobile interface and loading â€” November 17, 2026
 
-This pass changes presentation, loading and rendering. Story transitions, mission rewards, collision shapes and driving rules are retained.
+This pass redesigns touch presentation and repairs input handling. Story rules, rewards, terrain, vehicle physics, spacecraft animation, model detail, texture resolution and graphics-tier budgets are unchanged. No runtime dependency was added.
 
-## Controls and fullscreen
+## What changed
 
-`game/deviceMode.ts` resolves the primary pointer before considering touch count, hover, viewport/screen hints and mobile/iPad user agents. `ui/useDeviceMode.ts` subscribes to media, resize, visual viewport and orientation changes. This changes controls without replacing the canvas or resetting the story. `?device=mobile` and `?device=pc` are hidden QA overrides.
+- **Launcher:** a safe-area grid in portrait and landscape, large start/story/settings buttons, readable text and bounded settings/about sheets. The detected primary pointer selects touch or keyboard UI. There is no manual device chooser. Fullscreen is requested on Start or the explicit fullscreen button, not on every interaction.
+- **Playfield:** separate header, navigation and thumb zones. The minimap has 48-pixel Map, range and collapse buttons and remains visible in the touch rover cockpit. Walking actions have icons and short labels. Rover pedals support simultaneous steering/throttle and show their held state. Blur, hidden tabs, cancellation and lost capture release input.
+- **Pause:** desktop retains its radial menu. Phones and tablets use large section buttons and a scrolling settings area. Moving the console outside the cinematic's inert world allows it to work after fullscreen exits during the opening.
+- **Phone:** a native modal with safe-area bounds, a six-app home grid and a scrolling content region. Home, Back and Close remain reachable on 568 Ã— 320 screens. Readings, archive, sound settings and scientific sources are retained.
+- **Atlas:** Map/Places tabs on phones; map plus directory on large landscape tablets. Full-size zoom/centre/contour controls, scrolling destination details and touch instructions. Pointer capture handles pinch-to-pan transitions, ignores hover and rejects cancelled taps. The wheel listener is explicitly non-passive. Controls and waypoint semantics otherwise stay the same.
+- **Story:** a compact Next step/Missions card on touch screens; complete guidance, resources, station activities and journal remain in their existing panels. All 27 activity interfaces were checked at three sizes. No mission rules or rewards changed.
+- **CSS ownership:** `ui/mobileInterface.css` owns these touch layouts, loaded after the legacy sheets. Dynamic viewport units, safe-area insets, flex/grid, minimum 48-pixel buttons and eight-pixel control gaps replace the earlier tiny phone overrides. Desktop-only rover placement rules no longer override touch placement.
 
-Click/Tap to start requests fullscreen directly in the user gesture. On mobile devices, the main menu automatically triggers fullscreen and locks orientation to landscape upon initial load and on the very first touch/pointer interaction, and the portrait rotation gate is active directly from the main menu itself. Enter and Space also activate the launch screen. Fullscreen rejection does not block play; leaving fullscreen pauses and offers a return button. Portrait touch screens pause the scene and cinematic and restore them after rotation. The installation hint is dismissible and browser-local.
+## Loading without lowering image quality
 
-## Layout and input
+The original map raster and launcher logo have lossless WebP derivatives at their original dimensions. `scripts/prepare-mobile-images.mjs` verifies identical visible RGB and alpha values after decoding; fully transparent RGB may be canonicalized. Original PNGs and attribution are retained.
 
-Safe-area tokens, dynamic viewport units, grid and flex layouts reserve the top bar, side instruments and bottom thumb controls. Mobile controls use 48-pixel targets and 8-pixel gaps. Menus scroll within their bounds. The phone, field map and graphics panel use one major panel at a time. Atlas input uses pointer capture, a drag threshold, bounded pan/pinch zoom, a debounced tap and long-press detail with optional haptics. Keyboard zoom/navigation remains available.
+| Asset | Previous bytes | New bytes | Saved |
+| --- | ---: | ---: | ---: |
+| Launcher logo | 378,882 | 220,032 | 158,850 |
+| Atlas raster | 6,016,006 | 4,301,532 | 1,714,474 |
+| Total | 6,394,888 | 4,521,564 | 1,873,324 |
 
-The main menu switches to a touch-friendly dock on tablet widths and a compact five-choice row on short landscape screens up to 900 pixels wide; scene controls retain 48-pixel touch targets. Settings and About stay within the safe viewport and scroll when their content exceeds it. The minimap reserves the thumb-control band, keeps the radar and waypoint action in a compact panel, and separates the optional FPS readout from the phone/status button. The field phone keeps its handset shape in portrait and widens in short landscape, with its app content scrolling independently. The Expedition Atlas fills the safe viewport on touch devices, stacks map and directory in portrait, and returns to a side-by-side workspace in short landscape; its perspective controls stay clear of the map title, and its 2×2 zoom cluster stays clear of the scale readout.
+Plan view no longer downloads the **6,298,626-byte** elevation crop or initializes the relief renderer. That data and the original full-detail mesh load when 3D relief is selected. Opening Plan therefore requests **4.30 MB rather than 12.31 MB** of map assets, a 65% reduction before HTTP compression. If WebP fails, the original PNG is tried once. A failed relief request leaves Plan usable and displays an explanation. Closing the atlas aborts a pending height request.
 
-## Loading and offline use
+The main-menu poster finishes before the six decorative parallax plates begin downloading. All original layers still load and animate; the complete poster provides the background meanwhile. Existing world/arrival/story lazy chunks, PWA caching and adaptive graphics remain in use.
 
-The world, arrival, minimap, atlas, Story and Perseverance inspection are separate lazy chunks. The lightweight launcher loads directly, avoiding another request waterfall. Moving the inspection behind a lazy boundary also removes the elevation dataset from the first-screen download. The launch screen does not download GLBs or initialize WebGL. The arrival shows completed scene-preparation milestones; its percentage is not a fabricated download-byte estimate.
+### Controlled launcher measurements
 
-The static Pages/Vercel build includes a manifest, install icons and a versioned service worker. It installs the small launch shell, then caches game assets when requested. It does not pre-download every model. Quota failures never interrupt successful network requests. Content changes, including model-only changes, produce a new cache version. Updates wait for existing tabs to close rather than reload an active mission. While an update waits, the active worker retains matching HTML and model versions. Separate preview pages cannot overwrite the game's launch cache. The cache excludes external services and API endpoints. Full offline play requires the relevant assets to have loaded at least once and remain in browser storage. An unavailable lazy module shows a reconnect/retry page without erasing saved Story actions. Live NOAA observations require a connection; archived data remains local.
+Baseline: `1a0659664a3aad3d95080f1334886a02398b79bf`. Chrome on Windows, 844 Ã— 390 touch emulation, reduced motion, fresh HTTP cache, service workers blocked, 4Ã— CPU slowdown, 1.6 Mbit/s download and 150 ms latency. Before is one sample; after is the median of three sequential samples. The same Vite production server and throttle settings were used. These measure the launcher, not complete 3D-world loading or phone GPU performance.
 
-Vercel hashed assets receive a year-long immutable cache header; the worker is revalidated. Compression of production HTTP responses remains the hosting provider's responsibility. The comparison server uses gzip on both builds. Sites retains its existing worker integration; the new offline worker registers only in the static entry.
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Start button visible | 2.270 s | 2.194 s |
+| First contentful paint | 2.128 s | 2.148 s |
+| Largest contentful paint | 7.576 s | 7.460 s |
+| Complete-poster request duration | 6.193 s | 2.986 s |
+| Layout shift (CLS) | 0.00618 | 0 |
+| Recorded resource transfer | 1,387,812 bytes | 1,233,395 bytes |
+| Initial JS transfer | 79,608 bytes | 79,574 bytes |
+| Initial CSS transfer | 33,995 bytes | 38,462 bytes |
 
-The handset logo is a 512-pixel WebP: 22,520 bytes instead of 444,068 bytes. Three original install icons add approximately 41 KB. No runtime dependency was added by this pass. The separate, concurrent Vercel analytics commit is outside its scope.
+The background request finishes much sooner and the transfer is smaller, but overall FCP/LCP improvement is small. The richer responsive layout adds about 4.5 KB to the compressed initial stylesheet. No new Lighthouse score, physical-phone FPS or field INP result is claimed. Full model loading remains a substantial cost. The previous November 16 rendering/Lighthouse audit is retained separately in [historical measurements](qa/mobile/performance-summary.json); its figures are not results from this pass.
 
-## Runtime budgets
+[Current compact evidence](qa/mobile-ui-2026-11-17/summary.json) accompanies the raw loading samples and browser summaries. Selected screenshots: [launcher](qa/mobile-ui-2026-11-17/menu-phone.png), [playfield](qa/mobile-ui-2026-11-17/playfield-phone.png), [handset](qa/mobile-ui-2026-11-17/handset-short-phone.png), [tablet atlas](qa/mobile-ui-2026-11-17/atlas-tablet.png), [pause](qa/mobile-ui-2026-11-17/pause-short-phone.png) and [rover](qa/mobile-ui-2026-11-17/rover-phone.png). Complete local screenshots and detailed reports are in `outputs/mobile-*`; those generated outputs are excluded from Git.
 
-| Mobile detail | Detail distance | Small rocks | Dust particles | Pixel-ratio ceiling |
-| --- | ---: | ---: | ---: | ---: |
-| Performance | 220 m | 1,200 | 16 | 1.0 |
-| Medium | 300 m | 2,500 | 40 | 1.1 |
-| High | 400 m | 4,000 | 72 | 1.25 |
-| Manual Ultra | 520 m | 5,000 | 120 | 1.5 |
+## Validation
 
-Mobile Auto samples the first three budgets, targeting 60 FPS with a 57 FPS trial threshold. Its shadows and expensive screen-space effects are disabled; existing contact shadows remain. Manual High/Ultra retain optional shading. Weak-device, software-renderer and Save-Data hints start with a 0.85 pixel cap; measurements govern subsequent detail selection. Sustained slow samples reduce resolution gradually, down to 0.55; recovery requires longer stable samples. This is a best-effort policy and does not guarantee a frame rate on every GPU.
+- `pnpm test`: 375 passed, zero failures.
+- `pnpm typecheck`, `pnpm build` and `pnpm build:pages`: passed. Existing large-chunk and framework warnings remain.
+- `pnpm lint`: four pre-existing React effect errors and eight existing warnings remain. No findings are suppressed. The unchanged HEAD versions of the three affected UI files were also linted separately to confirm all four errors predate this pass.
+- Chromium, Firefox 142 and WebKit 26: 47 captured UI states per engine, zero reported page/WebGL errors or tested-zone overlaps. Checks cover launcher, settings/about, play HUD, portrait rotation, pause, all phone apps, atlas, 3D relief, Story opening and next-step guidance.
+- Eleven viewport sizes: 360 Ã— 640, 375 Ã— 667, 390 Ã— 844, 412 Ã— 915, 430 Ã— 932, 768 Ã— 1024, 1024 Ã— 768, 844 Ã— 390, 926 Ã— 428, 667 Ã— 375 and 568 Ã— 320. Chromium also checks automatic detection with iPhone SE/14/15, Pixel 7, Galaxy S-series and iPad profiles and a keyboard/mouse desktop.
+- All 27 activity components: 81 layout captures across three sizes. This is component layout coverage, not a manual playthrough of every mission.
+- Actual Chrome touch injection checks walking plus jump, rover rollout/boarding, steering plus throttle, cancellation, rover layouts and an asymmetric notch/home-indicator safe area. Atlas tests cover pinch/pan/cancel and unavailable map assets. Unit tests cover gesture ownership and pinch-to-pan continuity.
 
-Hidden tabs cancel animation frames and clear held input; resuming resets elapsed time. Phone/pause rendering is limited to 10 Hz and active mobile rendering to 60 Hz. Dynamic collision helper objects are reused. A parked rover hidden by the closed, opaque garage no longer draws; it remains prepared for opening the door. Existing instancing, mesh batching, distance/frustum culling, pooled dust/tracks and decoder workers are retained. Physics stays on its current thread to preserve deterministic controls; no OffscreenCanvas renderer rewrite was attempted. Save data is already small and action-based, so its format is preserved.
+### Re-run
 
-## Re-run layout checks
-
-Install QA tools outside runtime dependencies:
+Use Playwright as a local QA tool; it is not a runtime dependency. Set `PLAYWRIGHT_MODULE` to its `index.mjs` if installed outside the project. `CHROME_PATH` selects an installed Chrome, and `PLAYWRIGHT_BROWSERS_PATH` selects a local browser cache.
 
 ```sh
-npm install --prefix outputs/outpost-tools --no-package-lock playwright-core
 pnpm build:pages
-pnpm exec vite preview --config vite.pages.config.ts --host 127.0.0.1 --port 4206
-node scripts/mobile-layout-check.mjs --url=http://127.0.0.1:4206/Tarukh/ --output=outputs/mobile-layout
+pnpm exec vite preview --config vite.pages.config.ts --host 127.0.0.1 --port 4211
+node scripts/mobile-ui-check.mjs --browser=chromium
+node scripts/mobile-ui-check.mjs --browser=firefox
+node scripts/mobile-ui-check.mjs --browser=webkit
+node scripts/mobile-controls-check.mjs
+node scripts/mobile-loading-check.mjs
 ```
 
-`PLAYWRIGHT_MODULE` can point to another installed `playwright-core/index.mjs`; `CHROME_PATH` selects Chrome. The check saves screenshots and a JSON result, checks actual safe-area bounds and UI-zone intersections, target sizes/spacing, clipped text, portrait gating and panel containment. Six browser device profiles cover iPhone SE/14/15, Pixel 7, Galaxy S-series and iPad. Viewports include all ten requested sizes. Emulation does not reproduce a physical notch, phone thermals or OS touch interception.
+Run browser flows sequentially when comparing performance. The UI checker checks viewport containment, named-zone intersections, target bounds and blocked targets. Geographic pins may overlap at low zoom; every destination also has a separate full-size Places button. Scrolling content is allowed inside bounded panels. The checks do not prove that every possible notification combination is overlap-free.
+
+For the 27 isolated activity layouts, run the static Vite dev entry on port 4210, then `node scripts/mobile-activities-check.mjs`. The script exclusively creates a temporary fixture and removes its own files when finished. It refuses to overwrite an existing fixture. `--url` and `--output` override server/output locations on each runner. The older `mobile-layout-check.mjs` entry now forwards to the current checker.
 
 ## Browser limits and remaining device checks
 
-- A page cannot force fullscreen without user activation or prevent users from leaving it. The return button is explicit and Escape remains available.
-- Unsupported iPhone fullscreen uses the installable standalone presentation and an Add to Home Screen hint. Safari address-bar hiding remains browser controlled; dynamic viewport/safe areas handle the available space.
-- Orientation lock and vibration are feature-detected and may be denied. Manual rotation always works.
-- Web code cannot block the operating system's notification/control centre or home gestures. Gesture prevention is scoped to the game, preserving menu scrolling and custom atlas pinch zoom.
-- Battery saver is not exposed reliably across browsers. Save-Data, hardware hints, reduced motion and measured frame cost are used instead.
-- Physical iPhone/Android, phone calls, screen locking and real low-memory eviction still need device testing. No web implementation can guarantee recovery if the operating system kills the process before state is saved; completed Story actions retain the existing local save.
+Windows WebKit checks the Safari engine; it is not a physical iPhone Safari test. Real devices still need checks for installation, browser bars/notches, interruptions, thermal performance and extended play. Verify the smallest supported phone in landscape, both thumb controls together, opening/closing the phone and atlas, rotation while a dialog is open, and outpost/garage entry.
 
-## Before and after measurements
+Browsers can deny fullscreen, orientation lock and vibration. iPhone uses the existing Add to Home Screen/standalone path where fullscreen is unavailable; web code cannot hide OS controls or prevent home/notification gestures. Fullscreen exit pauses and does not force re-entry. Portrait gameplay pauses behind a rotation guide, which now sits above the opening cinematic. Main-menu and already-open native dialogs remain usable in portrait.
 
-Baseline: `9901ab4`. Final samples used the finished mobile changes over `b83256d`; the intervening analytics commit does not enable analytics in the Pages build. Chrome 153 ran on Windows. A separate canvas using the same browser configuration reported Intel UHD 630 through ANGLE/D3D11, WebGL 2. Both builds used the same local gzip server. Final audits ran sequentially without another test browser or build competing for resources. These are individual laboratory samples, not physical-phone guarantees.
+This task does not guarantee a particular frame rate, change gameplay saves, simplify models or alter graphics presets. These checks use a local production preview; publication is verified separately through the repository's deployment workflow.
 
-Lighthouse used mobile simulation, 4× CPU slowdown, 150 ms RTT and 1.6 Mbps throughput, with a fresh browser profile. It measures the launcher before Start:
+## Changed files
 
-| Launcher metric | Before | After |
-| --- | ---: | ---: |
-| Lighthouse performance | 81 | 100 |
-| First contentful paint | 0.79 s | 0.92 s |
-| Largest contentful paint | 4.63 s | 0.92 s |
-| Total blocking time | 176 ms | 0 ms |
-| Layout shift (CLS) | 0 | 0 |
-| Initial transferred bytes | 601,973 | 94,217 |
-| All JS chunks, gzip | 665,115 bytes | 671,160 bytes |
-| All CSS chunks, gzip | 32,496 bytes | 35,293 bytes |
-
-Initial transfer fell 84%. Total generated JS/CSS grew about 8.8 KB gzip for the new behavior; code splitting changes when code downloads, not its total size. Models and images are excluded from the bundle rows. The logo compression saves approximately 422 KB before the three install icons are added. Large model downloads still occur after Start.
-
-The separate gameplay check used 844 × 390 touch emulation, reduced motion and 4× CPU throttling. Network throttling was removed after Start so the preparation and rendering comparison would not be dominated by model transfer. It sampled the spawn for 20 seconds after the opening completed:
-
-| Gameplay metric | Before | After |
-| --- | ---: | ---: |
-| Start click to completed preparation/opening | 57.12 s | 53.36 s |
-| Mean sampled FPS | 8.25 | 10.17 |
-| Last sampled draw calls | 389 | 336 |
-| Last sampled triangles | 2,409,883 | 1,803,090 |
-| Compiled shader programs | 158 | 101 |
-| Selected tier / render scale | Performance / 0.55 | Performance / 0.55 |
-| Whole-flow CLS | 0.0044 | 0.0107 |
-| Recorded Start interaction duration | 624 ms | 296 ms |
-
-The autonomous rover was allowed to move, so draw calls are illustrative rather than a perfectly controlled geometry benchmark. Before/after images are in [screenshots](screenshots/mobile/README.md). The Start event is not a field INP measurement; its 296 ms duration still exceeds the requested 200 ms target. **The 30/60 FPS goal is not met in this throttled stress test.** The launcher is fast, but full 3D preparation and imported high-poly hardware remain substantial costs. Destructive model simplification, replacing the renderer and moving simulation across threads were not attempted because they require a separate visual/physics regression pass.
-
-An additional **600,029 ms unthrottled stability run** completed 40 phone-app visits, short walks/turns and a synthetic visibility pause/resume check. Auto selected mobile High. Minute-average rendering, including the phone's intentional 10 Hz intervals and the hidden pause, averaged **57.25 FPS** (median 58.04; minimum minute 51.16). This has no matching ten-minute baseline and must not be compared directly with the 4× CPU figures.
-
-Before/after garbage collection measured JS heap at **24.07 → 25.90 MB**, while backing storage stayed near 206.33 MB. Snapshot category totals attributed 1.46 MB of growth to compiled code, including 1.05 MB of instruction streams. Textures stayed at 182; geometries increased from 681 to 684 and shader programs from 98 to 105, then levelled off. There were no browser errors or continuing texture growth in this run. This is not proof against every leak. Full heap snapshots remain in the local QA workspace rather than Git.
-
-An earlier audit run overlapped the soak and recorded an 8.55-second blocking task. It was discarded as a contaminated comparison and replaced by the isolated results above. [Summary and methodology](qa/mobile/performance-summary.json), [before Lighthouse](qa/mobile/before-lighthouse-final.json), [after Lighthouse](qa/mobile/after-lighthouse-final.json), [runtime samples](qa/mobile/isolated-after-profile.json), [memory run](qa/mobile/memory-soak.json) and [heap category comparison](qa/mobile/memory-summary.json) retain the measured evidence.
-
-## Validation and remaining checks
-
-- `pnpm test`: **367 passed**, zero failed.
-- `pnpm typecheck`: passed.
-- `pnpm build`, `pnpm build:pages` and production `pnpm build:vercel`: passed. Existing large-chunk/framework warnings remain; builds are not warning-free.
-- `pnpm lint`: still fails on the existing `setCursorFree(false)` effect in `ui/MarsWorld.tsx`, with three existing hook-dependency warnings. No new lint findings were introduced or suppressed.
-- Layout script: **16 captured scenarios**, all ten required viewport sizes, six named device profiles and 11 additional checks. No tested zone overlaps, unsafe bounds, clipped controls, horizontal overflow or browser console errors. [Results](qa/mobile/layout-report.json).
-- Actual CDP touch input: pinch zoom, below-threshold movement, drag, tap and long-press passed. [Results](qa/mobile/atlas-touch-report.json).
-- Device/fullscreen checks: **12 passed**, including actual fullscreen entry/exit/return, same-canvas pointer changes and portrait pause/resume. [Results](qa/mobile/device-fullscreen.json).
-- PWA checks: **4 passed**, including metadata/icons, worker activation and offline launch with the HTTP cache disabled. Failure/recovery checks: **6 passed**, including missing lazy modules in Exploration and Story, retained save data and explicit retry. [PWA](qa/mobile/pwa-check.json), [recovery](qa/mobile/connection-recovery.json).
-
-The automated overlap check covers the named UI zones and captured panel states, not every possible mission workbench. Full offline exploration, a changed-version worker waiting across multiple real tabs, physical iPhone installation, actual phone calls/locks, thermal throttling, OS memory eviction, real safe areas and field INP remain unverified. Test the outpost/greenhouse entrances, garage rollout/return, longer rover expeditions and manual Ultra on representative phones before submission. Do not interpret desktop emulation or a Lighthouse launcher score as certification of mobile gameplay performance.
+| Files | Responsibility |
+| --- | --- |
+| `ui/mobileInterface.css`, `ui/freeRoam.css`, `ui/world.css` | Touch layouts, safe areas, readable controls and corrected rover placement |
+| `ui/TarukhMainMenu.tsx`, `ui/MarsFreeRoam.tsx`, `ui/MarsWorld.tsx` | Automatic controls, launcher/fullscreen flow, cockpit minimap and accessible pause during arrival |
+| `ui/ExplorationMinimap.tsx`, `ui/ElysiumStory.tsx` | Map toolbar and compact mission shortcuts |
+| `ui/world/MarsTouchDeck.tsx`, `ui/world/RoverTouchDeck.tsx` | Labelled controls, multi-touch ownership and held-state feedback |
+| `ui/MarsAtlas.tsx`, `game/mapPointerGesture.ts`, `tests/mapPointerGesture.test.mjs` | Phone/tablet map panels, reliable gestures, deferred relief and failure recovery |
+| `ui/RedValleyBackdrop.tsx` | Prioritize the complete menu poster before decorative layers |
+| `public/team/tarukh-blue-arc-logo.webp`, `public/art/mars-atlas/map-base.webp`, `scripts/prepare-mobile-images.mjs` | Verified lossless image derivatives |
+| New `scripts/mobile-*check.mjs` runners and updated `scripts/mobile-layout-check.mjs` | Reproducible browser/layout/input/loading checks |
+| `README.md`, `docs/INTERFACE.md`, `ASSET_CREDITS.md`, this report and `docs/qa/mobile-ui-2026-11-17/` | Current controls, contracts, attribution and measured evidence |

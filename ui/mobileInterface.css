@@ -1,0 +1,314 @@
+/* Mobile surfaces share one scale and safe-area grid. Desktop artwork is unchanged. */
+.mobile-minimap-tools, .atlas-mobile-tabs, .ely-mobile-next, .atlas-touch-help { display: none; }
+.sv-rotate-gate { z-index: 200; }
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] {
+  --ui-gap: 8px;
+  --ui-edge: clamp(8px, 1.5vmin, 16px);
+  --ui-top: max(var(--ui-edge), env(safe-area-inset-top, 0px));
+  --ui-right: max(var(--ui-edge), env(safe-area-inset-right, 0px));
+  --ui-bottom: max(var(--ui-edge), env(safe-area-inset-bottom, 0px));
+  --ui-left: max(var(--ui-edge), env(safe-area-inset-left, 0px));
+  --ui-bar: 48px;
+  --ui-controls: 120px;
+  --mobile-surface: #101e27ed;
+  --mobile-line: #b3d9df47;
+  width: 100%; height: 100svh; height: 100dvh;
+  box-sizing: border-box; overflow: hidden;
+  font: 14px/1.4 system-ui, -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] :is(button,select,summary) {
+  min-width: 48px; min-height: 48px; touch-action: manipulation;
+  font-size: 14px; line-height: 1.25;
+}
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] button:focus-visible { outline: 2px solid #a1eee6; outline-offset: -3px; }
+main:is(.tarukh-home,.roam-root)[data-controls="mobile"] button:active { filter: brightness(1.22); }
+
+/* Start screen: readable choices alongside the art, or below it in portrait. */
+main.tarukh-home[data-controls="mobile"] {
+  display: grid; grid-template-columns: minmax(180px,.85fr) minmax(292px,1.15fr);
+  grid-template-rows: 48px minmax(0,1fr) auto; gap: 8px 20px;
+  padding: var(--ui-top) var(--ui-right) var(--ui-bottom) var(--ui-left);
+  isolation: isolate;
+}
+main.tarukh-home[data-controls="mobile"] .tarukh-home-backdrop { position: absolute; inset: 0; z-index: -1; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-shade { background: linear-gradient(90deg,#07121bb8,#07121b24 45%,#07121baa); }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-header { position: static; grid-area: 1/1/2/-1; height: 48px; min-width: 0; gap: 8px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-logo-window { flex: 0 0 114px; width: 114px; height: 48px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-brand { display: flex; visibility: visible; min-width: 0; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-logo-window { display: block; visibility: visible; }
+main.tarukh-home[data-controls="mobile"] :is(.tarukh-home-brand-label,.tarukh-home-divider,.tarukh-home-delay,.tarukh-home-status>span,.tarukh-home-dust) { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-fullscreen-btn { height: 48px; padding: 10px; font-size: 14px; border-radius: 12px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-copy { position: static; grid-area: 2/1; width: auto; align-self: start; padding: 8px; margin: 0; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-kicker { font-size: 12px; letter-spacing: .08em; margin: 0 0 12px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-copy h1 { font-size: clamp(32px,6vw,58px); line-height: .98; margin: 0; letter-spacing: -.035em; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-description { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-scene-label { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-slideshow { position: static; grid-area: 2/1; align-self: end; justify-self: start; padding: 8px; gap: 8px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-slideshow>button { width: 48px; height: 48px; min-height: 48px; background: var(--mobile-surface); border: 1px solid var(--mobile-line); border-radius: 12px; font-size: 22px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-pips { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-menu {
+  position: static; grid-area: 2/2; display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-rows: repeat(3,minmax(48px,1fr)); gap: 8px; width: auto; min-height: 0;
+  margin: 0; padding: 0; border: 0; background: none; box-shadow: none; transform: none; align-self: stretch;
+}
+main.tarukh-home[data-controls="mobile"] .tarukh-home-menu::before { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option {
+  position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--mobile-line); border-radius: 14px;
+  background: linear-gradient(145deg,#172e39ef,#0c171fee); min-width: 0; min-height: 48px;
+  transform: none; box-shadow: inset 0 1px #ffffff12; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option.is-primary { grid-column: 1/-1; border-color: #adf0df9c; background: linear-gradient(120deg,#21474aee,#122e39ee); }
+main.tarukh-home[data-controls="mobile"] :is(.tarukh-home-option-number,.tarukh-home-option-arrow) { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option-icon { display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; margin: 0; padding: 0; border: 0; background: none; transform: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option-icon svg { width: 24px; height: 24px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option-copy { display: block; min-width: 0; padding: 0; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option-copy strong { font-size: 15px; white-space: normal; line-height: 1.25; text-align: left; letter-spacing: 0; overflow: visible; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option-copy small { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option { grid-column: auto; grid-row: auto; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-option.is-primary { grid-column: 1/-1; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-footer { position: static; grid-area: 3/1/4/-1; width: auto; height: auto; min-height: 0; margin: 0; padding: 0 8px; }
+main.tarukh-home[data-controls="mobile"] :is(.tarukh-home-footer-controls,.tarukh-home-footer-build) { display: none; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-footer-meta { width: 100%; max-width: 100%; margin: 0; align-items: center; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-footer-credit { font: 12px/1.4 system-ui,sans-serif; letter-spacing: 0; white-space: normal; text-align: center; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-dialog { width: min(720px,calc(100% - var(--ui-left) - var(--ui-right))); max-height: calc(100dvh - var(--ui-top) - var(--ui-bottom)); overflow: auto; overscroll-behavior: contain; touch-action: pan-y; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-dialog-inner { padding: 16px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-dialog-head { margin: -16px -16px 16px; padding: 8px 16px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-dialog :is(p,small,.tarukh-home-control-guide p) { font-size: 14px; line-height: 1.5; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-settings-layout { grid-template-columns: 1fr 1fr; gap: 16px; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-layouts { display: block; }
+main.tarukh-home[data-controls="mobile"] .tarukh-home-layout { display: flex; padding: 12px; gap: 12px; }
+@media (orientation: portrait) {
+  main.tarukh-home[data-controls="mobile"] { grid-template-columns: 1fr; grid-template-rows: 48px minmax(116px,1fr) auto auto; gap: 12px; }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-copy { grid-area: 2/1; }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-copy h1 { font-size: clamp(38px,10vw,68px); }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-menu { grid-area: 3/1; grid-template-rows: repeat(3,56px); }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-footer { grid-area: 4/1; }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-settings-layout { grid-template-columns: 1fr; }
+}
+@media (min-height: 600px) and (orientation: landscape) {
+  main.tarukh-home[data-controls="mobile"] { grid-template-rows: 64px minmax(0,1fr) 32px; padding: max(24px,var(--ui-top)) max(24px,var(--ui-right)) max(16px,var(--ui-bottom)) max(24px,var(--ui-left)); gap: 24px; }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-menu { align-self: center; grid-template-rows: repeat(3,88px); }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-copy { align-self: center; }
+  main.tarukh-home[data-controls="mobile"] .tarukh-home-copy h1 { font-size: clamp(50px,7vw,84px); }
+}
+
+/* Exploration: instruments at the top, navigation left, and two thumb zones. */
+main.roam-root[data-controls="mobile"] .roam-header { inset: var(--ui-top) var(--ui-right) auto var(--ui-left); height: 48px; gap: 8px; padding: 0; }
+main.roam-root[data-controls="mobile"] .roam-header b { align-self: start; padding: 14px 8px; font-size: 14px; max-width: 96px; }
+main.roam-root[data-controls="mobile"] .roam-header-actions { display: flex; gap: 8px; }
+main.roam-root[data-controls="mobile"] .roam-header button { height: 48px; padding: 8px 12px; font-size: 14px; border-radius: 12px; }
+main.roam-root[data-controls="mobile"] .roam-header .roam-fullscreen-return { width: 48px; padding: 0; font-size: 0; }
+main.roam-root[data-controls="mobile"] .roam-fullscreen-return::after { content: '⛶'; font-size: 24px; }
+main.roam-root[data-controls="mobile"] .sv-world .sv-look-controls { display: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-mobile-pill { inset: var(--ui-top) calc(var(--ui-right) + 144px) auto auto; height: 48px; min-height: 48px; max-width: none; padding: 8px 12px; gap: 8px; border-radius: 12px; background: var(--mobile-surface); border-color: var(--mobile-line); box-shadow: none; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-mobile-pill-dose { display: none; }
+main.roam-root[data-controls="mobile"] .mars-mobile-pill-rad { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-mobile-pill-rad small { font-size: 12px; }
+main.roam-root[data-controls="mobile"] .roam-minimap.gta-minimap { left: var(--ui-left); bottom: calc(var(--ui-bottom) + var(--ui-controls) + 8px); width: 168px; display: flex; flex-direction: column; gap: 8px; padding: 0; overflow: hidden; background: var(--mobile-surface); border: 1px solid var(--mobile-line); border-radius: 14px; }
+main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-frame { display: block; min-height: 0; border: 0; border-radius: 0; }
+main.roam-root[data-controls="mobile"] .roam-minimap :is(.roam-gta-hud-overlay,.roam-gta-hud-bottom) { display: none; }
+main.roam-root[data-controls="mobile"] .roam-minimap .roam-radar-svg { display: block; width: 100%; height: clamp(56px,calc(100dvh - 280px),112px); margin: 0; }
+main.roam-root[data-controls="mobile"] .roam-minimap[data-open="false"] { height: 50px; }
+main.roam-root[data-controls="mobile"] .mobile-minimap-tools { display: flex; gap: 8px; padding: 0; }
+main.roam-root[data-controls="mobile"] .mobile-minimap-tools button { display: flex; flex: 1; flex-direction: column; justify-content: center; align-items: center; gap: 0; height: 48px; min-width: 48px; margin: 0; padding: 0; background: #1c343e; color: #e5f7f4; border: 0; border-radius: 8px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mobile-minimap-tools button svg { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; }
+main.roam-root[data-controls="mobile"] .sv-world .flight-pad { left: var(--ui-left); bottom: var(--ui-bottom); width: 128px; height: 120px; }
+main.roam-root[data-controls="mobile"] .flight-pad i { left: 60px; top: 60px; width: 96px; height: 96px; border: 1px solid #c0e8ec80; background: #15303b80; }
+main.roam-root[data-controls="mobile"] .flight-pad[data-held] i { left: var(--x); top: var(--y); }
+main.roam-root[data-controls="mobile"] .sv-world .flight-actions { inset: auto var(--ui-right) var(--ui-bottom) auto; width: 120px; height: 120px; display: grid; grid-template-columns: repeat(2,56px); grid-template-rows: repeat(2,56px); gap: 8px; }
+main.roam-root[data-controls="mobile"] .flight-actions button { position: static; width: 56px; height: 56px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; border: 1px solid #cee5e76b; border-radius: 18px; background: var(--mobile-surface); color: #effffb; padding: 4px; margin: 0; }
+main.roam-root[data-controls="mobile"] .flight-actions button span { font-size: 12px; line-height: 1; }
+main.roam-root[data-controls="mobile"] .flight-actions button svg { width: 22px; height: 22px; }
+main.roam-root[data-controls="mobile"] .flight-main { grid-area: 2/2; }
+main.roam-root[data-controls="mobile"] .flight-view { grid-area: 2/1; }
+main.roam-root[data-controls="mobile"] .flight-use { grid-area: 1/1; }
+main.roam-root[data-controls="mobile"] .flight-board { grid-area: 1/2; }
+main.roam-root[data-controls="mobile"] .wheel-controls { bottom: var(--ui-bottom); gap: 8px; }
+main.roam-root[data-controls="mobile"] .wheel-steering { left: var(--ui-left); }
+main.roam-root[data-controls="mobile"] .wheel-pedals { right: var(--ui-right); }
+main.roam-root[data-controls="mobile"] .wheel-controls button { width: 56px; height: 56px; border-radius: 16px; background: var(--mobile-surface); font-size: 14px; }
+main.roam-root[data-controls="mobile"] .wheel-pedals small { font: 600 14px/1.2 system-ui,sans-serif; letter-spacing: 0; }
+main.roam-root[data-controls="mobile"] .wheel-tools button { display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; }
+main.roam-root[data-controls="mobile"] .wheel-tools { bottom: 64px; gap: 8px; }
+main.roam-root[data-controls="mobile"] .sv-outpost-prompt { left: calc(var(--ui-left) + 136px); right: calc(var(--ui-right) + 128px); bottom: var(--ui-bottom); max-height: 120px; width: auto; transform: none; }
+main.roam-root[data-controls="mobile"] .sv-outpost-prompt button { padding: 10px; font-size: 14px; line-height: 1.3; }
+main.roam-root[data-controls="mobile"] :is(.sv-outpost-prompt kbd,.sv-rover-hints,.sv-rover-schematic,.sv-rover-exit-btn) { display: none; }
+main.roam-root[data-controls="mobile"] .mars-debug { top: 64px; right: var(--ui-right); max-width: 180px; font-size: 12px; }
+main.roam-root[data-controls="mobile"] .mars-debug[data-mode="detailed"] { top: 64px; max-height: calc(100dvh - 220px); overflow: auto; }
+main.roam-root[data-controls="mobile"] .roam-install-hint { inset: auto calc(var(--ui-right) + 128px) var(--ui-bottom) calc(var(--ui-left) + 136px); width: auto; padding: 8px; font-size: 14px; max-height: 120px; overflow: auto; }
+
+/* The native modal contains the handset. Its display is the only scrolling surface. */
+main.roam-root[data-controls="mobile"] dialog.mars-phone-modal { inset: var(--ui-top) var(--ui-right) var(--ui-bottom) var(--ui-left); margin: auto; width: min(720px,calc(100% - var(--ui-left) - var(--ui-right))); height: min(620px,calc(100dvh - var(--ui-top) - var(--ui-bottom))); padding: 5px; border-radius: 24px; max-height: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal::backdrop { background: #071018b8; }
+main.roam-root[data-controls="mobile"] dialog.mars-phone-modal .mars-radiation-hud.gta-phone.phone-open { position: relative !important; inset: auto !important; margin: 0 !important; width: 100% !important; height: 100% !important; max-height: none !important; border: 0 !important; border-radius: 18px !important; box-shadow: none !important; transform: none !important; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-top-bar { flex: 0 0 48px; height: 48px; padding: 0 16px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-brand-logo { width: 72px; height: 36px; object-fit: contain; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-bezel-btn { width: 48px; height: 48px; inset: 0 4px auto auto; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-screen { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-rows: 48px minmax(0,1fr) 56px; min-height: 0; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-app-title { grid-area: 1/1; display: flex; align-items: center; padding: 8px 16px; margin: 0; min-width: 0; font: 650 16px/1.25 system-ui,sans-serif; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-status-bar { grid-area: 1/2; min-height: 48px; height: 48px; padding: 0 8px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-unit { display: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-sat-link-btn { min-height: 48px; padding: 8px; gap: 8px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-sat-link-btn { display: flex; align-items: center; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-sat-link-btn span { font-size: 14px; line-height: 1.3; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-content { grid-area: 2/1/3/-1; padding: 12px 16px; min-height: 0; overflow: auto; overscroll-behavior: contain; touch-action: pan-y; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-nav-bar { grid-area: 3/1/4/-1; display: flex; min-height: 56px; height: 56px; padding: 4px 8px; gap: 8px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-nav-bar button { min-height: 48px; flex: 1; padding: 4px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-home { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(155px,1fr); align-items: start; gap: 16px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-home-brand { display: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app { min-height: 68px; gap: 4px; padding: 4px; font: 500 14px/1.2 system-ui,sans-serif; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-icon { width: 32px; height: 32px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-icon svg { width: 23px; height: 23px; }
+main.roam-root[data-controls="mobile"] .handset-home-readout { padding: 10px; }
+main.roam-root[data-controls="mobile"] .handset-home-readout dl { display: grid; grid-template-columns: 1fr; gap: 8px; }
+main.roam-root[data-controls="mobile"] .handset-home-readout dl>div { display: flex; justify-content: space-between; gap: 8px; }
+main.roam-root[data-controls="mobile"] .handset-home-readout :is(dt,dd,small,.handset-readout-title) { font-size: 14px; margin: 0; line-height: 1.3; }
+main.roam-root[data-controls="mobile"] .handset-readout-title { display: block; font-size: 12px; }
+main.roam-root[data-controls="mobile"] .handset-readout-title>span+span { display: none; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal :is(.mars-card-label,.mars-card-val,.mars-phone-source-note,.mars-setting-label,.mars-event-meta,.mars-sys-info) { font-size: 14px; line-height: 1.4; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-grid-3 { gap: 8px; }
+main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-grid-card { padding: 12px 8px; }
+@media (orientation: portrait) {
+  main.roam-root[data-controls="mobile"] dialog.mars-phone-modal { width: min(420px,calc(100% - var(--ui-left) - var(--ui-right))); }
+  main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-home { grid-template-columns: 1fr; }
+}
+@media (max-height: 430px) {
+  main.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-content { padding: 6px 12px; }
+  main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app { min-height: 56px; padding: 2px; }
+  main.roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-icon { height: 26px; width: 26px; }
+}
+
+/* Atlas: a full-size map or a scrollable directory on phones; both on tablets. */
+main.roam-root[data-controls="mobile"] .roam-dialog:has(.atlas-expedition-wrap) { position: fixed; inset: var(--ui-top) var(--ui-right) var(--ui-bottom) var(--ui-left); width: auto; height: auto; max-width: none; max-height: none; padding: 0; margin: 0; overflow: hidden; border-radius: 16px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap { height: 100%; display: flex; flex-direction: column; padding: 0; min-width: 0; min-height: 0; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .mast { flex: 0 0 56px; height: 56px; padding: 4px 8px; gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .mast .brand { font-size: 14px; margin-right: auto; letter-spacing: .08em; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .mast :is(.program,.live) { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-mobile-tabs { display: flex; gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap :is(.helpBtn,.closeBtn,.maptools button,.tools button,.atlas-mobile-tabs button) { min-width: 48px; min-height: 48px; height: 48px; padding: 8px; border-radius: 10px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-mobile-tabs [aria-pressed="true"] { background: #bbdcd4; color: #102221; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; max-width: none; padding: 0 8px 8px; margin: 0; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap :is(.titlebar,.bottom) { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .grid { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr); flex: 1; min-height: 0; height: auto; overflow: hidden; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap #map { height: 100%; min-height: 0; width: 100%; touch-action: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap[data-mobile-pane="map"] .panel { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap[data-mobile-pane="places"] #map { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead { left: 12px; top: 12px; max-width: 45%; pointer-events: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead small { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead strong { font-size: 18px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maptools { top: 8px; right: 8px; padding: 4px; gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools { right: 8px; bottom: 8px; display: grid; grid-template-columns: repeat(2,48px); gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .tools button { width: 48px; font-size: 22px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .mapfoot { left: 12px; right: 128px; bottom: 12px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .pin span { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .pin.chosen span { display: block; max-width: 150px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .panel { display: block; min-height: 0; width: auto; border: 0; overflow: auto; touch-action: pan-y; overscroll-behavior: contain; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .tabs { gap: 8px; padding: 4px 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .tabs button { flex: 1; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .panelbody { overflow: visible; min-height: 0; padding: 12px; height: auto; max-height: none; display: block; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .category-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .chip { padding: 8px 12px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .list { display: grid; grid-template-columns: 1fr; max-height: none; overflow: visible; gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .site { min-height: 56px; display: grid; grid-template-columns: 24px minmax(0,1fr) auto; gap: 8px; padding: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .site .type { display: none; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .site-title { white-space: normal; font-size: 14px; line-height: 1.3; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .dist-chip { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .command { padding: 8px 12px; min-height: 0; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .command button { min-height: 48px; font-size: 16px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .detail :is(p,small,a) { font-size: 14px; line-height: 1.45; }
+@media (min-width: 1000px) and (min-height: 600px) {
+  main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .grid { grid-template-columns: minmax(0,1fr) 320px; }
+  main.roam-root[data-controls="mobile"] .atlas-expedition-wrap[data-mobile-pane] #map { display: block; }
+  main.roam-root[data-controls="mobile"] .atlas-expedition-wrap[data-mobile-pane] .panel { display: block; }
+  main.roam-root[data-controls="mobile"] .atlas-mobile-tabs { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  main:is(.tarukh-home,.roam-root)[data-controls="mobile"] *,main:is(.tarukh-home,.roam-root)[data-controls="mobile"] *::before { scroll-behavior: auto; transition: none; }
+}
+
+/* Pause navigation stays large on phones; the desktop radial dial is retained. */
+main.roam-root[data-controls="mobile"] .flight-menu {
+  padding: var(--ui-top) var(--ui-right) var(--ui-bottom) var(--ui-left);
+  width: 100%; height: 100dvh; max-height: none;
+}
+main.roam-root[data-controls="mobile"] .flight-menu-header { flex: 0 0 48px; height: 48px; padding: 0 0 8px; }
+main.roam-root[data-controls="mobile"] .flight-menu-brand { margin: 0; font-size: 14px; }
+main.roam-root[data-controls="mobile"] .flight-menu h2 { font-size: 24px; }
+main.roam-root[data-controls="mobile"] .flight-menu-heading { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+main.roam-root[data-controls="mobile"] :is(.flight-menu-brand span,.flight-menu-close span,.flight-menu-footer,.flight-menu-dial-hint,.flight-menu-hub,.flight-menu-dial>svg,.flight-menu-ring) { display: none; }
+main.roam-root[data-controls="mobile"] .flight-menu-body { grid-template-columns: 132px minmax(0,1fr); gap: 16px; padding: 8px 0 0; min-height: 0; }
+main.roam-root[data-controls="mobile"] .flight-menu-dial { width: 132px; min-width: 0; height: auto; aspect-ratio: auto; align-self: start; margin: 0; }
+main.roam-root[data-controls="mobile"] .flight-menu-sectors { position: static; display: flex; flex-direction: column; gap: 8px; border-radius: 0; overflow: visible; }
+main.roam-root[data-controls="mobile"] .flight-menu-sector[data-sector] { position: relative; inset: auto; width: 100%; height: 48px; clip-path: none; border: 1px solid var(--mobile-line); border-radius: 12px; background: #152c38a6; }
+main.roam-root[data-controls="mobile"] .flight-menu-sector[aria-pressed="true"] { background: #bbdcd4; color: #102221; }
+main.roam-root[data-controls="mobile"] .flight-menu-sector[data-sector] .flight-menu-sector-label { position: static; display: flex; flex-direction: row; width: auto; gap: 8px; transform: none; font: 500 14px/1.25 system-ui,sans-serif; }
+main.roam-root[data-controls="mobile"] .flight-menu-sector-label svg { width: 20px; height: 20px; }
+main.roam-root[data-controls="mobile"] .flight-menu-panel { justify-content: flex-start; padding: 8px 8px 16px 16px; gap: 12px; touch-action: pan-y; }
+main.roam-root[data-controls="mobile"] .flight-menu-presets button { min-height: 80px; border-radius: 12px; }
+main.roam-root[data-controls="mobile"] .flight-menu-panel :is(input,select) { min-height: 48px; font-size: 16px; }
+main.roam-root[data-controls="mobile"] .flight-menu-presets span { font-size: 14px; }
+
+/* Mission details and equipment panels scroll inside their own safe-area sheet. */
+main.roam-root[data-controls="mobile"][data-phase="story"] .ely-shell .ely-hud { left: calc(var(--ui-left) + 176px); right: calc(var(--ui-right) + 128px); top: calc(var(--ui-top) + 56px); bottom: auto; width: auto; max-height: calc(100dvh - var(--ui-top) - var(--ui-bottom) - 184px); transform: none; padding: 8px; overflow: auto; }
+main.roam-root[data-controls="mobile"] .ely-hud>:not(.ely-mobile-next,.ely-sr-only) { display: none; }
+main.roam-root[data-controls="mobile"] .ely-hud .ely-mobile-next { display: block; margin: 0; }
+main.roam-root[data-controls="mobile"] .ely-mobile-next strong { display: block; font-size: 14px; line-height: 1.35; }
+main.roam-root[data-controls="mobile"] .ely-mobile-next nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+main.roam-root[data-controls="mobile"] .ely-mobile-next button { padding: 8px; font-size: 14px; }
+main.roam-root[data-controls="mobile"] :is(.ely-backdrop,.mars-dialog-backdrop) { position: fixed; padding: var(--ui-top) var(--ui-right) var(--ui-bottom) var(--ui-left); }
+main.roam-root[data-controls="mobile"] :is(.ely-dialog,.roam-dialog) { max-height: calc(100dvh - var(--ui-top) - var(--ui-bottom)); max-width: 100%; }
+main.roam-root[data-controls="mobile"] .ely-dialog>header { flex: 0 0 auto; padding: 8px 72px 8px 16px; }
+main.roam-root[data-controls="mobile"] .ely-dialog>header h2 { font-size: 22px; margin: 4px 0; }
+main.roam-root[data-controls="mobile"] .ely-close { top: 8px; right: 8px; }
+main.roam-root[data-controls="mobile"] .ely-dialog-body { min-height: 0; padding: 12px 16px; touch-action: pan-y; }
+main.roam-root[data-controls="mobile"] .ely-dialog>footer { flex: 0 0 auto; gap: 8px; padding: 8px 16px; }
+main.roam-root[data-controls="mobile"] .ely-dialog>footer>span { font-size: 14px; line-height: 1.3; }
+main.roam-root[data-controls="mobile"] .ely-dialog :is(input,select) { min-height: 48px; font-size: 16px; }
+main.roam-root[data-controls="mobile"] .ely-actions { gap: 8px; }
+main.roam-root[data-controls="mobile"] .ma-brush-controls { gap: 8px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap #guide { width: min(600px,calc(100% - 16px)); max-height: calc(100dvh - var(--ui-top) - var(--ui-bottom) - 16px); box-sizing: border-box; overflow: auto; touch-action: pan-y; padding: 16px; }
+main.roam-root[data-controls="mobile"] .atlas-touch-help { display: block; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap #guide p { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .atlas-expedition-wrap .maphead [role="status"] { display: block; padding: 8px; background: #12232de6; color: white; font-size: 14px; }
+
+main.roam-root[data-controls="mobile"] .roam-header>button { display: none; }
+main.roam-root[data-controls="mobile"] .sv-world .sv-rover-hud {
+  left: calc(var(--ui-left) + 176px); right: calc(var(--ui-right) + 192px); top: calc(var(--ui-top) + 56px); bottom: auto;
+  width: auto; max-width: 280px; min-width: 0; transform: none; padding: 8px; border-radius: 12px;
+  display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 104px; overflow: auto; touch-action: pan-y;
+  background: var(--mobile-surface); pointer-events: auto;
+}
+main.roam-root[data-controls="mobile"] .sv-rover-hud :is(.sv-rover-gearbox,.sv-rover-solar-status,.sv-rover-speedometer small,.sv-rover-range) { display: none; }
+main.roam-root[data-controls="mobile"] .sv-rover-speedometer { display: flex; align-items: baseline; gap: 8px; padding: 0; border: 0; }
+main.roam-root[data-controls="mobile"] .sv-rover-speedometer strong { font-size: 22px; line-height: 1.1; }
+main.roam-root[data-controls="mobile"] .sv-rover-speedometer span { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .sv-rover-power-grid { width: 100%; min-width: 0; padding: 0; border: 0; }
+main.roam-root[data-controls="mobile"] :is(.sv-rover-battery-header,.sv-battery-title,.sv-battery-value) { font-size: 14px; }
+main.roam-root[data-controls="mobile"][data-phase="story"]:has(.wheel-pedals) .ely-shell .ely-hud { right: calc(var(--ui-right) + 192px); }
+main.roam-root[data-controls="mobile"]:has(.ely-hud) .sv-world .sv-rover-hud { top: auto; bottom: var(--ui-bottom); max-height: 104px; }
+main.roam-root[data-controls="mobile"] :is(.mars-shield-popup,.mars-garage-dock-popup,.mars-sep-alert-banner) {
+  top: auto !important; bottom: calc(var(--ui-bottom) + 128px) !important;
+  left: calc(var(--ui-left) + 176px) !important; right: calc(var(--ui-right) + 128px) !important;
+  width: auto !important; max-width: none !important; max-height: 96px; overflow: auto;
+  transform: none !important; padding: 8px !important; border-radius: 12px !important; gap: 8px !important;
+}
+main.roam-root[data-controls="mobile"]:has(.mars-shield-popup) .mars-garage-dock-popup { display: none; }
+main.roam-root[data-controls="mobile"] :is(.mars-shield-popup-body strong,.mars-garage-dock-body strong,.mars-sep-alert-text strong) { font-size: 14px !important; white-space: normal !important; }
+main.roam-root[data-controls="mobile"] :is(.mars-popup-close-btn,.mars-garage-close-btn) { position: static; flex-shrink: 0; width: 48px; height: 48px; }
+main.roam-root[data-controls="mobile"] :is(.flight-actions button,.wheel-controls button)[data-held] { background: #b5e3dc; color: #102324; border-color: white; }
+main.roam-root[data-controls="mobile"] .flight-actions button span { font-size: 14px; }
+main.roam-root[data-controls="mobile"] .mars-garage-dock-close { min-width: 48px; min-height: 48px; }
+main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.sv-outpost-prompt,.sv-world-message) { left: calc(var(--ui-left) + 136px); right: calc(var(--ui-right) + 192px); bottom: var(--ui-bottom); top: auto; width: auto; max-height: 104px; transform: none; overflow: auto; font-size: 14px; }
+main.roam-root[data-controls="mobile"]:has(.wheel-pedals) :is(.mars-shield-popup,.mars-garage-dock-popup) { top: calc(var(--ui-top) + 56px) !important; bottom: auto !important; right: calc(var(--ui-right) + 192px) !important; }
+main.roam-root[data-controls="mobile"] .sv-world:has(.mars-shield-popup) .sv-rover-hud { visibility: hidden; }
+main.roam-root[data-controls="mobile"] .sv-outpost-prompt button { background: #152b36eb; border: 1px solid var(--mobile-line); border-radius: 12px; color: #eff8fa; }
+@media (orientation: portrait) {
+  main.roam-root[data-controls="mobile"] .flight-menu-body { display: flex; flex-direction: column; }
+  main.roam-root[data-controls="mobile"] .flight-menu-dial { width: 100%; flex: 0 0 auto; }
+  main.roam-root[data-controls="mobile"] .flight-menu-sectors { display: grid; grid-template-columns: 1fr 1fr; }
+  main.roam-root[data-controls="mobile"] .flight-menu-panel { border: 0; width: 100%; }
+}

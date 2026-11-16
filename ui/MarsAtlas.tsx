@@ -16,6 +16,7 @@ import { GARAGE_SITE } from "../game/garageSite";
 import { GREENHOUSE_SITES } from "../game/greenhouseSites";
 import { assetUrl } from "../lib/assetUrl";
 import type { View } from "./MarsWorld";
+import { createMapPointerGesture } from "../game/mapPointerGesture";
 
 const ATLAS_HEIGHT_WIDTH = 2049;
 const ATLAS_HEIGHT_HEIGHT = 1537;
@@ -162,12 +163,14 @@ export default function MarsAtlas({
   const [waypoint, setWaypoint] = useState<Waypoint | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'map'|'places'>('map');
   const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>({
     width: 800,
     height: 600,
   });
   const [terrainReady, setTerrainReady] = useState(false);
   const [reliefRendererReady, setReliefRendererReady] = useState(false);
+  const [reliefUnavailable, setReliefUnavailable] = useState(false);
   const [heightData, setHeightData] = useState<Int16Array | null>(null);
   const [heightDatum, setHeightDatum] = useState<number | null>(null);
 
@@ -196,11 +199,16 @@ export default function MarsAtlas({
   const reliefMaterialRef = useRef<THREE.ShaderMaterial | null>(null);
   const messageTimeoutRef = useRef<number | null>(null);
 
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panZ: 0 });
-  const dragDistanceRef = useRef(0);
-  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const pinchDistanceRef = useRef<number | null>(null);
+  const [mapGesture] = useState(createMapPointerGesture);
+
+  useEffect(() => {
+    window.addEventListener("blur", mapGesture.reset);
+    document.addEventListener("visibilitychange", mapGesture.reset);
+    return () => {
+      window.removeEventListener("blur", mapGesture.reset);
+      document.removeEventListener("visibilitychange", mapGesture.reset);
+    };
+  }, [mapGesture]);
 
   // Region dimensions
   const regionWidth = B.east - B.west;
@@ -249,7 +257,8 @@ export default function MarsAtlas({
     const heights = heightData;
     if (!terrainReady || !canvas || !image || !heights) return;
 
-    let renderer: THREE.WebGLRenderer;
+    let renderer: THREE.WebGLRenderer | null = null;
+    let readinessFrame = 0;
     let geometry: THREE.BufferGeometry | null = null;
     let material: THREE.ShaderMaterial | null = null;
     let texture: THREE.Texture | null = null;
@@ -366,18 +375,21 @@ export default function MarsAtlas({
       reliefCameraRef.current = camera;
       reliefRendererRef.current = renderer;
       reliefMaterialRef.current = material;
-      requestAnimationFrame(() => {
+      readinessFrame = requestAnimationFrame(() => {
         setReliefRendererReady(true);
       });
     } catch (error) {
       console.error("Mars atlas 3D relief could not be initialized:", error);
+      readinessFrame = requestAnimationFrame(() => setReliefUnavailable(true));
       geometry?.dispose();
       material?.dispose();
       texture?.dispose();
-      return;
+      renderer?.dispose();
+      return () => cancelAnimationFrame(readinessFrame);
     }
 
     return () => {
+      cancelAnimationFrame(readinessFrame);
       setReliefRendererReady(false);
       reliefRendererRef.current = null;
       reliefCameraRef.current = null;
@@ -386,7 +398,7 @@ export default function MarsAtlas({
       geometry?.dispose();
       material?.dispose();
       texture?.dispose();
-      renderer.dispose();
+      renderer?.dispose();
     };
   }, [terrainReady, regionHeight, regionWidth, terrainHeightAt, heightData]);
 
@@ -430,54 +442,49 @@ export default function MarsAtlas({
     renderer.render(scene, camera);
   }, [terrainReady, reliefRendererReady, viewportSize, zoom, pan, centerX, centerZ, regionWidth, regionHeight, showContours, perspective]);
 
-  // Load the supplied north-up raster and the matching NASA MOLA height crop locally.
+  // The plan view is ready as soon as its raster decodes. Relief is optional.
   useEffect(() => {
     let cancelled = false;
+    let triedOriginal = false;
     const image = new Image();
-    const imageLoaded = new Promise<HTMLImageElement>((resolve, reject) => {
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("Could not load the Mars atlas base map."));
-      image.src = assetUrl("art/mars-atlas/map-base.png");
-    });
-    const heightsLoaded = fetch(assetUrl("art/mars-atlas/mola-32ppd.bin"))
-      .then((response) => {
-        if (!response.ok) throw new Error(`MOLA terrain request failed (${response.status}).`);
+    image.onload = () => {
+      if (cancelled) return;
+      baseMapImageRef.current = image;
+      setTerrainReady(true);
+    };
+    image.onerror = () => {
+      if (cancelled) return;
+      if (!triedOriginal) {
+        triedOriginal = true;
+        image.src = assetUrl("art/mars-atlas/map-base.png");
+      } else {
+        setMessage("Map image unavailable. The destination list is still ready to use.");
+      }
+    };
+    image.src = assetUrl("art/mars-atlas/map-base.webp");
+    return () => { cancelled = true; image.onload = null; image.onerror = null; };
+  }, []);
+  useEffect(() => {
+    if (perspective !== "relief" || heightData) return;
+    const abort = new AbortController();
+    void fetch(assetUrl("art/mars-atlas/mola-32ppd.bin"), { signal: abort.signal })
+      .then(response => {
+        if (!response.ok) throw new Error("Relief data unavailable");
         return response.arrayBuffer();
       })
-      .then((buffer) => {
-        const heights = new Int16Array(buffer);
-        if (heights.length !== ATLAS_HEIGHT_WIDTH * ATLAS_HEIGHT_HEIGHT) {
-          throw new Error("The Mars atlas elevation crop has an unexpected size.");
+      .then(buffer => {
+        if (abort.signal.aborted) return;
+        const data = new Int16Array(buffer);
+        if (data.length !== ATLAS_HEIGHT_WIDTH * ATLAS_HEIGHT_HEIGHT) {
+          throw new Error("Invalid relief data");
         }
-        return heights;
-      });
-
-    Promise.all([imageLoaded, heightsLoaded])
-      .then(([loadedImage, heights]) => {
-        if (cancelled) return;
-        baseMapImageRef.current = loadedImage;
-        const datum = sampleAtlasHeight(heights, 0.5, 0.5);
-        setHeightData(heights);
-        setHeightDatum(datum);
-        setTerrainReady(true);
+        setReliefUnavailable(false);
+        setHeightData(data);
+        setHeightDatum(sampleAtlasHeight(data, .5, .5));
       })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        console.error("Mars atlas terrain assets could not be loaded:", error);
-        // The raster remains usable if WebGL or the optional elevation asset is unavailable.
-        imageLoaded.then((loadedImage) => {
-          if (!cancelled) {
-            baseMapImageRef.current = loadedImage;
-            setTerrainReady(true);
-          }
-        }).catch(() => undefined);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+      .catch(() => { if (!abort.signal.aborted) setReliefUnavailable(true); });
+    return () => abort.abort();
+  }, [perspective, heightData]);
   // Active rover / astronaut position
   const rawRoverX = view?.roverX ?? x;
   const rawRoverZ = view?.roverZ ?? z;
@@ -690,89 +697,31 @@ export default function MarsAtlas({
     [centerX, centerZ, regionWidth, regionHeight, showToast]
   );
 
-  // Pan & Multi-Touch Pinch-Zoom interaction
+  // Capture both fingers; cancellation and hover cannot become waypoint taps.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (activePointersRef.current.size === 2) {
-      const pts = Array.from(activePointersRef.current.values());
-      pinchDistanceRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      isDraggingRef.current = false;
-      return;
-    }
-    isDraggingRef.current = true;
-    dragDistanceRef.current = 0;
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      panX: pan.x,
-      panZ: pan.z,
-    };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if ((e.target as HTMLElement).closest("button") || e.button > 0) return;
+    if(mapGesture.start(e.pointerId,e.clientX,e.clientY))e.currentTarget.setPointerCapture(e.pointerId);
   };
-
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (activePointersRef.current.size === 2) {
-      const pts = Array.from(activePointersRef.current.values());
-      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      if (pinchDistanceRef.current !== null && pinchDistanceRef.current > 0) {
-        const factor = dist / pinchDistanceRef.current;
-        if (Math.abs(factor - 1) > 0.015) {
-          handleZoom(factor);
-          pinchDistanceRef.current = dist;
-        }
-      } else {
-        pinchDistanceRef.current = dist;
-      }
-      return;
-    }
-    if (!isDraggingRef.current) return;
-    const vp = mapViewportRef.current;
-    if (!vp) return;
-
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    dragDistanceRef.current = Math.hypot(dx, dy);
-
-    const aspect = vp.clientWidth / vp.clientHeight;
-    const viewSpan = Math.max(regionHeight, regionWidth / aspect) / zoom;
-    const metersPerPixelX = viewSpan / vp.clientHeight;
-    const metersPerPixelZ = viewSpan / (vp.clientHeight *
-      (perspective === "relief" && reliefRendererReady ? Math.cos(RELIEF_TILT) : 1));
-
-    const maxPanX = regionWidth * 0.45;
-    const maxPanZ = regionHeight * 0.45;
-
-    setPan({
-      x: Math.max(-maxPanX, Math.min(maxPanX, dragStartRef.current.panX - dx * metersPerPixelX)),
-      z: Math.max(-maxPanZ, Math.min(maxPanZ, dragStartRef.current.panZ - dy * metersPerPixelZ)),
-    });
+    const motion=mapGesture.move(e.pointerId,e.clientX,e.clientY),vp=mapViewportRef.current;
+    if(!motion||!vp)return;
+    if(motion.kind==='pinch'){handleZoom(motion.scale);return;}
+    const span=Math.max(regionHeight,regionWidth/(vp.clientWidth/vp.clientHeight))/zoom;
+    const scale=span/vp.clientHeight;
+    const reliefScale=perspective==='relief'&&reliefRendererReady?Math.cos(RELIEF_TILT):1;
+    setPan(current=>({x:Math.max(-regionWidth*.45,Math.min(regionWidth*.45,current.x-motion.dx*scale)),
+      z:Math.max(-regionHeight*.45,Math.min(regionHeight*.45,current.z-motion.dy*scale/reliefScale))}));
   };
-
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    activePointersRef.current.delete(e.pointerId);
-    if (activePointersRef.current.size < 2) pinchDistanceRef.current = null;
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-
-    // If it was a clean click without dragging and not during a multi-touch gesture, place a custom waypoint
-    if (dragDistanceRef.current < 6 && activePointersRef.current.size === 0) {
-      const vp = mapViewportRef.current;
-      if (!vp) return;
-      const rect = vp.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const [wx, wz] = projectScreenToWorld(sx, sy, rect.width, rect.height);
-      const m = worldToMars(wx, wz);
-      setWaypoint({ x: wx, z: wz, label: `GPS: ${m.latitude.toFixed(2)}°N, ${m.longitude.toFixed(2)}°E` });
-      setRouteState("preview");
-      setTraverseProgress(0);
-      setSimulatedRover(null);
-      setPulseRing(1);
-      showToast(`Waypoint set: ${m.latitude.toFixed(2)}°N, ${m.longitude.toFixed(2)}°E`);
-    }
+    const tap=mapGesture.end(e.pointerId,e.type!=='pointerup');
+    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+    if(!tap)return;
+    const rect=e.currentTarget.getBoundingClientRect();
+    const [wx,wz]=projectScreenToWorld(e.clientX-rect.left,e.clientY-rect.top,rect.width,rect.height);
+    const m=worldToMars(wx,wz);
+    const label='GPS: '+m.latitude.toFixed(2)+'°N, '+m.longitude.toFixed(2)+'°E';
+    setWaypoint({x:wx,z:wz,label});setRouteState('preview');setTraverseProgress(0);setSimulatedRover(null);setPulseRing(1);
+    showToast('Waypoint set: '+label);
   };
 
   // Zoom handlers
@@ -780,11 +729,16 @@ export default function MarsAtlas({
     setZoom((cur) => Math.max(0.6, Math.min(4.0, cur * factor)));
   }, []);
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.15 : 0.87;
-    handleZoom(factor);
-  };
+  useEffect(() => {
+    const viewport=mapViewportRef.current;
+    if(!viewport)return;
+    const wheel=(event:WheelEvent)=>{
+      event.preventDefault();
+      handleZoom(event.deltaY<0?1.15:.87);
+    };
+    viewport.addEventListener('wheel',wheel,{passive:false});
+    return()=>viewport.removeEventListener('wheel',wheel);
+  },[handleZoom]);
 
   // Traverse route state machine action button
   const handleActionClick = () => {
@@ -1090,7 +1044,7 @@ export default function MarsAtlas({
   const [roverScreenX, roverScreenY] = projectWorldToScreen(roverX, roverZ, viewportSize.width, viewportSize.height);
 
   return (
-    <div className="atlas-expedition-wrap">
+    <div className="atlas-expedition-wrap" data-mobile-pane={mobilePane}>
       {/* 1. Header Masthead */}
       <header className="mast">
         <div className="brand">
@@ -1104,6 +1058,10 @@ export default function MarsAtlas({
         <span className="live meta">
           <i className="dot" /> Rover online
         </span>
+        <nav className="atlas-mobile-tabs" aria-label="Atlas view">
+          <button type="button" aria-pressed={mobilePane==='map'} onClick={()=>setMobilePane('map')}>Map</button>
+          <button type="button" aria-pressed={mobilePane==='places'} onClick={()=>setMobilePane('places')}>Places</button>
+        </nav>
         <button
           type="button"
           className="helpBtn"
@@ -1152,7 +1110,7 @@ export default function MarsAtlas({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            onWheel={handleWheel}
+            onLostPointerCapture={handlePointerUp}
           >
             {/* Terrain Canvas */}
             <div id="terrain">
@@ -1178,6 +1136,7 @@ export default function MarsAtlas({
             <div className="maphead">
             <small>User map base · NASA MOLA relief</small>
               <strong>Elysium Planitia</strong>
+              {perspective==='relief'&&!reliefRendererReady&&<span role="status">{reliefUnavailable ? "3D relief unavailable. Plan view is still usable." : "Preparing 3D relief…"}</span>}
             </div>
 
             {/* Perspective Switcher */}
@@ -1548,6 +1507,7 @@ export default function MarsAtlas({
             <p>
               Select a site on the terrain or in the list. Set its waypoint, then begin the traverse to guide the rover along the plotted route.
             </p>
+            <p className="atlas-touch-help">Drag with one finger to move the map. Pinch with two fingers to zoom, or use + and −. Tap Places for the full list of destinations; tap Map to return.</p>
             <p>
               • <b>Drag</b> or use the arrow keys to pan across Elysium Planitia.<br />
               • Use <b>+</b> and <b>−</b> or scroll to zoom.<br />

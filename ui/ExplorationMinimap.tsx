@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Map as MapIcon, Minus, Plus } from 'lucide-react';
 import type { View } from "./MarsWorld";
 import { mapRectPoint, mapPoint, mapHeading, mapLidarContacts } from "../game/minimap";
 import { MARS_LANDMARKS } from "../content/marsLandmarks";
@@ -47,7 +48,6 @@ export default function ExplorationMinimap({
   const isOverview = activeZoom === "overview";
   const activeRange: number = isOverview ? 942 : activeZoom;
 
-  if (view.cockpitView) return null;
 
   // Real-world coordinates and elevation on Mars
   const coords = worldToMars(x, z);
@@ -549,6 +549,11 @@ export default function ExplorationMinimap({
           </div>
         </div>
       )}
+      <nav className="mobile-minimap-tools" aria-label="Radar controls">
+        <button type="button" aria-label="Open full map" onClick={onOpenAtlas}><MapIcon size={20}/><span>Map</span></button>
+        <button type="button" aria-label={`Change radar range. Current ${activeRange} metres`} onClick={handleCycleZoom}><span>{isOverview?'All':`${activeRange}m`}</span></button>
+        <button type="button" aria-label={open?'Collapse minimap':'Expand minimap'} aria-expanded={open} onClick={()=>setOpen(!open)}>{open?<Minus size={20}/>:<Plus size={20}/>}</button>
+      </nav>
     </aside>
   );
 }

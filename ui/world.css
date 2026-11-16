@@ -1155,7 +1155,7 @@
     cursor: pointer;
   }
 
-  .sv-rover-hud {
+  .sv-world[data-touch="false"] .sv-rover-hud {
     bottom: max(10px, env(safe-area-inset-bottom)) !important;
     top: auto !important;
     left: 50% !important;

@@ -21,7 +21,6 @@ function mountScene(viewport: HTMLDivElement, world: HTMLDivElement) {
     image.style.top = layer.top + "px";
     // Each trimmed plate pivots around the centre of the original illustration.
     image.style.transformOrigin = `${width / 2 - layer.left}px ${height / 2 - layer.top}px`;
-    image.src = artUrl(layer.name);
     return image;
   });
 
@@ -117,7 +116,18 @@ function mountScene(viewport: HTMLDivElement, world: HTMLDivElement) {
   document.addEventListener("visibilitychange", syncPlayback);
   paint();
 
-  Promise.all(planes.map(image => image.decode())).then(() => {
+  // Finish the complete poster first so decorative plates do not compete with
+  // the first useful screen on a slow connection. Every original plate follows.
+  const poster = new Image();
+  poster.fetchPriority = "high";
+  poster.src = artUrl("poster");
+  poster.decode().catch(() => {}).then(() => {
+    if (disposed) return;
+    return Promise.all(planes.map((image, index) => {
+      image.src = artUrl(redValleyLayers[index].name);
+      return image.decode();
+    }));
+  }).then(() => {
     if (disposed) return;
     if (!playing) entry = settled;
     world.replaceChildren(...planes);
