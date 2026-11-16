@@ -226,3 +226,38 @@ dialog.mars-sep-modal-backdrop button { min-height: 44px; min-width: 44px; font-
 .roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-grid {gap:8px;}
 .roam-root[data-controls="mobile"] .mars-phone-modal :is(.handset-app,.mars-event-item,.mars-system-card,.mars-setting-row) {min-height:48px;}
 .roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-app-title {font-size:16px;}
+
+/* Keep the in-game handset inside mobile safe areas and readable at touch sizes. */
+.roam-root[data-controls="mobile"] .mars-phone-modal {
+  inset: auto var(--ui-right) var(--ui-bottom) auto;
+  width: min(320px, calc(100vw - var(--ui-left) - var(--ui-right)));
+  height: min(560px, calc(100dvh - var(--ui-top) - var(--ui-bottom)));
+}
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-screen,
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-content { min-width: 0; }
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-status-bar { gap: 4px; padding-inline: 8px; }
+.roam-root[data-controls="mobile"] .mars-phone-modal .mars-sat-link-btn { min-width: 0; flex: 0 1 auto; white-space: nowrap; }
+.roam-root[data-controls="mobile"] .mars-phone-modal .handset-unit { flex: 0 0 auto; }
+.roam-root[data-controls="mobile"] .mars-phone-modal :is(.mars-event-meta, .mars-sys-info, .mars-setting-label) { overflow-wrap: anywhere; }
+.roam-root[data-controls="mobile"] .mars-phone-modal :is(.mars-grid-card, .mars-phone-bar-card, .mars-event-item, .mars-system-card, .mars-setting-row) { min-width: 0; }
+.roam-root[data-controls="mobile"] .handset-home-readout dl > div { min-width: 0; }
+.roam-root[data-controls="mobile"] .handset-home-readout :is(dt, dd) { overflow-wrap: anywhere; }
+
+@media (max-height: 540px) and (orientation: landscape) {
+  .roam-root[data-controls="mobile"] .mars-phone-modal {
+    right: var(--ui-right);
+    bottom: var(--ui-bottom);
+    width: min(360px, calc(100vw - var(--ui-left) - var(--ui-right)));
+    height: calc(100dvh - var(--ui-top) - var(--ui-bottom));
+  }
+  .roam-root[data-controls="mobile"] .handset-home { gap: 8px; }
+  .roam-root[data-controls="mobile"] .handset-home-brand { display: none; }
+  .roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-grid { gap: 4px 6px; }
+  .roam-root[data-controls="mobile"] .mars-phone-modal .handset-app-icon { width: 38px; height: 38px; }
+}
+
+@media (max-width: 360px) {
+  .roam-root[data-controls="mobile"] .mars-phone-modal .mars-phone-content { padding: 8px; }
+  .roam-root[data-controls="mobile"] .mars-phone-modal .handset-home-readout { padding: 8px; }
+  .roam-root[data-controls="mobile"] .mars-phone-modal .handset-home-readout dl { gap: 5px; }
+}
