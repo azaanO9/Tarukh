@@ -603,9 +603,10 @@
   white-space: nowrap;
 }
 
+.tarukh-home-footer-by,
 .tarukh-home-footer-build {
   color: #c9d9df !important;
-  font: 7px/1.2 Consolas, "Courier New", monospace;
+  font: 600 8.5px/1.2 "Bahnschrift", "Bank Gothic", "Eurostile", "Segoe UI", sans-serif;
   letter-spacing: .08em;
   white-space: nowrap;
 }
@@ -1044,6 +1045,7 @@
   .tarukh-home-footer .tarukh-home-footer-controls { display: none; }
   .tarukh-home-footer .tarukh-home-footer-meta { width: 100%; max-width: 100%; flex: 1; align-items: flex-end; gap: 2px; margin-left: 0; }
   .tarukh-home-footer-credit { font-size: clamp(6px, 1.8vw, 7.5px); letter-spacing: .035em; white-space: nowrap; }
+  .tarukh-home-footer-by,
   .tarukh-home-footer-build { font-size: clamp(5.5px, 1.55vw, 6.5px); }
   .tarukh-home-footer b { margin: 0; padding: 3px 4px; }
   .tarukh-home-dialog { max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom))); }
@@ -1253,6 +1255,7 @@
   .tarukh-home-footer-controls { display: none; }
   .tarukh-home-footer-meta { width: 100%; max-width: 100%; gap: 2px; }
   .tarukh-home-footer-credit { font-size: clamp(6.5px, 1.2vw, 8px); }
+  .tarukh-home-footer-by,
   .tarukh-home-footer-build { font-size: clamp(6px, 1.1vw, 7.5px); }
   .tarukh-home-dialog {
     max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));

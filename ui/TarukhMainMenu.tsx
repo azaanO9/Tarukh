@@ -239,8 +239,8 @@ export default function TarukhMainMenu({
       <footer className="tarukh-home-footer">
         <div className="tarukh-home-footer-controls"><b>TAB</b> navigate <b>ENTER</b> select <b>ESC</b> close panel</div>
         <div className="tarukh-home-footer-meta">
-          <span className="tarukh-home-footer-credit">Created by · Musaib Yaseen · Azaan Khan · Salim Rashid Bhat</span>
-          <span className="tarukh-home-footer-build">TARUKH FIELD SYSTEM <i>·</i> FLIGHT BUILD 0.9.18</span>
+          <span className="tarukh-home-footer-credit">Built for NASA Space Apps Challenge 2026</span>
+          <span className="tarukh-home-footer-by">By Musaib~Azaan~Salim</span>
         </div>
       </footer>
 
@@ -288,9 +288,9 @@ export default function TarukhMainMenu({
                 <span className="tarukh-home-about-stamp">CREWED<br />MISSION</span>
               </div>
               <div className="tarukh-home-about-grid">
-                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Musaib Yaseen</strong></article>
-                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Azaan Khan</strong></article>
-                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Salim Rashid Bhat</strong></article>
+                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Musaib</strong></article>
+                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Azaan</strong></article>
+                <article><UserRound aria-hidden="true" /><span>CREATED BY</span><strong>Salim</strong></article>
               </div>
               <p className="tarukh-home-dialog-note">Travel scale and mission events are simplified for play. TARUKH is an independent project. NASA does not endorse it.</p>
             </>
